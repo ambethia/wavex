@@ -1,0 +1,30 @@
+{
+  "name": "wavex-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "WAVEx TypeScript-first framework workspace.",
+  "scripts": {
+    "build": "pnpm -r build",
+    "check": "pnpm typecheck && pnpm test",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "wavex",
+    "wx",
+    "vite",
+    "lit",
+    "convex"
+  ],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@10.18.0",
+  "devDependencies": {
+    "@types/node": "latest",
+    "lit": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@wavex/vite-plugin",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Vite plugin for WAVEx .wx files.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@wavex/compiler": "workspace:*",
+    "@wavex/core": "workspace:*",
+    "@wavex/language-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "vite": ">=5.0.0"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}

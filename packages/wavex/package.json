@@ -1,0 +1,26 @@
+{
+  "name": "wavex",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "WAVEx CLI.",
+  "bin": {
+    "wavex": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@wavex/compiler": "workspace:*",
+    "@wavex/core": "workspace:*",
+    "@wavex/language-core": "workspace:*"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}

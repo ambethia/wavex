@@ -1,0 +1,25 @@
+{
+  "name": "@wavex/compiler",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "WAVEx .wx to render-module compiler.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@wavex/core": "workspace:*",
+    "@wavex/language-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "lit": ">=3.0.0"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}

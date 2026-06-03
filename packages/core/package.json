@@ -1,0 +1,18 @@
+{
+  "name": "@wavex/core",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Shared WAVEx project model and helpers.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}

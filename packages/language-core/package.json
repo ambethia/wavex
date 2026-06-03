@@ -1,0 +1,21 @@
+{
+  "name": "@wavex/language-core",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "WAVEx .wx AST, parser, and diagnostics.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@wavex/core": "workspace:*"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}

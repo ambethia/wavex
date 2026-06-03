@@ -1,0 +1,22 @@
+{
+  "name": "@wavex/renderer-lit",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Lit renderer adapter for WAVEx.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@wavex/runtime": "workspace:*",
+    "lit": "latest"
+  },
+  "files": ["dist"],
+  "license": "MIT"
+}
