@@ -6,14 +6,14 @@ import type { Plugin, ViteDevServer } from "vite";
 import { transformWithOxc } from "vite";
 
 export interface WavexVitePluginOptions {
-  appDir?: string;
-  pagesDir?: string;
-  componentsDir?: string;
   webAwesomeComponents?: readonly string[];
 }
 
 const VIRTUAL_ROUTES_ID = "virtual:wavex/routes";
 const RESOLVED_VIRTUAL_ROUTES_ID = `\0${VIRTUAL_ROUTES_ID}`;
+const VIRTUAL_BOOTSTRAP_ID = "virtual:wavex/bootstrap";
+const BOOTSTRAP_PUBLIC_ID = "/@wavex/bootstrap";
+const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
 
 export function wavex(options: WavexVitePluginOptions = {}): Plugin {
   let projectRoot = process.cwd();
@@ -32,7 +32,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
       projectRoot = config.root;
     },
     configureServer(server) {
-      const config = resolveDirs(server.config.root, options);
+      const config = resolveDirs(server.config.root);
       server.watcher.add([config.pagesDir, config.componentsDir].filter(existsSync));
       server.middlewares.use((request, _response, next) => {
         const file = fileFromRequestUrl(request.url, server.config.root);
@@ -61,23 +61,27 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     },
     resolveId(id) {
       if (id === VIRTUAL_ROUTES_ID) return RESOLVED_VIRTUAL_ROUTES_ID;
+      if (id === VIRTUAL_BOOTSTRAP_ID || id === BOOTSTRAP_PUBLIC_ID) return RESOLVED_VIRTUAL_BOOTSTRAP_ID;
       return undefined;
     },
     load(id) {
-      if (id !== RESOLVED_VIRTUAL_ROUTES_ID) return undefined;
-      const config = resolveDirs(projectRoot, options);
-      const routes = discoverRoutes(config.pagesDir, projectRoot);
-      return [
-        `export const routes = ${JSON.stringify(routes, null, 2)};`,
-        `export default routes;`,
-        ""
-      ].join("\n");
+      const config = resolveDirs(projectRoot);
+      if (id === RESOLVED_VIRTUAL_ROUTES_ID) {
+        const routes = discoverRoutes(config.pagesDir, projectRoot);
+        return [
+          `export const routes = ${JSON.stringify(routes, null, 2)};`,
+          `export default routes;`,
+          ""
+        ].join("\n");
+      }
+      if (id === RESOLVED_VIRTUAL_BOOTSTRAP_ID) return generateBootstrapModule(config, projectRoot);
+      return undefined;
     },
     async transform(code, id) {
       const file = stripQuery(id);
       if (!file.endsWith(".wx")) return undefined;
       this.addWatchFile(file);
-      const config = resolveDirs(projectRoot, options);
+      const config = resolveDirs(projectRoot);
       const localComponents = discoverLocalComponents(config.componentsDir);
       const compiled = compileWavexModule(code, {
         id: normalizeSlashes(relative(projectRoot, file)),
@@ -102,7 +106,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     },
     handleHotUpdate(ctx) {
       if (!ctx.file.endsWith(".wx")) return undefined;
-      const config = resolveDirs(projectRoot, options);
+      const config = resolveDirs(projectRoot);
       if (!isWavexTemplateFile(ctx.file, config)) return undefined;
 
       invalidateWavexFile(ctx.server, ctx.file);
@@ -114,24 +118,67 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
 export default wavex;
 
 interface ResolvedDirs {
-  appDir: string;
   pagesDir: string;
   componentsDir: string;
+  styleFile: string;
+  convexApiFile: string;
 }
 
-function resolveDirs(root: string, options: WavexVitePluginOptions): ResolvedDirs {
-  const defaults = createDefaultConfig(options.appDir ?? "src");
-  let appDir = resolve(root, options.appDir ?? defaults.appDir);
-  let pagesDir = resolve(root, options.pagesDir ?? defaults.pagesDir);
-  let componentsDir = resolve(root, options.componentsDir ?? defaults.componentsDir);
+function resolveDirs(root: string): ResolvedDirs {
+  const defaults = createDefaultConfig();
+  return {
+    pagesDir: resolve(root, defaults.pagesDir),
+    componentsDir: resolve(root, defaults.componentsDir),
+    styleFile: resolve(root, defaults.sourceDir, "style.css"),
+    convexApiFile: resolve(root, defaults.apiDir, "_generated/api.js")
+  };
+}
 
-  if (!options.appDir && !options.pagesDir && !existsSync(pagesDir) && existsSync(resolve(root, "app/pages"))) {
-    appDir = resolve(root, "app");
-    pagesDir = resolve(root, "app/pages");
-    if (!options.componentsDir) componentsDir = resolve(root, "app/components");
-  }
+function generateBootstrapModule(config: ResolvedDirs, root: string): string {
+  const pageImportPath = publicImportPath(root, join(config.pagesDir, "index.wx"));
+  const styleImport = existsSync(config.styleFile) ? `import ${JSON.stringify(publicImportPath(root, config.styleFile))};` : "";
+  const apiImport = existsSync(config.convexApiFile)
+    ? `import { api as convexApi } from ${JSON.stringify(publicImportPath(root, config.convexApiFile))};`
+    : `const convexApi = undefined;`;
 
-  return { appDir, pagesDir, componentsDir };
+  return [
+    `import { mountLitPage } from "@wavex/renderer-lit";`,
+    `import { createConvexActionClient, createConvexResourceClient } from "@wavex/runtime";`,
+    `import { ConvexClient } from "convex/browser";`,
+    `import * as page from ${JSON.stringify(pageImportPath)};`,
+    styleImport,
+    apiImport,
+    ``,
+    `const root = document.querySelector("#app");`,
+    `if (!root) throw new Error("Missing #app mount node");`,
+    ``,
+    `const convexUrl = import.meta.env.VITE_CONVEX_URL;`,
+    `const hasResources = (page.resources?.length ?? 0) > 0;`,
+    `const convex = convexUrl ? new ConvexClient(convexUrl) : undefined;`,
+    `if (hasResources && !convex) throw new Error("Missing VITE_CONVEX_URL for WAVEx Convex resources");`,
+    ``,
+    `const app = mountLitPage(root, page, {}, {`,
+    `  resourceClient: convex ? createConvexResourceClient(convex, { api: convexApi }) : undefined,`,
+    `  actionClient: convex ? createConvexActionClient(convex, { api: convexApi }) : undefined,`,
+    `});`,
+    ``,
+    `if (import.meta.hot) {`,
+    `  import.meta.hot.accept(${JSON.stringify(pageImportPath)}, (nextModule) => {`,
+    `    if (!nextModule?.default) return;`,
+    `    app.setRender(nextModule.default);`,
+    `    app.setResources(nextModule.resources ?? []);`,
+    `  });`,
+    `  import.meta.hot.dispose(() => {`,
+    `    app.dispose();`,
+    `    void convex?.close?.();`,
+    `  });`,
+    `}`,
+    ``
+  ].filter((line) => line !== "").join("\n");
+}
+
+function publicImportPath(root: string, file: string): string {
+  return `/${normalizeSlashes(relative(root, file))}`;
 }
 
 function discoverRoutes(pagesDir: string, root: string) {

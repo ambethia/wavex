@@ -1,5 +1,5 @@
 export interface WavexConfig {
-  appDir: string;
+  sourceDir: string;
   pagesDir: string;
   componentsDir: string;
   apiDir: string;
@@ -56,11 +56,11 @@ const DEFAULT_WEB_AWESOME_COMPONENTS = new Set([
 const COLLECTION_FUNCTIONS = new Set(["all", "list", "many", "page", "paginate", "search"]);
 const SINGLETON_FUNCTIONS = new Set(["byId", "get", "load", "me", "one"]);
 
-export function createDefaultConfig(sourceDir = "src"): WavexConfig {
+export function createDefaultConfig(): WavexConfig {
   return {
-    appDir: sourceDir,
-    pagesDir: `${sourceDir}/pages`,
-    componentsDir: `${sourceDir}/components`,
+    sourceDir: "src",
+    pagesDir: "src/pages",
+    componentsDir: "src/components",
     apiDir: "convex",
     publicDir: "public"
   };

@@ -112,6 +112,7 @@ export interface ConvexCallNode extends BaseNode {
 export interface ResourceBinding {
   name: string;
   address: ConvexFunctionAddress;
+  attributes: Attribute[];
   range: SourceRange;
 }
 

@@ -6,6 +6,7 @@ import type {
   ConvexCallNode,
   DirectiveNode,
   ElementNode,
+  ResourceBinding,
   TemplateNode,
   WavexFile
 } from "@wavex/language-core";
@@ -33,32 +34,25 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   const resourceDeclarations = resourceNames
     .map((name) => `  const ${name} = context.resources?.[${JSON.stringify(name)}];`)
     .join("\n");
+  const resourceDefinitions = compileResourceDefinitions(ast.resources, resourceNames);
   const renderBody = compileNodes(renderNodes, options);
   const headBody = compileNodes(headNodes.flatMap((node) => node.children), options);
 
   const code = [
     `import { html, nothing } from "lit";`,
     `import { repeat } from "lit/directives/repeat.js";`,
-    `import type { RenderContext } from "@wavex/runtime";`,
+    `import type { RenderContext, ResourceDefinition } from "@wavex/runtime";`,
     "",
     prelude + `export const wxFile = ${JSON.stringify({ id: options.id ?? "<inline>", localComponents })} as const;`,
-    `export const resources = ${JSON.stringify(
-      ast.resources.map((resource) => ({
-        name: resource.name,
-        modulePath: resource.address.modulePath,
-        functionName: resource.address.functionName,
-        raw: resource.address.raw
-      })),
-      null,
-      2
-    )} as const;`,
+    resourceDefinitions,
     "",
     `export function head(context: RenderContext = {}) {`,
     `  const route = context.route ?? { path: "/", params: {}, query: {} };`,
     `  const props = context.props ?? {};`,
     `  const state = context.state ?? {};`,
+    `  const actionStates = context.actionStates ?? {};`,
     resourceDeclarations,
-    `  void route; void props; void state;`,
+    `  void route; void props; void state; void actionStates;`,
     `  return html\`${headBody}\`;`,
     `}`,
     "",
@@ -66,8 +60,9 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     `  const route = context.route ?? { path: "/", params: {}, query: {} };`,
     `  const props = context.props ?? {};`,
     `  const state = context.state ?? {};`,
+    `  const actionStates = context.actionStates ?? {};`,
     resourceDeclarations,
-    `  void route; void props; void state;`,
+    `  void route; void props; void state; void actionStates;`,
     `  return html\`${renderBody}\`;`,
     `}`,
     "",
@@ -76,6 +71,63 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   ].join("\n");
 
   return { ast, code };
+}
+
+function compileResourceDefinitions(resources: readonly ResourceBinding[], resourceNames: readonly string[]): string {
+  if (resources.length === 0) return `export const resources = [] as const satisfies readonly ResourceDefinition[];`;
+
+  const entries = resources.map((resource) => {
+    const argsGetter = compileResourceArgsGetter(
+      resource.attributes.find((attribute) => attribute.name === "args"),
+      resourceNames
+    );
+    return [
+      `  {`,
+      `    name: ${JSON.stringify(resource.name)},`,
+      `    modulePath: ${JSON.stringify(resource.address.modulePath)},`,
+      `    functionName: ${JSON.stringify(resource.address.functionName)},`,
+      `    raw: ${JSON.stringify(resource.address.raw)},`,
+      `    kind: "query",`,
+      argsGetter,
+      `  }`
+    ]
+      .filter(Boolean)
+      .join("\n");
+  });
+
+  return [`export const resources = [`, entries.join(",\n"), `] as const satisfies readonly ResourceDefinition[];`].join("\n");
+}
+
+function compileResourceArgsGetter(attribute: Attribute | undefined, resourceNames: readonly string[]): string {
+  const expression = attributeValueExpression(attribute);
+  if (!expression) return "";
+
+  const declarations = resourceNames
+    .filter(isIdentifierName)
+    .map((name) => `      const ${name} = contextResources[${JSON.stringify(name)}];`)
+    .join("\n");
+
+  return [
+    `    getArgs(context: RenderContext) {`,
+    `      const route = context.route ?? { path: "/", params: {}, query: {} };`,
+    `      const props = context.props ?? {};`,
+    `      const state = context.state ?? {};`,
+    `      const contextResources = context.resources ?? {};`,
+    declarations,
+    `      void route; void props; void state; void contextResources;`,
+    `      return ${expression};`,
+    `    },`
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function attributeValueExpression(attribute: Attribute | undefined): string | undefined {
+  if (!attribute) return undefined;
+  if (attribute.kind === "expression") return attribute.expression;
+  if (attribute.kind === "same-name") return attribute.name;
+  if (attribute.kind === "literal") return JSON.stringify(attribute.value);
+  return undefined;
 }
 
 function compileNodes(nodes: readonly TemplateNode[], options: CompileWavexOptions): string {

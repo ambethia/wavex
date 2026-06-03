@@ -21,6 +21,16 @@ describe("parseWavex", () => {
     });
   });
 
+  it("normalizes nested Convex module paths", () => {
+    const parsed = parseWavex(`~~~\n$$deeply:nested:function\n$$deeply/nested:otherFunction\n`);
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.resources).toMatchObject([
+      { name: "nested", address: { modulePath: "deeply/nested", functionName: "function" } },
+      { name: "nested", address: { modulePath: "deeply/nested", functionName: "otherFunction" } }
+    ]);
+  });
+
   it("parses attribute value forms", () => {
     expect(parseAttributeToken("required")).toMatchObject({ kind: "boolean", name: "required" });
     expect(parseAttributeToken("task:")).toMatchObject({ kind: "same-name", name: "task" });

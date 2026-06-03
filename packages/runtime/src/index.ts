@@ -5,12 +5,135 @@ export interface RouteContext {
   url?: URL;
 }
 
+export type ResourceLifecycleStatus = "loading" | "ready" | "error";
+
+export interface ResourceState<T = unknown> {
+  status: ResourceLifecycleStatus;
+  value?: T;
+  error?: unknown;
+  updatedAt?: number;
+}
+
+export type ActionLifecycleStatus = "idle" | "pending" | "error";
+
+export interface ActionState<T = unknown> {
+  status: ActionLifecycleStatus;
+  pending: boolean;
+  result?: T;
+  error?: unknown;
+  updatedAt?: number;
+}
+
 export interface RenderContext {
   route?: RouteContext;
   props?: Record<string, unknown>;
   state?: Record<string, unknown>;
   resources?: Record<string, unknown>;
+  resourceStates?: Record<string, ResourceState>;
+  actionStates?: Record<string, ActionState>;
   dispatch?: (event: WavexActionEvent) => void | Promise<void>;
+}
+
+export type ResourceArgsFactory<TArgs = unknown> = (context: RenderContext) => TArgs;
+
+export interface ResourceDefinition<TArgs = unknown> {
+  name: string;
+  modulePath: string;
+  functionName: string;
+  raw?: string;
+  kind?: "query";
+  args?: TArgs | ResourceArgsFactory<TArgs>;
+  getArgs?: ResourceArgsFactory<TArgs>;
+}
+
+export interface ResolvedResourceDefinition<TArgs = unknown> {
+  name: string;
+  modulePath: string;
+  functionName: string;
+  raw?: string;
+  kind: "query";
+  args: TArgs;
+}
+
+export interface ResourceSubscriptionHandlers<T = unknown> {
+  next(value: T): void;
+  error(error: unknown): void;
+}
+
+export type ResourceTeardown = void | (() => void) | { dispose?: () => void; unsubscribe?: () => void; getCurrentValue?: () => unknown };
+
+export interface ResourceClient {
+  subscribe<T = unknown>(
+    definition: ResolvedResourceDefinition,
+    handlers: ResourceSubscriptionHandlers<T>
+  ): ResourceTeardown;
+}
+
+export interface ResourceController {
+  update(nextDefinitions?: readonly ResourceDefinition[]): void;
+  dispose(): void;
+}
+
+export interface ResourceControllerOptions {
+  client?: ResourceClient;
+  onChange?: () => void;
+}
+
+export interface ActionDefinition<TArgs = unknown> {
+  target: string;
+  modulePath: string;
+  functionName: string;
+  raw?: string;
+  kind?: "mutation" | "action";
+  args?: TArgs;
+}
+
+export interface ResolvedActionDefinition<TArgs = unknown> {
+  target: string;
+  modulePath: string;
+  functionName: string;
+  raw?: string;
+  kind: "mutation" | "action";
+  args: TArgs;
+}
+
+export interface ActionClient {
+  invoke(definition: ResolvedActionDefinition): Promise<unknown>;
+}
+
+export type ActionKindResolver = (definition: ActionDefinition, event: WavexActionEvent) => "mutation" | "action" | undefined;
+
+export interface SemanticActionDispatcherOptions {
+  actionClient?: ActionClient;
+  dispatch?: (event: WavexActionEvent) => void | Promise<void>;
+  resolveActionKind?: ActionKindResolver;
+  onActionResult?: (definition: ResolvedActionDefinition, result: unknown, event: WavexActionEvent) => void;
+  onActionError?: (definition: ResolvedActionDefinition, error: unknown, event: WavexActionEvent) => void;
+  throwActionErrors?: boolean;
+}
+
+export interface ConvexBrowserClientLike {
+  onUpdate(
+    query: unknown,
+    args: Record<string, unknown>,
+    callback: (result: unknown) => unknown,
+    onError?: (error: Error) => unknown
+  ): ResourceTeardown;
+}
+
+export interface ConvexActionClientLike {
+  mutation(mutation: unknown, args: Record<string, unknown>): Promise<unknown>;
+  action(action: unknown, args: Record<string, unknown>): Promise<unknown>;
+}
+
+export interface ConvexResourceClientOptions {
+  api?: unknown;
+  resolveFunction?: (definition: ResolvedResourceDefinition) => unknown;
+}
+
+export interface ConvexActionClientOptions {
+  api?: unknown;
+  resolveFunction?: (definition: ResolvedActionDefinition) => unknown;
 }
 
 export interface WavexActionEvent {
@@ -29,6 +152,12 @@ export interface HeadEntry {
 
 export type RenderFunction<Result = unknown> = (context?: RenderContext) => Result;
 
+interface ActiveResource {
+  key: string;
+  name: string;
+  teardown: ResourceTeardown;
+}
+
 export function createRouteContext(input: string | URL = globalThis.location?.href ?? "http://localhost/"): RouteContext {
   const url = input instanceof URL ? input : new URL(input, "http://localhost");
   return {
@@ -45,7 +174,150 @@ export function createRenderContext(context: RenderContext = {}): RenderContext 
     props: context.props ?? {},
     state: context.state ?? {},
     resources: context.resources ?? {},
+    resourceStates: context.resourceStates ?? {},
+    actionStates: context.actionStates ?? {},
     dispatch: context.dispatch
+  };
+}
+
+export function createResourceController(
+  context: RenderContext,
+  definitions: readonly ResourceDefinition[] = [],
+  options: ResourceControllerOptions = {}
+): ResourceController {
+  const activeResources = new Map<string, ActiveResource>();
+  let currentDefinitions = [...definitions];
+  let disposed = false;
+
+  const update = (nextDefinitions: readonly ResourceDefinition[] = currentDefinitions) => {
+    if (disposed) return;
+    currentDefinitions = [...nextDefinitions];
+    ensureResourceContainers(context);
+
+    const nextKeys = new Set<string>();
+    for (const definition of currentDefinitions) {
+      let resolved: ResolvedResourceDefinition;
+      try {
+        resolved = resolveResourceDefinition(definition, context);
+      } catch (error) {
+        markResourceError(context, definition.name, error);
+        options.onChange?.();
+        continue;
+      }
+
+      const key = resourceKey(resolved);
+      nextKeys.add(key);
+      if (activeResources.has(key)) continue;
+
+      markResourceLoading(context, resolved.name);
+      const active: ActiveResource = { key, name: resolved.name, teardown: undefined };
+      activeResources.set(key, active);
+
+      if (!options.client) continue;
+
+      try {
+        const teardown = options.client.subscribe(resolved, {
+          next(value) {
+            if (!activeResources.has(key)) return;
+            markResourceReady(context, resolved.name, value);
+            options.onChange?.();
+          },
+          error(error) {
+            if (!activeResources.has(key)) return;
+            markResourceError(context, resolved.name, error);
+            options.onChange?.();
+          }
+        });
+        active.teardown = teardown;
+
+        const currentValue = readCurrentValue(teardown);
+        if (currentValue !== undefined) markResourceReady(context, resolved.name, currentValue);
+      } catch (error) {
+        markResourceError(context, resolved.name, error);
+        options.onChange?.();
+      }
+    }
+
+    for (const [key, active] of activeResources) {
+      if (nextKeys.has(key)) continue;
+      disposeResource(active.teardown);
+      activeResources.delete(key);
+      if (![...activeResources.values()].some((resource) => resource.name === active.name)) {
+        clearResource(context, active.name);
+      }
+    }
+  };
+
+  update(currentDefinitions);
+
+  return {
+    update,
+    dispose() {
+      disposed = true;
+      for (const active of activeResources.values()) disposeResource(active.teardown);
+      activeResources.clear();
+    }
+  };
+}
+
+export function createConvexResourceClient(
+  client: ConvexBrowserClientLike,
+  options: ConvexResourceClientOptions = {}
+): ResourceClient {
+  return {
+    subscribe(definition, handlers) {
+      const query = options.resolveFunction?.(definition) ?? resolveConvexApiReference(options.api, definition) ?? convexFunctionPath(definition);
+      const args = normalizeConvexArgs(definition.args);
+      const unknownHandlers = handlers as ResourceSubscriptionHandlers<unknown>;
+      return client.onUpdate(query, args, (result) => unknownHandlers.next(result), (error) => unknownHandlers.error(error));
+    }
+  };
+}
+
+export function createConvexActionClient(
+  client: ConvexActionClientLike,
+  options: ConvexActionClientOptions = {}
+): ActionClient {
+  return {
+    async invoke(definition) {
+      const reference = options.resolveFunction?.(definition) ?? resolveConvexApiReference(options.api, definition) ?? convexFunctionPath(definition);
+      const args = normalizeConvexArgs(definition.args);
+      return definition.kind === "action" ? client.action(reference, args) : client.mutation(reference, args);
+    }
+  };
+}
+
+export function createSemanticActionDispatcher(
+  context: RenderContext,
+  options: SemanticActionDispatcherOptions = {}
+): (event: WavexActionEvent) => Promise<void> {
+  return async (event) => {
+    const action = parseConvexActionTarget(event.target);
+    if (!action) {
+      await options.dispatch?.(event);
+      return;
+    }
+
+    if (event.type === "submit" && typeof event.event.preventDefault === "function") event.event.preventDefault();
+
+    const definition: ResolvedActionDefinition = {
+      ...action,
+      kind: options.resolveActionKind?.(action, event) ?? action.kind ?? "mutation",
+      args: collectActionArgs(event)
+    };
+
+    markActionPending(context, definition.target);
+
+    try {
+      const result = options.actionClient ? await options.actionClient.invoke(definition) : undefined;
+      resetSubmittedForm(event);
+      markActionIdle(context, definition.target, result);
+      options.onActionResult?.(definition, result, event);
+    } catch (error) {
+      markActionError(context, definition.target, error);
+      options.onActionError?.(definition, error, event);
+      if (options.throwActionErrors) throw error;
+    }
   };
 }
 
@@ -88,6 +360,204 @@ export function applyHead(entries: readonly HeadEntry[], documentRef: Document =
     for (const [name, value] of Object.entries(entry.attributes ?? {})) element.setAttribute(name, value);
     if (!element.parentNode) documentRef.head.append(element);
   }
+}
+
+function resolveResourceDefinition(definition: ResourceDefinition, context: RenderContext): ResolvedResourceDefinition {
+  const args = definition.getArgs ? definition.getArgs(context) : resolveResourceArgs(definition.args, context);
+  return {
+    name: definition.name,
+    modulePath: definition.modulePath,
+    functionName: definition.functionName,
+    raw: definition.raw,
+    kind: definition.kind ?? "query",
+    args: args ?? {}
+  };
+}
+
+function resolveResourceArgs(args: ResourceDefinition["args"], context: RenderContext): unknown {
+  return typeof args === "function" ? args(context) : args;
+}
+
+function ensureResourceContainers(context: RenderContext): void {
+  context.resources ??= {};
+  context.resourceStates ??= {};
+}
+
+function markResourceLoading(context: RenderContext, name: string): void {
+  ensureResourceContainers(context);
+  const previousState = context.resourceStates?.[name];
+  context.resourceStates![name] = {
+    status: "loading",
+    value: context.resources?.[name] ?? previousState?.value,
+    updatedAt: Date.now()
+  };
+}
+
+function markResourceReady(context: RenderContext, name: string, value: unknown): void {
+  ensureResourceContainers(context);
+  context.resources![name] = value;
+  context.resourceStates![name] = { status: "ready", value, updatedAt: Date.now() };
+}
+
+function markResourceError(context: RenderContext, name: string, error: unknown): void {
+  ensureResourceContainers(context);
+  const previousState = context.resourceStates?.[name];
+  context.resourceStates![name] = {
+    status: "error",
+    value: context.resources?.[name] ?? previousState?.value,
+    error,
+    updatedAt: Date.now()
+  };
+}
+
+function clearResource(context: RenderContext, name: string): void {
+  delete context.resources?.[name];
+  delete context.resourceStates?.[name];
+}
+
+function disposeResource(teardown: ResourceTeardown): void {
+  if (!teardown) return;
+  if (typeof teardown === "function") {
+    teardown();
+    return;
+  }
+  teardown.unsubscribe?.();
+  teardown.dispose?.();
+}
+
+function readCurrentValue(teardown: ResourceTeardown): unknown {
+  if (!teardown) return undefined;
+  if (typeof teardown === "function") return (teardown as { getCurrentValue?: () => unknown }).getCurrentValue?.();
+  return teardown.getCurrentValue?.();
+}
+
+function resourceKey(definition: ResolvedResourceDefinition): string {
+  return [definition.kind, definition.name, definition.modulePath, definition.functionName, stableSerialize(definition.args)].join("\0");
+}
+
+function stableSerialize(value: unknown, seen = new WeakSet<object>()): string {
+  if (value === undefined) return "undefined";
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (seen.has(value)) return "[Circular]";
+  seen.add(value);
+  if (Array.isArray(value)) return `[${value.map((item) => stableSerialize(item, seen)).join(",")}]`;
+
+  const entries = Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right));
+  return `{${entries.map(([key, entryValue]) => `${JSON.stringify(key)}:${stableSerialize(entryValue, seen)}`).join(",")}}`;
+}
+
+function parseConvexActionTarget(target: string): ActionDefinition | undefined {
+  if (!target.startsWith("$$")) return undefined;
+  const withoutSigils = target.slice(2);
+  const splitIndex = withoutSigils.lastIndexOf(":");
+  const modulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex).replace(/:/g, "/");
+  const functionName = splitIndex === -1 ? "" : withoutSigils.slice(splitIndex + 1);
+  if (!/^[A-Za-z0-9_./-]+$/.test(modulePath) || !/^[A-Za-z_$][\w$]*$/.test(functionName)) return undefined;
+  return { target, modulePath, functionName, raw: target };
+}
+
+function collectActionArgs(action: WavexActionEvent): Record<string, unknown> {
+  return {
+    ...readDataAttributes(action.element),
+    ...readFormArgs(action),
+    ...readExplicitElementArgs(action.element)
+  };
+}
+
+function readExplicitElementArgs(element: Element): Record<string, unknown> {
+  const args = (element as Element & { args?: unknown }).args;
+  if (args === undefined || args === null) return {};
+  return normalizeConvexArgs(args);
+}
+
+function readFormArgs(action: WavexActionEvent): Record<string, unknown> {
+  const form = formElementFromAction(action);
+  if (!form || typeof FormData === "undefined") return {};
+  return formDataToObject(new FormData(form));
+}
+
+function formElementFromAction(action: WavexActionEvent): HTMLFormElement | undefined {
+  if (isHtmlFormElement(action.element)) return action.element;
+  return isHtmlFormElement(action.event.target) ? action.event.target : undefined;
+}
+
+function isHtmlFormElement(value: unknown): value is HTMLFormElement {
+  return typeof HTMLFormElement !== "undefined" && value instanceof HTMLFormElement;
+}
+
+function resetSubmittedForm(action: WavexActionEvent): void {
+  if (action.type !== "submit") return;
+  formElementFromAction(action)?.reset();
+}
+
+function formDataToObject(formData: FormData): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  for (const [name, value] of formData.entries()) {
+    const previous = output[name];
+    if (previous === undefined) {
+      output[name] = value;
+    } else if (Array.isArray(previous)) {
+      previous.push(value);
+    } else {
+      output[name] = [previous, value];
+    }
+  }
+  return output;
+}
+
+function readDataAttributes(element: Element): Record<string, unknown> {
+  const output: Record<string, unknown> = {};
+  for (const name of element.getAttributeNames()) {
+    if (!name.startsWith("data-") || name.startsWith("data-wx-")) continue;
+    const value = element.getAttribute(name);
+    if (value !== null) output[dataAttributeNameToArgName(name)] = value;
+  }
+  return output;
+}
+
+function dataAttributeNameToArgName(name: string): string {
+  return name
+    .slice("data-".length)
+    .replace(/-([a-z0-9])/g, (_match, char: string) => char.toUpperCase());
+}
+
+function markActionPending(context: RenderContext, target: string): void {
+  context.actionStates ??= {};
+  context.actionStates[target] = { status: "pending", pending: true, updatedAt: Date.now() };
+}
+
+function markActionIdle(context: RenderContext, target: string, result: unknown): void {
+  context.actionStates ??= {};
+  context.actionStates[target] = { status: "idle", pending: false, result, updatedAt: Date.now() };
+}
+
+function markActionError(context: RenderContext, target: string, error: unknown): void {
+  context.actionStates ??= {};
+  context.actionStates[target] = { status: "error", pending: false, error, updatedAt: Date.now() };
+}
+
+function resolveConvexApiReference(api: unknown, definition: { modulePath: string; functionName: string }): unknown {
+  let target = api;
+  for (const segment of definition.modulePath.split(/[/:.]/).filter(Boolean)) {
+    if (!isObjectLike(target)) return undefined;
+    target = (target as Record<string, unknown>)[segment];
+  }
+  if (!isObjectLike(target)) return undefined;
+  return (target as Record<string, unknown>)[definition.functionName];
+}
+
+function convexFunctionPath(definition: { modulePath: string; functionName: string }): string {
+  return `${definition.modulePath}:${definition.functionName}`;
+}
+
+function normalizeConvexArgs(args: unknown): Record<string, unknown> {
+  if (args === undefined || args === null) return {};
+  if (typeof args === "object" && !Array.isArray(args)) return args as Record<string, unknown>;
+  throw new Error(`Convex query args for WAVEx resources must be an object; received ${typeof args}.`);
+}
+
+function isObjectLike(value: unknown): value is object {
+  return (typeof value === "object" && value !== null) || typeof value === "function";
 }
 
 function headSelector(entry: HeadEntry): string | undefined {

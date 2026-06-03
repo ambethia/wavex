@@ -303,14 +303,17 @@ function parseConvexCall(
     raw,
     range
   };
-  resources.push({ name: bindingName, address, range });
+  resources.push({ name: bindingName, address, attributes, range });
   return node;
 }
 
 function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Diagnostic[]): ConvexFunctionAddress {
   const withoutSigils = rawHead.replace(/^\$\$?/, "");
-  const match = /^([A-Za-z0-9_./-]+):([A-Za-z_$][\w$]*)$/.exec(withoutSigils);
-  if (!match) {
+  const splitIndex = withoutSigils.lastIndexOf(":");
+  const modulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex).replace(/:/g, "/");
+  const functionName = splitIndex === -1 ? "" : withoutSigils.slice(splitIndex + 1);
+
+  if (!/^[A-Za-z0-9_./-]+$/.test(modulePath) || !/^[A-Za-z_$][\w$]*$/.test(functionName)) {
     diagnostics.push({
       code: "WX020",
       severity: "error",
@@ -320,7 +323,7 @@ function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Di
     });
     return { modulePath: "missing", functionName: "missing", raw: rawHead };
   }
-  return { modulePath: match[1]!, functionName: match[2]!, raw: rawHead };
+  return { modulePath, functionName, raw: rawHead };
 }
 
 function parseAttributesAndInlineText(tokens: string[]): ParsedHead {
