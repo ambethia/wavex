@@ -1,0 +1,23 @@
+{
+  "name": "@wavex/grammar",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tree-sitter grammar for WAVEx .wx files.",
+  "type": "commonjs",
+  "license": "MIT",
+  "files": [
+    "grammar.js",
+    "queries/",
+    "src/",
+    "tree-sitter.json"
+  ],
+  "scripts": {
+    "build": "tree-sitter generate",
+    "generate": "tree-sitter generate",
+    "test": "tree-sitter test",
+    "typecheck": "node -e \"\""
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.26.9"
+  }
+}

@@ -1,0 +1,74 @@
+========================================
+Directive expressions and attribute parts
+========================================
+
+~~~
++if tasks && tasks.some((todo) => todo.completed)
+  button type:button class:link-button :click:$$tasks:clearCompleted Clear completed
+  span class:{{ todo.completed ? "done" : "todo" }} {{ todo.text }}
+
+---
+
+(source_file
+  (prelude
+    (newline))
+  (separator
+    (wave_marker))
+  (newline)
+  (template
+    (terminated_template_line
+      (template_line
+        (directive_line
+          (conditional_directive_line
+            (directive_marker)
+            name: (conditional_directive_name)
+            expression: (directive_expression_content))))
+      (newline))
+    (terminated_template_line
+      (template_line
+        (element_line
+          tag: (tag_name)
+          (line_item
+            (valued_attribute
+              name: (attribute_name)
+              (attribute_separator)
+              value: (attribute_value)))
+          (line_item
+            (valued_attribute
+              name: (attribute_name)
+              (attribute_separator)
+              value: (attribute_value)))
+          (line_item
+            (semantic_event_attribute
+              (semantic_event_prefix)
+              event: (event_name)
+              (attribute_separator)
+              target: (convex_call
+                (convex_call_sigil)
+                (convex_address
+                  (convex_address_segment)
+                  (convex_address_separator)
+                  (convex_address_segment)))))
+          (line_item
+            (text_fragment))
+          (line_item
+            (text_fragment))))
+      (newline))
+    (terminated_template_line
+      (template_line
+        (element_line
+          tag: (tag_name)
+          (line_item
+            (expression_attribute
+              name: (attribute_name)
+              (attribute_separator)
+              value: (interpolation
+                (interpolation_open)
+                expression: (interpolation_expression_content)
+                (interpolation_close))))
+          (line_item
+            (interpolation
+              (interpolation_open)
+              expression: (interpolation_expression_content)
+              (interpolation_close)))))
+      (newline))))

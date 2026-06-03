@@ -3,3 +3,4 @@ packages/*/dist/
 coverage/
 .DS_Store
 *.log
+editors/*/grammars/

@@ -1,0 +1,16 @@
+id = "wavex"
+name = "WAVEx"
+description = "WAVEx language support."
+version = "0.0.1"
+schema_version = 1
+authors = ["Jason"]
+repository = "https://github.com/earendil-works/wavex"
+
+[grammars.wavex]
+# Zed fetches grammars from git, not from the working tree. For local dev,
+# regenerate the exact grammar snapshot before installing/reinstalling:
+#   ./editors/zed-wavex/scripts/update-dev-grammar-ref.sh
+# Change `repository`/`rev` to the public git URL + commit when this extension is published.
+repository = "file:///Users/jason/Projects/wavex/wavex"
+rev = "4433c15203ed85fbbb6f9b42d227f3b4fa71b93c"
+path = "packages/grammar"
