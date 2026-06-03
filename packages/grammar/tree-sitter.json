@@ -1,0 +1,28 @@
+{
+  "grammars": [
+    {
+      "name": "wavex",
+      "camelcase": "WAVEx",
+      "scope": "source.wavex",
+      "path": ".",
+      "file-types": [
+        "wx"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    }
+  ],
+  "metadata": {
+    "version": "0.0.0",
+    "license": "MIT",
+    "description": "Tree-sitter grammar for WAVEx .wx files.",
+    "authors": [
+      {
+        "name": "Jason"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/earendil-works/wavex"
+    }
+  }
+}

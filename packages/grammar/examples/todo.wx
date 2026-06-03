@@ -1,0 +1,31 @@
+type Task = Doc<"tasks">
+
+function remaining(tasks: Task[] | undefined) {
+  return (tasks ?? []).filter((todo) => !todo.completed).length
+}
+
+~~~
++head
+  title WAVEx Todo
+  meta name:description content:"The quintessential TODO demo, written in WAVEx."
+
+$$tasks:list
+
+main [stack gap-xl]
+  header [stack gap-s]
+    p class:eyebrow WAVEx demo
+    h1 ~x Todo
+    p {{ remaining(tasks) }} left
+
+  form :submit:$$tasks:create [cluster gap-s]
+    input name:text type:text placeholder:"What needs doing?" required
+    button type:submit Add todo
+
+  +if tasks && tasks.length > 0
+    ul class:todo-list [stack gap-s]
+      +for todo in tasks key:todo._id
+        li class:todo-item
+          label [cluster gap-s]
+            input type:checkbox checked:todo.completed data-id:todo._id :click:$$tasks:toggle
+            span class:{{ todo.completed ? "todo-text is-complete" : "todo-text" }} {{ todo.text }}
+          button type:button data-id:todo._id :click:$$tasks:deleteTask Delete
