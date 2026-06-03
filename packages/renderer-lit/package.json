@@ -14,8 +14,10 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@wavex/runtime": "workspace:*",
-    "lit": "latest"
+    "@wavex/runtime": "workspace:*"
+  },
+  "peerDependencies": {
+    "lit": ">=3.0.0"
   },
   "files": ["dist"],
   "license": "MIT"

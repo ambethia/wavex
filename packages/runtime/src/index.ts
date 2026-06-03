@@ -17,6 +17,7 @@ export interface WavexActionEvent {
   type: string;
   target: string;
   event: Event;
+  element: Element;
   context: RenderContext;
 }
 
@@ -53,14 +54,12 @@ export function installSemanticEventDelegation(root: ParentNode & EventTarget, c
     const target = event.target instanceof Element ? event.target : undefined;
     if (!target) return;
 
+    const attribute = `data-wx-${event.type}`;
     for (const element of event.composedPath()) {
       if (!(element instanceof Element)) continue;
-      for (const attribute of element.getAttributeNames()) {
-        if (!attribute.startsWith("data-wx-")) continue;
-        const actionTarget = element.getAttribute(attribute);
-        if (!actionTarget) continue;
-        const type = attribute.slice("data-wx-".length);
-        void context.dispatch?.({ type, target: actionTarget, event, context });
+      const actionTarget = element.getAttribute(attribute);
+      if (actionTarget) {
+        void context.dispatch?.({ type: event.type, target: actionTarget, event, element, context });
       }
       if (element === root) break;
     }

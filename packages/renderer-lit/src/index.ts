@@ -4,6 +4,7 @@ import { createRenderContext, installSemanticEventDelegation, type RenderContext
 export interface LitMount<Result = unknown> {
   context: RenderContext;
   update(nextContext?: RenderContext): void;
+  setRender(nextRender: RenderFunction<Result>): void;
   dispose(): void;
   root: HTMLElement;
   result?: Result;
@@ -14,14 +15,20 @@ export function mountLit<Result = unknown>(
   render: RenderFunction<Result>,
   initialContext: RenderContext = {}
 ): LitMount<Result> {
-  let context = createRenderContext(initialContext);
+  const context = createRenderContext(initialContext);
   let result: Result | undefined;
+  let renderCurrent = render;
   const disposeDelegation = installSemanticEventDelegation(root, context);
 
   const update = (nextContext: RenderContext = {}) => {
-    context = createRenderContext({ ...context, ...nextContext });
-    result = render(context);
+    Object.assign(context, createRenderContext({ ...context, ...nextContext }));
+    result = renderCurrent(context);
     litRender(result as unknown, root);
+  };
+
+  const setRender = (nextRender: RenderFunction<Result>) => {
+    renderCurrent = nextRender;
+    update();
   };
 
   update(context);
@@ -33,6 +40,7 @@ export function mountLit<Result = unknown>(
       return result;
     },
     update,
+    setRender,
     dispose() {
       disposeDelegation();
       litRender(undefined, root);

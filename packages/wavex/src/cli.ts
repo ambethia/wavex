@@ -66,8 +66,7 @@ function check(rootInput: string) {
 
 function routes(rootInput: string) {
   const root = resolve(rootInput);
-  const config = createDefaultConfig();
-  const pagesDir = resolve(root, config.pagesDir);
+  const pagesDir = resolvePagesDir(root);
   const relativePagesDir = normalizeSlashes(relative(root, pagesDir));
   const routeDefs = walkWxFiles(pagesDir)
     .map((file) => createRouteDefinition(normalizeSlashes(relative(root, file)), relativePagesDir))
@@ -100,6 +99,17 @@ function proxyVite(args: string[]) {
     console.error(result.error.message);
     process.exitCode = 1;
   }
+}
+
+function resolvePagesDir(root: string): string {
+  const config = createDefaultConfig();
+  const defaultPagesDir = resolve(root, config.pagesDir);
+  if (existsSync(defaultPagesDir)) return defaultPagesDir;
+
+  const legacyPagesDir = resolve(root, "app/pages");
+  if (existsSync(legacyPagesDir)) return legacyPagesDir;
+
+  return defaultPagesDir;
 }
 
 function walkWxFiles(dir: string): string[] {

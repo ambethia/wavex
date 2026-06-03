@@ -50,7 +50,7 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       lit:
-        specifier: latest
+        specifier: '>=3.0.0'
         version: 3.3.3
 
   packages/runtime: {}

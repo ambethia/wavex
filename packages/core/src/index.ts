@@ -56,13 +56,13 @@ const DEFAULT_WEB_AWESOME_COMPONENTS = new Set([
 const COLLECTION_FUNCTIONS = new Set(["all", "list", "many", "page", "paginate", "search"]);
 const SINGLETON_FUNCTIONS = new Set(["byId", "get", "load", "me", "one"]);
 
-export function createDefaultConfig(appDir = "app"): WavexConfig {
+export function createDefaultConfig(sourceDir = "src"): WavexConfig {
   return {
-    appDir,
-    pagesDir: `${appDir}/pages`,
-    componentsDir: `${appDir}/components`,
-    apiDir: `${appDir}/api`,
-    publicDir: `${appDir}/public`
+    appDir: sourceDir,
+    pagesDir: `${sourceDir}/pages`,
+    componentsDir: `${sourceDir}/components`,
+    apiDir: "convex",
+    publicDir: "public"
   };
 }
 
@@ -70,7 +70,7 @@ export function normalizeSlashes(path: string): string {
   return path.replace(/\\/g, "/");
 }
 
-export function routePathFromPageFile(file: string, pagesDir = "app/pages"): string | undefined {
+export function routePathFromPageFile(file: string, pagesDir = "src/pages"): string | undefined {
   const normalizedFile = normalizeSlashes(file);
   const normalizedPagesDir = normalizeSlashes(pagesDir).replace(/\/$/, "");
   let relative = normalizedFile.startsWith(`${normalizedPagesDir}/`)
@@ -113,7 +113,7 @@ export function routeIdFromFile(file: string): string {
     .replace(/^\.+|\.+$/g, "") || "index";
 }
 
-export function createRouteDefinition(file: string, pagesDir = "app/pages"): RouteDefinition | undefined {
+export function createRouteDefinition(file: string, pagesDir = "src/pages"): RouteDefinition | undefined {
   const path = routePathFromPageFile(file, pagesDir);
   if (!path) return undefined;
   return {
