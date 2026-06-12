@@ -339,9 +339,11 @@ export function installSemanticEventDelegation(root: ParentNode & EventTarget, c
 
   root.addEventListener("click", listener, { capture: true });
   root.addEventListener("submit", listener, { capture: true });
+  root.addEventListener("change", listener, { capture: true });
   return () => {
     root.removeEventListener("click", listener, { capture: true });
     root.removeEventListener("submit", listener, { capture: true });
+    root.removeEventListener("change", listener, { capture: true });
   };
 }
 

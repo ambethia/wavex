@@ -143,6 +143,20 @@ function parseTemplateLines(
     const node = parseLine(content, range, diagnostics, resources);
     if (!node) continue;
 
+    if ("utilities" in node) {
+      for (const token of (node as { utilities: string[] }).utilities) {
+        if (token.includes(":")) {
+          diagnostics.push({
+            code: "WX005",
+            severity: "error",
+            line: line.sourceLine,
+            column: indentSpaces + 1,
+            message: `Utility token "${token}" is invalid: utilities are literal wa-* suffixes in dash form (e.g. "gap-xl" -> wa-gap-xl); ":" is not allowed inside a utility group.`
+          });
+        }
+      }
+    }
+
     if (parent) parent.node.children.push(node);
     else roots.push(node);
     stack.push({ level, node });

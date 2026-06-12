@@ -130,18 +130,18 @@ function attributeValueExpression(attribute: Attribute | undefined): string | un
   return undefined;
 }
 
-function compileNodes(nodes: readonly TemplateNode[], options: CompileWavexOptions): string {
-  return nodes.map((node) => compileNode(node, options)).join("");
+function compileNodes(nodes: readonly TemplateNode[], options: CompileWavexOptions, resourceScope?: string): string {
+  return nodes.map((node) => compileNode(node, options, resourceScope)).join("");
 }
 
-function compileNode(node: TemplateNode, options: CompileWavexOptions): string {
+function compileNode(node: TemplateNode, options: CompileWavexOptions, resourceScope?: string): string {
   switch (node.kind) {
     case "element":
-      return compileElement(node, options);
+      return compileElement(node, options, resourceScope);
     case "component":
-      return compileComponent(node, options);
+      return compileComponent(node, options, resourceScope);
     case "directive":
-      return compileDirective(node, options);
+      return compileDirective(node, options, resourceScope);
     case "text":
       return compileInlineText(node.text);
     case "expression":
@@ -155,45 +155,69 @@ function compileNode(node: TemplateNode, options: CompileWavexOptions): string {
   }
 }
 
-function compileElement(node: ElementNode, options: CompileWavexOptions): string {
+function compileElement(node: ElementNode, options: CompileWavexOptions, resourceScope?: string): string {
   const attrs = compileAttributes(node.attributes, node.utilities);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
-  const children = compileNodes(node.children, options);
+  const children = compileNodes(node.children, options, resourceScope);
   if (VOID_TAGS.has(node.tag)) return `<${node.tag}${attrs}>`;
   return `<${node.tag}${attrs}>${inlineText}${children}</${node.tag}>`;
 }
 
-function compileComponent(node: ComponentNode, options: CompileWavexOptions): string {
+function compileComponent(node: ComponentNode, options: CompileWavexOptions, resourceScope?: string): string {
   const tag = componentReferenceToTag(node.reference, {
     localComponents: options.localComponents,
     webAwesomeComponents: options.webAwesomeComponents
   });
   const attrs = compileAttributes(node.attributes, node.utilities);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
-  const children = compileNodes(node.children, options);
+  const children = compileNodes(node.children, options, resourceScope);
   return `<${tag}${attrs}>${inlineText}${children}</${tag}>`;
 }
 
-function compileDirective(node: DirectiveNode, options: CompileWavexOptions): string {
+const RESOURCE_STATE_DIRECTIVES = new Set(["loading", "empty", "error"]);
+
+function compileDirective(node: DirectiveNode, options: CompileWavexOptions, resourceScope?: string): string {
   if (node.name === "head") return "";
   if (node.name === "if") {
     const expression = node.expression?.trim() || "false";
-    return `\${${expression} ? html\`${compileNodes(node.children, options)}\` : nothing}`;
+    return `\${${expression} ? html\`${compileNodes(node.children, options, resourceScope)}\` : nothing}`;
   }
   if (node.name === "for" && node.for) {
     const { itemName, collectionExpression, keyExpression } = node.for;
     const key = keyExpression || `(${itemName} as any)?._id ?? (${itemName} as any)?.id ?? (${itemName} as any)?.key ?? index`;
     return `\${repeat(${collectionExpression} ?? [], (${itemName}, index) => ${key}, (${itemName}, index) => html\`${compileNodes(
       node.children,
-      options
+      options,
+      resourceScope
     )}\`)}`;
   }
-  return compileNodes(node.children, options);
+  if (resourceScope && RESOURCE_STATE_DIRECTIVES.has(node.name)) {
+    return compileResourceStateDirective(node, options, resourceScope);
+  }
+  return compileNodes(node.children, options, resourceScope);
+}
+
+function compileResourceStateDirective(node: DirectiveNode, options: CompileWavexOptions, resourceScope: string): string {
+  const name = JSON.stringify(resourceScope);
+  const value = `context.resources?.[${name}]`;
+  const status = `(context.resourceStates?.[${name}]?.status ?? (${value} === undefined ? "loading" : "ready"))`;
+  const body = compileNodes(node.children, options, resourceScope);
+
+  if (node.name === "loading") {
+    return `\${${status} === "loading" ? html\`${body}\` : nothing}`;
+  }
+  if (node.name === "empty") {
+    const empty = `(${value} == null || (Array.isArray(${value}) && (${value} as unknown[]).length === 0))`;
+    return `\${${status} === "ready" && ${empty} ? html\`${body}\` : nothing}`;
+  }
+  // +error err — bind the resource error to the declared identifier (default: err)
+  const binding = isIdentifierName(node.expression?.trim() ?? "") ? node.expression!.trim() : "err";
+  return `\${${status} === "error" ? ((${binding}: unknown) => html\`${body}\`)(context.resourceStates?.[${name}]?.error) : nothing}`;
 }
 
 function compileConvexCall(node: ConvexCallNode, options: CompileWavexOptions): string {
   if (node.children.length === 0) return "";
-  return compileNodes(node.children, options);
+  return compileNodes(node.children, options, node.bindingName);
 }
 
 function compileAttributes(attributes: readonly Attribute[], utilities: readonly string[]): string {
@@ -319,5 +343,5 @@ export function componentTagForReference(reference: string, options: CompileWave
 }
 
 export function utilityClassForToken(token: string): string {
-  return `wa-${toKebabCase(token.replace(/:/g, "-"))}`;
+  return `wa-${toKebabCase(token)}`;
 }

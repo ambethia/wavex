@@ -69,6 +69,31 @@ describe("semantic action dispatcher", () => {
     });
   });
 
+  it("dispatches change-type semantic events (e.g. wa-checkbox :change:) to mutations", async () => {
+    const calls: ResolvedActionDefinition[] = [];
+    const client: ActionClient = {
+      async invoke(definition) {
+        calls.push(definition);
+        return undefined;
+      }
+    };
+    const event = fakeActionEvent({
+      target: "$$tasks:toggle",
+      type: "change",
+      element: {
+        getAttributeNames: () => ["data-id", "data-wx-change"],
+        getAttribute: (name) => (name === "data-id" ? "task-9" : name === "data-wx-change" ? "$$tasks:toggle" : null)
+      }
+    });
+    const dispatch = createSemanticActionDispatcher(event.context, { actionClient: client });
+
+    await dispatch(event);
+
+    expect(calls).toMatchObject([
+      { target: "$$tasks:toggle", kind: "mutation", args: { id: "task-9" } }
+    ]);
+  });
+
   it("prevents default submit navigation and stores errors", async () => {
     const error = new Error("mutation failed");
     let prevented = false;

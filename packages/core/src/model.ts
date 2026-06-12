@@ -39,9 +39,11 @@ const DEFAULT_WEB_AWESOME_COMPONENTS = new Set([
   "card",
   "checkbox",
   "dialog",
+  "divider",
   "dropdown",
   "icon",
   "input",
+  "page",
   "option",
   "popover",
   "progress-bar",
@@ -148,7 +150,7 @@ export function pluralize(name: string): string {
 }
 
 export function expandUtilityToken(token: string): string {
-  const normalized = token.trim().replace(/:/g, "-");
+  const normalized = token.trim();
   if (!normalized) return "";
   return normalized.startsWith("wa-") ? normalized : `wa-${normalized}`;
 }

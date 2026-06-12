@@ -1,38 +1,66 @@
+import "@web.awesome.me/webawesome-pro/dist/components/page/page.js"
+import "@web.awesome.me/webawesome-pro/dist/components/button/button.js"
+import "@web.awesome.me/webawesome-pro/dist/components/input/input.js"
+import "@web.awesome.me/webawesome-pro/dist/components/checkbox/checkbox.js"
+import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
+import "@web.awesome.me/webawesome-pro/dist/components/callout/callout.js"
+import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
+import "@web.awesome.me/webawesome-pro/dist/components/spinner/spinner.js"
+import "@web.awesome.me/webawesome-pro/dist/components/divider/divider.js"
+
 ~~~
+
 +head
   title WAVEx Todo
   meta name:description content:"The quintessential TODO demo, written in WAVEx."
 
-$$tasks:list
+@page
+  header slot:header [cluster gap-s align-items-center] class:app-header
+    @icon name:water
+    span [heading-s] WAVEx Todo
 
-main [stack gap-xl]
-  header [stack gap-s]
-    p class:eyebrow WAVEx demo
-    h1 ~x Todo
-    p A realtime Convex-backed task list exercising `.wx` templates, resources, semantic mutation events, keyed loops, and Vite HMR.
+  main [stack gap-xl] class:app-main
+    header [stack gap-2xs]
+      p [caption-m] WAVEx demo
+      h1 ~x Todo
+      p A realtime Convex-backed task list exercising `.wx` templates, resources, semantic mutation events, keyed loops, and Vite HMR.
 
-  section class:todo-shell [stack gap-m]
-    form :submit:$$tasks:create [cluster gap-s]
-      input name:text type:text placeholder:"What needs doing?" aria-label:"New todo" autocomplete:off required
-      button type:submit Add todo
+    @card
+      div [stack gap-m]
+        form :submit:$$tasks:create [cluster gap-s align-items-end]
+          @input name:text label:"New todo" placeholder:"What needs doing?" required autocomplete:off class:todo-input
+          @button type:submit variant:brand
+            @icon slot:start name:plus
+            | Add todo
 
-    div class:summary [cluster gap-s]
-      strong {{ (tasks ?? []).filter((todo) => !todo.completed).length }} left
-      span / {{ (tasks ?? []).length }} total
-      +if tasks && tasks.some((todo) => todo.completed)
-        button type:button class:link-button :click:$$tasks:clearCompleted Clear completed
+        div [cluster gap-s align-items-center]
+          strong {{ (tasks ?? []).filter((todo) => !todo.completed).length }} left
+          span [caption-m] / {{ (tasks ?? []).length }} total
+          +if tasks && tasks.some((todo) => todo.completed)
+            @button size:s appearance:plain :click:$$tasks:clearCompleted Clear completed
 
-    +if !tasks
-      p class:empty-list Loading todos…
+        @divider
 
-    +if tasks && tasks.length === 0
-      p class:empty-list No todos yet. Add one above.
+        $$tasks:list
+          +loading
+            div [cluster gap-s align-items-center]
+              @spinner
+              span [caption-m] Loading todos…
 
-    +if tasks && tasks.length > 0
-      ul class:todo-list [stack gap-s]
-        +for todo in tasks key:todo._id
-          li class:todo-item
-            label [cluster gap-s]
-              input type:checkbox checked:todo.completed data-id:todo._id :click:$$tasks:toggle
-              span class:{{ todo.completed ? "todo-text is-complete" : "todo-text" }} {{ todo.text }}
-            button type:button class:icon-button data-id:todo._id aria-label:"Delete todo" :click:$$tasks:deleteTask ×
+          +empty
+            div [stack gap-xs align-items-center] class:empty-state
+              @icon name:clipboard-check class:empty-state-icon
+              p [heading-s] No todos yet
+              p [caption-m] Add your first task above.
+
+          +error err
+            @callout variant:danger
+              @icon slot:icon name:circle-exclamation
+              = String(err)
+
+          +for todo in tasks key:todo._id
+            div [cluster gap-s align-items-center justify-content-space-between] class:todo-item
+              @checkbox checked:todo.completed data-id:todo._id :change:$$tasks:toggle
+                span class:{{ todo.completed ? "todo-text is-complete" : "todo-text" }} {{ todo.text }}
+              @button size:s appearance:plain variant:neutral data-id:todo._id aria-label:"Delete todo" :click:$$tasks:deleteTask
+                @icon name:trash-can label:Delete

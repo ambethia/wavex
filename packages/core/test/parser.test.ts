@@ -50,4 +50,20 @@ describe("parseWavex", () => {
       handler: "opened"
     });
   });
+
+  it("rejects colon-form utility tokens with WX005", () => {
+    const parsed = parseWavex(`~~~\nmain [stack gap:xl]\n  p Hello\n`);
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX005", severity: "error", line: 2 }
+    ]);
+    expect(parsed.diagnostics[0]!.message).toContain("gap:xl");
+  });
+
+  it("accepts dash-form utility tokens without diagnostics", () => {
+    const parsed = parseWavex(`~~~\nmain [stack gap-xl align-items-center]\n`);
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.nodes[0]).toMatchObject({ utilities: ["stack", "gap-xl", "align-items-center"] });
+  });
 });

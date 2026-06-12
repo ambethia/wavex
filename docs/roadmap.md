@@ -111,7 +111,7 @@ Done criteria:
 
 ### 4. Web Awesome adoption in the TODO app
 
-Status: not started. The current demo uses native elements with bespoke classes (`todo-shell`, `icon-button`, `empty-list`, …) and ~200 lines of custom CSS; the Web Awesome Pro and Font Awesome kit packages are installed in `apps/todo/package.json` but unused.
+Status: **complete** (2026-06-12). The demo now renders `<wa-page>` as the body root with `@input`/`@button`/`@checkbox`/`@card`/`@callout`/`@spinner`/`@divider`/`@icon`, utilities and tokens replaced the bespoke CSS (`style.css` is ~35 lines of app theming over `webawesome.css` + `native.css`), the colon utility form now fails with WX005 and the compiler no longer silently normalizes it, and `+loading`/`+empty`/`+error err` compile conditionally against `resourceStates` inside `$$` blocks. Semantic event delegation gained `change` (wa-checkbox's internal label double-fires `click`, which double-toggled mutations — `:change:` is the correct binding for form-control state). Browser-validated: wa-page direct child of `<body>` with no `#app` div, all custom elements upgraded, dash utilities expanded in the live DOM, FormData submit from the form-associated `wa-input`, two-tab realtime for create/toggle/clear/delete, `wa-icon` rendering Font Awesome SVGs, zero console errors.
 
 Goal: make the TODO app the first real proof of the first-class Web Awesome / Font Awesome promise before multi-route work starts.
 
