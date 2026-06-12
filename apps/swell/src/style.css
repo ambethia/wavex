@@ -42,3 +42,13 @@
   text-decoration: none;
   color: var(--wa-color-text-quiet);
 }
+
+.error-page {
+  padding-block: var(--wa-space-3xl);
+  text-align: center;
+}
+
+.error-icon {
+  font-size: var(--wa-font-size-3xl);
+  color: var(--wa-color-danger-on-quiet);
+}

@@ -82,7 +82,10 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
           const layouts = discoverRouteLayouts(route.file, config.pagesDir, projectRoot)
             .map((layout) => `{ file: ${JSON.stringify(layout)}, load: () => import(${JSON.stringify(`/${layout}`)}) }`)
             .join(", ");
-          return `  { ...${JSON.stringify(route)}, layouts: [${layouts}], load: () => import(${JSON.stringify(importPath)}) }`;
+          const errors = discoverRouteSpecialFiles(route.file, config.pagesDir, projectRoot, "+error.wx")
+            .map((file) => `{ file: ${JSON.stringify(file)}, load: () => import(${JSON.stringify(`/${file}`)}) }`)
+            .join(", ");
+          return `  { ...${JSON.stringify(route)}, layouts: [${layouts}], errors: [${errors}], load: () => import(${JSON.stringify(importPath)}) }`;
         });
         return [
           `export const routes = [`,
@@ -189,7 +192,7 @@ function generateBootstrapModule(config: ResolvedDirs, root: string): string {
 
   return [
     `import { mountLit } from "@wavex/runtime/lit";`,
-    `import { createClientRouter, createConvexActionClient, createConvexResourceClient } from "@wavex/runtime";`,
+    `import { createClientRouter, createConvexActionClient, createConvexResourceClient, createPostHogCaptureClient } from "@wavex/runtime";`,
     `import { ConvexClient } from "convex/browser";`,
     `import routes from "virtual:wavex/routes";`,
     styleImport,
@@ -204,12 +207,23 @@ function generateBootstrapModule(config: ResolvedDirs, root: string): string {
     `const convexUrl = import.meta.env.VITE_CONVEX_URL;`,
     `const convex = convexUrl ? new ConvexClient(convexUrl) : undefined;`,
     ``,
+    `// Analytics is optional: enabled only when VITE_POSTHOG_KEY is configured.`,
+    `const posthogKey = import.meta.env.VITE_POSTHOG_KEY;`,
+    `const analytics = posthogKey`,
+    `  ? createPostHogCaptureClient({ apiKey: posthogKey, host: import.meta.env.VITE_POSTHOG_HOST })`,
+    `  : undefined;`,
+    ``,
     `const app = mountLit(root, () => undefined, {}, {`,
     `  resourceClient: convex ? createConvexResourceClient(convex, { api: convexApi }) : undefined,`,
     `  actionClient: convex ? createConvexActionClient(convex, { api: convexApi }) : undefined,`,
+    `  analytics,`,
     `});`,
     ``,
-    `const router = createClientRouter({ routes, host: app });`,
+    `const router = createClientRouter({`,
+    `  routes,`,
+    `  host: app,`,
+    `  onNavigate: (route) => analytics?.capture("$pageview", { $current_url: location.href, path: route.path }),`,
+    `});`,
     `globalThis.__wavexHotReplacePage = (file, module) => router.hotReplacePage(file, module);`,
     `void router.navigate(location.pathname + location.search, { replace: true });`,
     ``,
@@ -241,23 +255,27 @@ function discoverRoutes(pagesDir: string, root: string) {
 
 /** Layout files (+layout.wx) from the pages root down to the route's directory, outermost first. */
 function discoverRouteLayouts(routeFile: string, pagesDir: string, root: string): string[] {
+  return discoverRouteSpecialFiles(routeFile, pagesDir, root, "+layout.wx");
+}
+
+/** Special sibling files (+layout.wx / +error.wx) from the pages root down to the route's directory, outermost first. */
+function discoverRouteSpecialFiles(routeFile: string, pagesDir: string, root: string, fileName: string): string[] {
   const relativePagesDir = normalizeSlashes(relative(root, pagesDir));
   const routeRelative = normalizeSlashes(routeFile).startsWith(`${relativePagesDir}/`)
     ? normalizeSlashes(routeFile).slice(relativePagesDir.length + 1)
     : normalizeSlashes(routeFile);
   const directories = routeRelative.split("/").slice(0, -1);
 
-  const layouts: string[] = [];
+  const found: string[] = [];
   let dir = pagesDir;
-  const candidate = (base: string) => join(base, "+layout.wx");
-  if (existsSync(candidate(dir))) layouts.push(`${relativePagesDir}/+layout.wx`);
+  if (existsSync(join(dir, fileName))) found.push(`${relativePagesDir}/${fileName}`);
   let prefix = "";
   for (const segment of directories) {
     dir = join(dir, segment);
     prefix = prefix ? `${prefix}/${segment}` : segment;
-    if (existsSync(candidate(dir))) layouts.push(`${relativePagesDir}/${prefix}/+layout.wx`);
+    if (existsSync(join(dir, fileName))) found.push(`${relativePagesDir}/${prefix}/${fileName}`);
   }
-  return layouts;
+  return found;
 }
 
 function discoverLocalComponents(componentsDir: string): string[] {

@@ -27,7 +27,7 @@
           strong {{ (tasks ?? []).filter((todo) => !todo.completed).length }} left
           span [caption-m] / {{ (tasks ?? []).length }} total
           +if tasks && tasks.some((todo) => todo.completed)
-            @button size:s appearance:plain :click:$$tasks:clearCompleted Clear completed
+            @button size:s appearance:plain :click:$$tasks:clearCompleted :track:todos_cleared Clear completed
 
         @divider
 

@@ -94,6 +94,34 @@ describe("semantic action dispatcher", () => {
     ]);
   });
 
+  it("captures analytics for semantic actions with :track: override", async () => {
+    const captured: Array<{ event: string; properties?: Record<string, unknown> }> = [];
+    const client: ActionClient = { invoke: async () => undefined };
+    const analytics = { capture: (event: string, properties?: Record<string, unknown>) => captured.push({ event, properties }) };
+
+    const plain = fakeActionEvent({
+      target: "$$tasks:create",
+      type: "submit",
+      element: { getAttributeNames: () => [], getAttribute: () => null }
+    });
+    const tracked = fakeActionEvent({
+      target: "$$tasks:clearCompleted",
+      element: {
+        getAttributeNames: () => ["data-wx-click", "data-wx-track"],
+        getAttribute: (name: string) => (name === "data-wx-track" ? "todos_cleared" : null)
+      }
+    });
+
+    const dispatch = createSemanticActionDispatcher(plain.context, { actionClient: client, analytics });
+    await dispatch(plain);
+    await dispatch(tracked);
+
+    expect(captured).toMatchObject([
+      { event: "tasks:create", properties: { wx_kind: "mutation", wx_event_type: "submit" } },
+      { event: "todos_cleared", properties: { wx_target: "$$tasks:clearCompleted" } }
+    ]);
+  });
+
   it("prevents default submit navigation and stores errors", async () => {
     const error = new Error("mutation failed");
     let prevented = false;

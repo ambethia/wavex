@@ -8,8 +8,8 @@ export default defineSchema({
     speaker: v.string(),
     track: v.string(),
     startsAt: v.string(),
-    summary: v.string()
+    summary: v.string(),
   })
     .index("by_slug", ["slug"])
-    .index("by_track", ["track"])
+    .index("by_track", ["track"]),
 });

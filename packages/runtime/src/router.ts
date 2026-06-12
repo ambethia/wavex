@@ -12,6 +12,8 @@ export interface ClientRoute extends RouteDefinition {
   load: () => Promise<RoutePageModule>;
   /** Layout modules, outermost first (src/pages/+layout.wx, then nested). */
   layouts?: ReadonlyArray<{ file: string; load: () => Promise<RoutePageModule> }>;
+  /** +error.wx modules, outermost first; the deepest one handles route errors. */
+  errors?: ReadonlyArray<{ file: string; load: () => Promise<RoutePageModule> }>;
 }
 
 /**
@@ -129,21 +131,42 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     }
 
     const clientRoute = match.route as ClientRoute;
-    const layoutDefs = clientRoute.layouts ?? [];
-    const [module, ...layoutModules] = await Promise.all([
-      clientRoute.load(),
-      ...layoutDefs.map((layout) => layout.load())
-    ]);
-    if (token !== navigationToken) return; // superseded by a newer navigation
+    try {
+      const layoutDefs = clientRoute.layouts ?? [];
+      const [module, ...layoutModules] = await Promise.all([
+        clientRoute.load(),
+        ...layoutDefs.map((layout) => layout.load())
+      ]);
+      if (token !== navigationToken) return; // superseded by a newer navigation
 
-    current = {
-      route,
-      file: clientRoute.file,
-      page: module,
-      layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
-    };
-    applyCurrent();
+      current = {
+        route,
+        file: clientRoute.file,
+        page: module,
+        layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
+      };
+      applyCurrent();
+    } catch (error) {
+      if (token !== navigationToken) return;
+      await renderErrorRoute(clientRoute, route, error);
+    }
     options.onNavigate?.(route);
+  };
+
+  /** Deterministic error UI: render the deepest +error.wx for the route, bare (no layouts). */
+  const renderErrorRoute = async (clientRoute: ClientRoute, route: RouteContext, error: unknown) => {
+    const errorDef = clientRoute.errors?.at(-1);
+    if (!errorDef) throw error;
+    const errorModule = await errorDef.load();
+    const errorRender = errorModule.default ?? errorModule.render;
+    if (!errorRender) throw error;
+    current = { route, file: errorDef.file, page: errorModule, layouts: [] };
+    options.host.setPage({
+      render: (context = {}) => errorRender({ ...context, props: { ...context.props, error } }),
+      resources: [],
+      route,
+      head: (context) => errorModule.headEntries?.(context) ?? []
+    });
   };
 
   const onClick = (event: MouseEvent) => {

@@ -1,5 +1,10 @@
 declare module "*.wx" {
-  import type { HeadEntry, RenderContext, RenderFunction, ResourceDefinition } from "@wavex/runtime";
+  import type {
+    HeadEntry,
+    RenderContext,
+    RenderFunction,
+    ResourceDefinition,
+  } from "@wavex/runtime";
 
   export const resources: readonly ResourceDefinition[];
   export function headEntries(context?: RenderContext): HeadEntry[];

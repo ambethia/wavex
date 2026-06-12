@@ -204,7 +204,7 @@ Done criteria:
 
 ### 9. Error boundaries and PostHog
 
-Goal: cover app reliability and first-class analytics after the core app loop works.
+Status: **complete** (2026-06-12). `+boundary` compiles to a try/catch IIFE around eager Lit template evaluation, rendering the nested `+error err` fallback with the error bound (the rest of the page stays live). Route-level `+error.wx` files are discovered like layouts; on a navigation/load/render failure the router renders the deepest one bare (no layouts, deterministic) with the error in `props.error` and its own `+head` applied — Swell ships `src/pages/+error.wx`. Analytics decision: **minimal capture bridge**, not the official client — `createPostHogCaptureClient` POSTs to the public `/capture` endpoint with a persistent anonymous distinct id; enabled only when `VITE_POSTHOG_KEY` (and optional `VITE_POSTHOG_HOST`) is configured, so local dev runs analytics-free by default. The router emits `$pageview` per navigation; the semantic dispatcher captures every Convex action with conventional names (`tasks:create` from `:submit:$$tasks:create`) and `wx_*` properties, with `:track:` overriding the event name (todo's clear button demonstrates `:track:todos_cleared`). Browser-validated against an intercepted capture endpoint: `$pageview`, `tasks:create`, `tasks:toggle`, and the `todos_cleared` override all captured with correct payloads; boundary catch and `+error.wx` rendering (including its title) verified live. Grammar note from validation: inline text beginning `word:` parses as an attribute — use an explicit `|` text line.
 
 Tasks:
 

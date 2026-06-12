@@ -7,6 +7,7 @@ import {
   installSemanticEventDelegation,
   type ActionClient,
   type ActionKindResolver,
+  type AnalyticsClient,
   type HeadEntry,
   type RenderContext,
   type RenderFunction,
@@ -21,6 +22,7 @@ export interface LitMountOptions {
   resourceClient?: ResourceClient;
   actionClient?: ActionClient;
   resolveActionKind?: ActionKindResolver;
+  analytics?: AnalyticsClient;
 }
 
 export interface WavexPageModule<Result = unknown> {
@@ -57,7 +59,8 @@ export function mountLit<Result = unknown>(
     context.dispatch = createSemanticActionDispatcher(context, {
       actionClient: options.actionClient,
       dispatch: context.dispatch,
-      resolveActionKind: options.resolveActionKind
+      resolveActionKind: options.resolveActionKind,
+      analytics: options.analytics
     });
   }
   let result: Result | undefined;

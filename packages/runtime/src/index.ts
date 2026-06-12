@@ -1,3 +1,4 @@
+import { analyticsEventNameForTarget } from "./analytics.js";
 export interface RouteContext {
   path: string;
   params: Record<string, string>;
@@ -112,6 +113,8 @@ export interface SemanticActionDispatcherOptions {
   onActionResult?: (definition: ResolvedActionDefinition, result: unknown, event: WavexActionEvent) => void;
   onActionError?: (definition: ResolvedActionDefinition, error: unknown, event: WavexActionEvent) => void;
   throwActionErrors?: boolean;
+  /** Optional analytics sink; semantic Convex actions are captured automatically (`:track:` overrides the name). */
+  analytics?: import("./analytics.js").AnalyticsClient;
 }
 
 export interface ConvexBrowserClientLike {
@@ -309,6 +312,17 @@ export function createSemanticActionDispatcher(
     };
 
     markActionPending(context, definition.target);
+
+    if (options.analytics) {
+      const trackOverride = event.element.getAttribute?.("data-wx-track") ?? undefined;
+      options.analytics.capture(trackOverride ?? analyticsEventNameForTarget(definition.target), {
+        wx_event_type: event.type,
+        wx_target: definition.target,
+        wx_kind: definition.kind,
+        wx_module: definition.modulePath,
+        wx_function: definition.functionName
+      });
+    }
 
     try {
       const result = options.actionClient ? await options.actionClient.invoke(definition) : undefined;
@@ -591,6 +605,12 @@ function cssEscape(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 }
 
+export {
+  analyticsEventNameForTarget,
+  createPostHogCaptureClient,
+  type AnalyticsClient,
+  type PostHogCaptureOptions
+} from "./analytics.js";
 export {
   composeLayoutRender,
   createClientRouter,

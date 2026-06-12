@@ -328,10 +328,35 @@ function compileDirective(node: DirectiveNode, options: InternalCompileOptions, 
       resourceScope
     )}\`)}`;
   }
+  if (node.name === "boundary") {
+    return compileBoundaryDirective(node, options, resourceScope);
+  }
   if (resourceScope && RESOURCE_STATE_DIRECTIVES.has(node.name)) {
     return compileResourceStateDirective(node, options, resourceScope);
   }
   return compileNodes(node.children, options, resourceScope);
+}
+
+/**
+ * +boundary catches synchronous template-evaluation errors in its children and
+ * renders the nested +error fallback instead. Lit template expressions are
+ * evaluated eagerly during template construction, so a try/catch IIFE is the
+ * right containment for render-time errors.
+ */
+function compileBoundaryDirective(node: DirectiveNode, options: InternalCompileOptions, resourceScope?: string): string {
+  const errorDirectives = node.children.filter(
+    (child): child is DirectiveNode => child.kind === "directive" && child.name === "error"
+  );
+  const contentNodes = node.children.filter((child) => !errorDirectives.includes(child as DirectiveNode));
+  const body = compileNodes(contentNodes, options, resourceScope);
+
+  const fallbackDirective = errorDirectives[0];
+  const binding = isIdentifierName(fallbackDirective?.expression?.trim() ?? "")
+    ? fallbackDirective!.expression!.trim()
+    : "err";
+  const fallback = fallbackDirective ? `html\`${compileNodes(fallbackDirective.children, options, resourceScope)}\`` : "nothing";
+
+  return `\${(() => { try { return html\`${body}\`; } catch (__wxBoundaryError) { return ((${binding}: unknown) => { void ${binding}; return ${fallback}; })(__wxBoundaryError); } })()}`;
 }
 
 function compileResourceStateDirective(node: DirectiveNode, options: InternalCompileOptions, resourceScope: string): string {

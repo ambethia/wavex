@@ -93,6 +93,22 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`<wa-badge`);
   });
 
+  it("compiles +boundary to a try/catch around eager template evaluation", () => {
+    const compiled = compileWavexModule(
+      `~~~\n+boundary\n  +error problem\n    p\n      | Failed: {{ String(problem) }}\n  section\n    p {{ data.mustExist }}\n`,
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.code).toContain("try { return html`");
+    expect(compiled.code).toContain("catch (__wxBoundaryError)");
+    expect(compiled.code).toContain("((problem: unknown) =>");
+    expect(compiled.code).toContain("Failed:");
+    // boundary content excludes the +error fallback from the try body
+    const tryBody = compiled.code.split("try { return html`")[1]!.split("`;")[0]!;
+    expect(tryBody).toContain("data.mustExist");
+    expect(tryBody).not.toContain("Failed:");
+  });
+
   it("leaves resource-state directives inert outside a $$ block", () => {
     const compiled = compileWavexModule(`~~~\nmain\n  +loading\n    p Should render unconditionally\n`, {
       id: "src/pages/index.wx"
