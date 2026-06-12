@@ -3,8 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { compileWavexModule } from "@wavex/compiler";
-import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes } from "@wavex/core";
-import { parseWavex } from "@wavex/language-core";
+import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes, parseWavex } from "@wavex/core";
 
 const [command = "help", ...args] = process.argv.slice(2);
 

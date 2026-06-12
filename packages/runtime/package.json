@@ -7,11 +7,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./lit": {
+      "types": "./dist/lit.d.ts",
+      "default": "./dist/lit.js"
     }
   },
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false"
+  },
+  "peerDependencies": {
+    "lit": ">=3.0.0"
   },
   "files": ["dist"],
   "license": "MIT"

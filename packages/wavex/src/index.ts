@@ -1,3 +1,2 @@
 export { compileWavexModule } from "@wavex/compiler";
-export { createDefaultConfig, createRouteDefinition, routePathFromPageFile } from "@wavex/core";
-export { parseWavex } from "@wavex/language-core";
+export { createDefaultConfig, createRouteDefinition, parseWavex, routePathFromPageFile } from "@wavex/core";

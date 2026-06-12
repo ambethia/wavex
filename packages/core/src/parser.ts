@@ -1,4 +1,4 @@
-import { inferResourceBindingName, type Diagnostic } from "@wavex/core";
+import { inferResourceBindingName, type Diagnostic } from "./model.js";
 import type {
   Attribute,
   ComponentNode,

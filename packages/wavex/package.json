@@ -18,8 +18,7 @@
   },
   "dependencies": {
     "@wavex/compiler": "workspace:*",
-    "@wavex/core": "workspace:*",
-    "@wavex/language-core": "workspace:*"
+    "@wavex/core": "workspace:*"
   },
   "files": ["dist"],
   "license": "MIT"

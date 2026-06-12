@@ -11,7 +11,7 @@ import {
   type ResourceClient,
   type ResourceController,
   type ResourceDefinition
-} from "@wavex/runtime";
+} from "./index.js";
 
 export interface LitMountOptions {
   resources?: readonly ResourceDefinition[];

@@ -14,8 +14,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
-    "@wavex/core": "workspace:*",
-    "@wavex/language-core": "workspace:*"
+    "@wavex/core": "workspace:*"
   },
   "peerDependencies": {
     "lit": ">=3.0.0"

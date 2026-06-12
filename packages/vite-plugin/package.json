@@ -15,8 +15,7 @@
   },
   "dependencies": {
     "@wavex/compiler": "workspace:*",
-    "@wavex/core": "workspace:*",
-    "@wavex/language-core": "workspace:*"
+    "@wavex/core": "workspace:*"
   },
   "peerDependencies": {
     "vite": ">=5.0.0"

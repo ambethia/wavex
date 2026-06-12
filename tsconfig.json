@@ -2,9 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/core" },
-    { "path": "./packages/language-core" },
     { "path": "./packages/runtime" },
-    { "path": "./packages/renderer-lit" },
     { "path": "./packages/compiler" },
     { "path": "./packages/vite-plugin" },
     { "path": "./packages/wavex" }

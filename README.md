@@ -20,11 +20,9 @@ The Vite plugin and CLI treat those paths as framework law. Projects cannot over
 ## Packages
 
 - `wavex` — CLI entrypoint.
-- `@wavex/core` — shared config, route/resource naming, and utility helpers.
-- `@wavex/language-core` — `.wx` parse model and diagnostics.
+- `@wavex/core` — `.wx` parser, AST, diagnostics, and shared project model (config, route/resource naming, utility helpers). The single source of truth for the language, consumed by the compiler and the future `@wavex/lsp`.
 - `@wavex/compiler` — `.wx` to Lit-backed render module compiler.
-- `@wavex/runtime` — browser runtime primitives.
-- `@wavex/renderer-lit` — Lit renderer adapter.
+- `@wavex/runtime` — browser runtime primitives, with the Lit renderer at `@wavex/runtime/lit`.
 - `@wavex/vite-plugin` — Vite plugin for `.wx` modules and route metadata.
 
 ## Commands

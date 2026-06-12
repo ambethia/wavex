@@ -29,37 +29,17 @@ importers:
       '@wavex/core':
         specifier: workspace:*
         version: link:../core
-      '@wavex/language-core':
-        specifier: workspace:*
-        version: link:../language-core
       lit:
         specifier: '>=3.0.0'
         version: 3.3.3
 
   packages/core: {}
 
-  packages/grammar:
-    devDependencies:
-      tree-sitter-cli:
-        specifier: ^0.26.9
-        version: 0.26.9
-
-  packages/language-core:
+  packages/runtime:
     dependencies:
-      '@wavex/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/renderer-lit:
-    dependencies:
-      '@wavex/runtime':
-        specifier: workspace:*
-        version: link:../runtime
       lit:
         specifier: '>=3.0.0'
         version: 3.3.3
-
-  packages/runtime: {}
 
   packages/vite-plugin:
     dependencies:
@@ -69,9 +49,6 @@ importers:
       '@wavex/core':
         specifier: workspace:*
         version: link:../core
-      '@wavex/language-core':
-        specifier: workspace:*
-        version: link:../language-core
       vite:
         specifier: '>=5.0.0'
         version: 8.0.16(@types/node@25.9.1)
@@ -84,9 +61,6 @@ importers:
       '@wavex/core':
         specifier: workspace:*
         version: link:../core
-      '@wavex/language-core':
-        specifier: workspace:*
-        version: link:../language-core
 
 packages:
 
@@ -434,11 +408,6 @@ packages:
   tinyrainbow@3.1.0:
     resolution: {integrity: sha512-Bf+ILmBgretUrdJxzXM0SgXLZ3XfiaUuOj/IKQHuTXip+05Xn+uyEYdVg0kYDipTBcLrCVyUzAPz7QmArb0mmw==}
     engines: {node: '>=14.0.0'}
-
-  tree-sitter-cli@0.26.9:
-    resolution: {integrity: sha512-7l+U1RmazPVe+yA/JiX80GFOILnL/j24GbawamIzNQC8UlINrcyECbaWGaG1wuq4j/m0DQTx7Uu4r0iW9Ao1BQ==}
-    engines: {node: '>=12.0.0'}
-    hasBin: true
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
@@ -836,8 +805,6 @@ snapshots:
       picomatch: 4.0.4
 
   tinyrainbow@3.1.0: {}
-
-  tree-sitter-cli@0.26.9: {}
 
   tslib@2.8.1:
     optional: true

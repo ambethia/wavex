@@ -1,4 +1,4 @@
-import type { Diagnostic } from "@wavex/core";
+import type { Diagnostic } from "./model.js";
 
 export interface SourceLocation {
   line: number;

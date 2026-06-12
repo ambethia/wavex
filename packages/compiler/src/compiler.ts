@@ -1,5 +1,5 @@
 import { componentReferenceToTag, expandUtilityClassList, toKebabCase } from "@wavex/core";
-import { parseWavex } from "@wavex/language-core";
+import { parseWavex } from "@wavex/core";
 import type {
   Attribute,
   ComponentNode,
@@ -9,7 +9,7 @@ import type {
   ResourceBinding,
   TemplateNode,
   WavexFile
-} from "@wavex/language-core";
+} from "@wavex/core";
 
 export interface CompileWavexOptions {
   id?: string;

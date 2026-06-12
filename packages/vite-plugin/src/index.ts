@@ -142,7 +142,7 @@ function generateBootstrapModule(config: ResolvedDirs, root: string): string {
     : `const convexApi = undefined;`;
 
   return [
-    `import { mountLitPage } from "@wavex/renderer-lit";`,
+    `import { mountLitPage } from "@wavex/runtime/lit";`,
     `import { createConvexActionClient, createConvexResourceClient } from "@wavex/runtime";`,
     `import { ConvexClient } from "convex/browser";`,
     `import * as page from ${JSON.stringify(pageImportPath)};`,
