@@ -1,5 +1,6 @@
 import type { LanguageServicePlugin } from "@volar/language-service";
 import { formatDiagnostic, parseWavex, type Diagnostic as WavexDiagnostic } from "@wavex/core";
+import type { WebAwesomeComponentDetail } from "@wavex/core/capabilities";
 import type * as vscode from "vscode-languageserver-protocol";
 import { URI } from "vscode-uri";
 import { WAVEX_LANGUAGE_ID } from "./language.js";
@@ -9,6 +10,10 @@ export interface WavexServiceOptions {
   localComponents?: readonly string[];
   /** Web Awesome component names without the wa- prefix. */
   webAwesomeComponents?: readonly string[];
+  /** Full Web Awesome component metadata for attribute completions and hover. */
+  webAwesomeDetails?: ReadonlyMap<string, WebAwesomeComponentDetail>;
+  /** Utility class suffixes (stack, gap-xl, ...) for [bracket-group] completions. */
+  utilityClasses?: readonly string[];
   /** Convex function references (e.g. "tasks:list"). */
   convexFunctions?: readonly string[];
 }
@@ -37,26 +42,26 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
     name: "wavex",
     capabilities: {
       diagnosticProvider: { interFileDependencies: false, workspaceDiagnostics: false },
-      completionProvider: { triggerCharacters: ["@", "+", "$"] },
-      semanticTokensProvider: {
-        legend: {
-          tokenTypes: ["type", "class", "function", "keyword", "property", "variable"],
-          tokenModifiers: []
-        }
-      }
+      completionProvider: { triggerCharacters: ["@", "+", "$", "[", " "] },
+      hoverProvider: true
     },
     create(context) {
+      const sourceOptions = (documentUri: string): WavexServiceOptions => {
+        const parsedUri = URI.parse(documentUri);
+        const sourceUri = context.decodeEmbeddedDocumentUri?.(parsedUri)?.[0] ?? parsedUri;
+        return optionsFor(sourceUri.toString());
+      };
+
       return {
         provideDiagnostics(document) {
           if (document.languageId !== WAVEX_LANGUAGE_ID) return undefined;
           const parsed = parseWavex(document.getText());
           return parsed.diagnostics.map((diagnostic) => toLspDiagnostic(document.getText(), diagnostic));
         },
+
         provideCompletionItems(document, position) {
           if (document.languageId !== WAVEX_LANGUAGE_ID) return undefined;
-          const parsedUri = URI.parse(document.uri);
-          const sourceUri = context.decodeEmbeddedDocumentUri?.(parsedUri)?.[0] ?? parsedUri;
-          const options = optionsFor(sourceUri.toString());
+          const options = sourceOptions(document.uri);
           const text = document.getText();
           const offset = document.offsetAt(position);
           const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
@@ -69,13 +74,16 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
                 label: `@${name}`,
                 kind: 7 as vscode.CompletionItemKind,
                 detail: `src/components/${name}.wx`,
-                insertText: `@${name}`
+                insertText: `@${name}`,
+                sortText: `0${name}`
               })),
               ...(options.webAwesomeComponents ?? []).map((name) => ({
                 label: `@${name}`,
                 kind: 7 as vscode.CompletionItemKind,
                 detail: `<wa-${name}>`,
-                insertText: `@${name}`
+                documentation: markdownDoc(options.webAwesomeDetails?.get(name)?.summary),
+                insertText: `@${name}`,
+                sortText: `1${name}`
               }))
             ];
             return { isIncomplete: false, items };
@@ -107,37 +115,117 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
             };
           }
 
-          void context;
+          // Inside an unclosed utility group: [stack gap-…
+          const openBracket = linePrefix.lastIndexOf("[");
+          if (openBracket !== -1 && linePrefix.indexOf("]", openBracket) === -1 && /[\s[][\w-]*$/.test(linePrefix)) {
+            return {
+              isIncomplete: false,
+              items: (options.utilityClasses ?? []).map((token) => ({
+                label: token,
+                kind: 21 as vscode.CompletionItemKind,
+                detail: `.wa-${token}`,
+                insertText: token
+              }))
+            };
+          }
+
+          // Attribute completions for the line's Web Awesome component head.
+          const componentHead = /^\s*@([\w/-]+)\s/.exec(text.slice(lineStart, text.indexOf("\n", lineStart) === -1 ? text.length : text.indexOf("\n", lineStart)));
+          const detail = componentHead ? options.webAwesomeDetails?.get(componentHead[1]!) : undefined;
+          if (detail && /\s[\w-]*$/.test(linePrefix)) {
+            const items: vscode.CompletionItem[] = [
+              ...detail.attributes.map((attribute) => ({
+                label: attribute.name,
+                kind: 10 as vscode.CompletionItemKind,
+                detail: attribute.type ?? "attribute",
+                documentation: markdownDoc(attributeDoc(attribute)),
+                insertText: `${attribute.name}:`
+              })),
+              ...detail.slots
+                .filter((slot) => slot.name)
+                .map((slot) => ({
+                  label: `slot:${slot.name}`,
+                  kind: 10 as vscode.CompletionItemKind,
+                  detail: "slot",
+                  documentation: markdownDoc(slot.description),
+                  insertText: `slot:${slot.name}`
+                }))
+            ];
+            return { isIncomplete: false, items };
+          }
+
           return undefined;
         },
-        provideDocumentSemanticTokens(document, _range, legend) {
-          if (document.languageId !== WAVEX_LANGUAGE_ID) return undefined;
-          const indexOf = (type: string) => Math.max(0, legend.tokenTypes.indexOf(type));
-          const tokens: Array<[number, number, number, number, number]> = [];
-          const text = document.getText();
-          const parsed = parseWavex(text);
 
-          const visit = (node: { kind: string; raw: string; children: readonly unknown[]; range: { start: { line: number; column: number } }; reference?: string; name?: string; tag?: string }) => {
-            const line = node.range.start.line - 1;
-            const column = node.range.start.column - 1;
-            if (node.kind === "component" && node.reference) {
-              tokens.push([line, column, node.reference.length + 1, indexOf("class"), 0]);
-            } else if (node.kind === "directive" && node.name) {
-              tokens.push([line, column, node.name.length + 1, indexOf("keyword"), 0]);
-            } else if (node.kind === "convex-call" || node.kind === "convex-reference") {
-              const head = node.raw.trim().split(/\s+/)[0] ?? "";
-              tokens.push([line, column, head.length, indexOf("function"), 0]);
-            } else if (node.kind === "element" && node.tag) {
-              tokens.push([line, column, node.tag.length, indexOf("type"), 0]);
+        provideHover(document, position) {
+          if (document.languageId !== WAVEX_LANGUAGE_ID) return undefined;
+          const options = sourceOptions(document.uri);
+          const text = document.getText();
+          const offset = document.offsetAt(position);
+          const lineStart = text.lastIndexOf("\n", offset - 1) + 1;
+          const lineEnd = text.indexOf("\n", offset);
+          const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
+          const column = offset - lineStart;
+
+          // @component under the cursor
+          for (const match of line.matchAll(/@([\w/-]+)/g)) {
+            const start = match.index ?? 0;
+            if (column < start || column > start + match[0].length) continue;
+            const name = match[1]!;
+            if (options.localComponents?.includes(name)) {
+              return hover(`**@${name}** — local component \`src/components/${name}.wx\``);
             }
-            for (const child of node.children) visit(child as never);
-          };
-          for (const node of parsed.nodes) visit(node as never);
-          return tokens;
+            const detail = options.webAwesomeDetails?.get(name.replace(/^wa\//, ""));
+            if (detail) {
+              const attrs = detail.attributes.slice(0, 8).map((attribute) => `\`${attribute.name}\``).join(" ");
+              return hover(
+                `**@${name}** — \`<wa-${detail.name}>\`\n\n${detail.summary ?? ""}${attrs ? `\n\nAttributes: ${attrs}` : ""}`
+              );
+            }
+          }
+
+          // attribute name on a component line
+          const componentHead = /^\s*@([\w/-]+)/.exec(line);
+          const headDetail = componentHead ? options.webAwesomeDetails?.get(componentHead[1]!) : undefined;
+          if (headDetail) {
+            for (const match of line.matchAll(/(?<=\s)([\w-]+)(?=:|\s|$)/g)) {
+              const start = match.index ?? 0;
+              if (column < start || column > start + match[1]!.length) continue;
+              const attribute = headDetail.attributes.find((candidate) => candidate.name === match[1]);
+              if (attribute) return hover(`**${attribute.name}**${attribute.type ? ` \`${attribute.type}\`` : ""}\n\n${attributeDoc(attribute) ?? ""}`);
+            }
+          }
+
+          // utility token inside a bracket group
+          const bracketStart = line.lastIndexOf("[", column);
+          if (bracketStart !== -1 && (line.indexOf("]", bracketStart) === -1 || line.indexOf("]", bracketStart) >= column)) {
+            for (const match of line.slice(bracketStart).matchAll(/[\w-]+/g)) {
+              const start = bracketStart + (match.index ?? 0);
+              if (column < start || column > start + match[0].length) continue;
+              if (options.utilityClasses?.includes(match[0])) {
+                return hover(`**${match[0]}** — Web Awesome utility class \`.wa-${match[0]}\``);
+              }
+            }
+          }
+
+          return undefined;
         }
       };
     }
   };
+}
+
+function hover(markdown: string): vscode.Hover {
+  return { contents: { kind: "markdown", value: markdown } };
+}
+
+function markdownDoc(value: string | undefined): vscode.MarkupContent | undefined {
+  return value ? { kind: "markdown", value } : undefined;
+}
+
+function attributeDoc(attribute: { description?: string; default?: string }): string | undefined {
+  const parts = [attribute.description, attribute.default ? `Default: \`${attribute.default}\`` : undefined].filter(Boolean);
+  return parts.length > 0 ? parts.join("\n\n") : undefined;
 }
 
 function toLspDiagnostic(text: string, diagnostic: WavexDiagnostic): vscode.Diagnostic {

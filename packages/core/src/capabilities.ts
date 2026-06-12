@@ -10,6 +10,8 @@ export interface WebAwesomeCapability {
   pro: boolean;
   /** Component names without the wa- prefix, from the package's custom-elements.json. */
   components: ReadonlySet<string>;
+  /** Installed package directory (for manifest details and stylesheet scans). */
+  packageDir: string;
 }
 
 export interface FontAwesomeCapability {
@@ -38,7 +40,8 @@ export function detectCapabilities(root: string): ProjectCapabilities {
     webAwesome = {
       packageName: candidate.name,
       pro: candidate.pro,
-      components: readManifestComponents(join(packageDir, "dist", "custom-elements.json"))
+      components: readManifestComponents(join(packageDir, "dist", "custom-elements.json")),
+      packageDir
     };
     break;
   }
@@ -197,4 +200,78 @@ export function discoverLocalComponents(root: string): string[] {
   };
   walk(componentsDir, "");
   return components.sort();
+}
+
+export interface WebAwesomeAttribute {
+  name: string;
+  description?: string;
+  type?: string;
+  default?: string;
+}
+
+export interface WebAwesomeComponentDetail {
+  /** Component name without the wa- prefix. */
+  name: string;
+  summary?: string;
+  attributes: WebAwesomeAttribute[];
+  slots: Array<{ name: string; description?: string }>;
+}
+
+/** Full component metadata (descriptions, attributes, slots) from custom-elements.json. */
+export function readManifestComponentDetails(manifestPath: string): Map<string, WebAwesomeComponentDetail> {
+  const details = new Map<string, WebAwesomeComponentDetail>();
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+      modules?: Array<{
+        declarations?: Array<{
+          tagName?: string;
+          summary?: string;
+          description?: string;
+          attributes?: Array<{ name?: string; description?: string; type?: { text?: string }; default?: string }>;
+          slots?: Array<{ name?: string; description?: string }>;
+        }>;
+      }>;
+    };
+    for (const module of manifest.modules ?? []) {
+      for (const declaration of module.declarations ?? []) {
+        if (!declaration.tagName?.startsWith("wa-")) continue;
+        const name = declaration.tagName.slice(3);
+        details.set(name, {
+          name,
+          summary: declaration.summary ?? declaration.description,
+          attributes: (declaration.attributes ?? []).flatMap((attribute) =>
+            attribute.name ? [{ name: attribute.name, description: attribute.description, type: attribute.type?.text, default: attribute.default }] : []
+          ),
+          slots: (declaration.slots ?? []).flatMap((slot) =>
+            slot.name !== undefined ? [{ name: slot.name, description: slot.description }] : []
+          )
+        });
+      }
+    }
+  } catch {
+    // missing or malformed manifest: no details
+  }
+  return details;
+}
+
+/** Utility class suffixes (wa-stack -> "stack") scraped from the installed package's stylesheets. */
+export function readUtilityClasses(packageDir: string): string[] {
+  const utilities = new Set<string>();
+  const styleDirs = [join(packageDir, "dist", "styles"), join(packageDir, "dist", "styles", "utilities")];
+  for (const dir of styleDirs) {
+    if (!existsSync(dir)) continue;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isFile() || !entry.name.endsWith(".css")) continue;
+      const css = readFileSync(join(dir, entry.name), "utf8");
+      // Literal classes (.wa-gap-xl) and attribute-selector families
+      // ([class*='wa-cluster']) — layout primitives only appear as the latter.
+      for (const match of css.matchAll(/\.wa-([a-z0-9][a-z0-9-]*)/g)) {
+        utilities.add(match[1]!);
+      }
+      for (const match of css.matchAll(/\[class[*^|~]?='wa-([a-z0-9][a-z0-9-]*)'\]/g)) {
+        utilities.add(match[1]!);
+      }
+    }
+  }
+  return [...utilities].sort();
 }

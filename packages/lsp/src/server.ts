@@ -4,7 +4,9 @@ import { createConnection, createServer, createTypeScriptProject, loadTsdkByPath
 import {
   detectCapabilities,
   discoverConvexFunctionKinds,
-  discoverLocalComponents
+  discoverLocalComponents,
+  readManifestComponentDetails,
+  readUtilityClasses
 } from "@wavex/core/capabilities";
 import { create as createTypeScriptServices } from "volar-service-typescript";
 import { URI } from "vscode-uri";
@@ -57,6 +59,10 @@ function optionsForDocument(documentUri: string): WavexServiceOptions {
     const options: WavexServiceOptions = {
       localComponents: discoverLocalComponents(root),
       webAwesomeComponents: capabilities.webAwesome ? [...capabilities.webAwesome.components].sort() : [],
+      webAwesomeDetails: capabilities.webAwesome
+        ? readManifestComponentDetails(join(capabilities.webAwesome.packageDir, "dist", "custom-elements.json"))
+        : undefined,
+      utilityClasses: capabilities.webAwesome ? readUtilityClasses(capabilities.webAwesome.packageDir) : [],
       convexFunctions: Object.keys(discoverConvexFunctionKinds(root)).sort()
     };
     optionsCache.set(root, options);

@@ -1,0 +1,17 @@
+type Talk = { title: string; minutes: number }
+
+function faqOpened(event: Event) {
+  console.log(event)
+}
+
+const talks: Talk[] = []
+
+~~~
+
+main
+  details on:wa-show:faqOpened
+    p FAQ body
+  +for talk in talks key:talk.title
+    p {{ talk.title }} runs {{ talk.minutes }} minutes
+  +error problem
+    p {{ String(problem) }}

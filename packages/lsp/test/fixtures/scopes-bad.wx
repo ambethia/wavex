@@ -1,0 +1,9 @@
+type Talk = { title: string; minutes: number }
+
+const talks: Talk[] = []
+
+~~~
+
+main
+  +for talk in talks
+    p {{ talk.minutes.toUpperCase() }}

@@ -100,13 +100,10 @@ function createTypeScriptCode(source: string, ast: WavexFile): VirtualCode {
     if (/^[A-Za-z_$][\w$]*$/.test(name)) append(`declare const ${name}: any;\n`);
   }
 
-  // 3. Each template expression type-checks in its own scope, mapped to source.
+  // 3. Template expressions type-check inside their template scopes (+for
+  //    items, +error bindings), mapped back to source.
   append("export function __wxTemplateExpressions() {\n");
-  for (const expression of collectExpressions(source, ast.nodes)) {
-    append("  void (");
-    appendMapped(expression.text, expression.sourceOffset);
-    append(");\n");
-  }
+  emitNodes(ast.nodes, { append, appendMapped });
   append("}\n");
   append("export {};\n");
 
@@ -119,11 +116,23 @@ function createTypeScriptCode(source: string, ast: WavexFile): VirtualCode {
   return { id: "ts", languageId: "typescript", snapshot, mappings };
 }
 
-function collectExpressions(source: string, nodes: readonly TemplateNode[]): MappedExpression[] {
-  const expressions: MappedExpression[] = [];
+interface Emitter {
+  append(text: string): void;
+  appendMapped(text: string, sourceOffset: number): void;
+}
+
+const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+
+/**
+ * Emit template expressions as checked statements, introducing the bindings
+ * template directives create: +for items (typed from the collection), +error /
+ * +mutation-error / +boundary error bindings (unknown), and handler references
+ * from raw and custom semantic events (so prelude functions count as used).
+ */
+function emitNodes(nodes: readonly TemplateNode[], emitter: Emitter): void {
   const seenOffsets = new Set<number>();
 
-  const pushExpression = (text: string | undefined, searchBase: number, searchText: string) => {
+  const emitExpression = (text: string | undefined, searchBase: number, searchText: string) => {
     if (!text) return;
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -132,30 +141,68 @@ function collectExpressions(source: string, nodes: readonly TemplateNode[]): Map
     const offset = searchBase + index;
     if (seenOffsets.has(offset)) return;
     seenOffsets.add(offset);
-    expressions.push({ sourceOffset: offset, text: trimmed });
+    emitter.append("  void (");
+    emitter.appendMapped(trimmed, offset);
+    emitter.append(");\n");
   };
+
+  const errorBinding = (expression: string | undefined): string =>
+    IDENTIFIER.test(expression?.trim() ?? "") ? expression!.trim() : "err";
 
   const visit = (node: TemplateNode) => {
     const base = node.range.start.offset;
     const raw = node.raw;
 
-    if (node.kind === "expression") pushExpression(node.expression, base, raw);
-    if (node.kind === "directive") {
-      if (node.name === "if") pushExpression(node.expression, base, raw);
-      if (node.name === "for" && node.for) pushExpression(node.for.collectionExpression, base, raw);
-    }
-
     // {{ interpolations }} anywhere on the line (inline text, attribute values).
     for (const match of raw.matchAll(/{{([\s\S]*?)}}/g)) {
-      pushExpression(match[1], base + (match.index ?? 0), raw.slice(match.index ?? 0));
+      emitExpression(match[1], base + (match.index ?? 0), raw.slice(match.index ?? 0));
     }
 
-    // Bare expression attributes (checked:todo.completed) outside mustaches.
+    if (node.kind === "expression") emitExpression(node.expression, base, raw);
+
     if (node.kind === "element" || node.kind === "component" || node.kind === "convex-call") {
       for (const attribute of node.attributes) {
+        // Bare expression attributes (checked:todo.completed) outside mustaches.
         if (attribute.kind === "expression" && !attribute.raw?.includes("{{")) {
-          pushExpression(attribute.expression, base, raw);
+          emitExpression(attribute.expression, base, raw);
         }
+        // Same-name shorthand (task:) references the in-scope value.
+        if (attribute.kind === "same-name" && IDENTIFIER.test(attribute.name)) {
+          emitExpression(attribute.name, base, raw);
+        }
+        // Raw-event handlers (on:wa-show:faqOpened) and custom semantic
+        // targets (:click:openMenu) reference prelude declarations.
+        if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
+          emitExpression(attribute.handler, base, raw);
+        }
+        if (attribute.kind === "semantic-event" && IDENTIFIER.test(attribute.target)) {
+          emitExpression(attribute.target, base, raw);
+        }
+      }
+    }
+
+    if (node.kind === "directive") {
+      if (node.name === "if") emitExpression(node.expression, base, raw);
+
+      if (node.name === "for" && node.for) {
+        const { itemName, collectionExpression, keyExpression } = node.for;
+        emitter.append("  ;((");
+        const collectionIndex = raw.indexOf(collectionExpression);
+        if (collectionIndex !== -1) emitter.appendMapped(collectionExpression, base + collectionIndex);
+        else emitter.append(collectionExpression);
+        emitter.append(`) ?? []).forEach((${itemName}, index) => {\n  void index;\n`);
+        if (keyExpression) emitExpression(keyExpression, base, raw);
+        for (const child of node.children) visit(child);
+        emitter.append("  });\n");
+        return;
+      }
+
+      if (node.name === "error" || node.name === "mutation-error") {
+        const binding = errorBinding(node.expression);
+        emitter.append(`  ;((${binding}: unknown) => {\n  void ${binding};\n`);
+        for (const child of node.children) visit(child);
+        emitter.append("  })(undefined);\n");
+        return;
       }
     }
 
@@ -163,5 +210,4 @@ function collectExpressions(source: string, nodes: readonly TemplateNode[]): Map
   };
 
   for (const node of nodes) visit(node);
-  return expressions;
 }

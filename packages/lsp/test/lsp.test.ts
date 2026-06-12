@@ -90,30 +90,92 @@ describe("@wavex/lsp", () => {
     expect(convexItems).toContain("$$talks:list");
   });
 
-  it("emits semantic tokens for template structure", () => {
-    const plugin = createWavexServicePlugin();
+  it("offers manifest-driven attribute, slot, and utility completions plus hover", () => {
+    const details = new Map([
+      [
+        "button",
+        {
+          name: "button",
+          summary: "Buttons represent actions.",
+          attributes: [
+            { name: "variant", description: "The button's theme variant.", type: "'brand' | 'neutral'", default: "'neutral'" },
+            { name: "size", type: "'s' | 'm' | 'l'" }
+          ],
+          slots: [{ name: "start", description: "Content before the label." }]
+        }
+      ]
+    ]);
+    const plugin = createWavexServicePlugin({
+      webAwesomeComponents: ["button"],
+      webAwesomeDetails: details,
+      utilityClasses: ["stack", "gap-xl", "align-items-center"]
+    });
     const instance = plugin.create({} as never);
-    const text = '~~~\n\nmain [stack gap-xl]\n  @button variant:brand Go\n  +if route.query.x\n    p Text\n\n$$talks:list\n';
-    const document = {
+
+    const documentFor = (text: string) => ({
       languageId: "wavex",
       getText: () => text,
+      offsetAt: () => text.length,
       uri: "file:///x.wx",
       version: 1
-    };
-    const legend = { tokenTypes: ["type", "class", "function", "keyword", "property", "variable"], tokenModifiers: [] };
-    const tokens = instance.provideDocumentSemanticTokens?.(
-      document as never,
-      { start: { line: 0, character: 0 }, end: { line: 8, character: 0 } },
-      legend as never,
-      {} as never
-    ) as Array<[number, number, number, number, number]>;
+    });
 
-    // element (main), component (@button), directive (+if), element (p), convex call ($$talks:list)
-    expect(tokens.length).toBeGreaterThanOrEqual(5);
-    const byType = (type: string) => tokens.filter((token) => token[3] === legend.tokenTypes.indexOf(type));
-    expect(byType("class").length).toBe(1); // @button
-    expect(byType("keyword").length).toBe(1); // +if
-    expect(byType("function").length).toBe(1); // $$talks:list
-    expect(byType("type").length).toBe(2); // main, p
+    // Attribute + slot completions on a component line
+    const attrList = instance.provideCompletionItems?.(
+      documentFor("  @button ") as never,
+      { line: 0, character: 10 },
+      {} as never,
+      {} as never
+    ) as { items: Array<{ label: string; detail?: string }> };
+    expect(attrList.items.map((item) => item.label)).toEqual(expect.arrayContaining(["variant", "size", "slot:start"]));
+
+    // Utility completions inside an unclosed bracket group
+    const utilityList = instance.provideCompletionItems?.(
+      documentFor("main [stack ga") as never,
+      { line: 0, character: 14 },
+      {} as never,
+      {} as never
+    ) as { items: Array<{ label: string }> };
+    expect(utilityList.items.map((item) => item.label)).toContain("gap-xl");
+
+    // Hover on the component reference and on an attribute
+    const hoverDoc = documentFor("  @button variant:brand Go");
+    const componentHover = instance.provideHover?.(
+      { ...hoverDoc, offsetAt: () => 4 } as never,
+      { line: 0, character: 4 },
+      {} as never
+    ) as { contents: { value: string } };
+    expect(componentHover.contents.value).toContain("<wa-button>");
+    expect(componentHover.contents.value).toContain("Buttons represent actions.");
+
+    const attributeHover = instance.provideHover?.(
+      { ...hoverDoc, offsetAt: () => 12 } as never,
+      { line: 0, character: 12 },
+      {} as never
+    ) as { contents: { value: string } };
+    expect(attributeHover.contents.value).toContain("variant");
+    expect(attributeHover.contents.value).toContain("theme variant");
+  });
+});
+
+describe("template scopes in virtual code", () => {
+  it("declares +for items and +error bindings; raw-event handlers count as used", async () => {
+    const fixture = resolve(fixturesDir, "scopes.wx");
+    const checker = createChecker([fixture]);
+    const diagnostics = await checker.check(fixture);
+
+    // No TS6133 (unused faqOpened), no TS2304 (problem/talk undefined).
+    const codes = diagnostics.map((diagnostic) => String(diagnostic.code));
+    expect(codes).not.toContain("6133");
+    expect(codes).not.toContain("2304");
+    expect(diagnostics.filter((diagnostic) => diagnostic.source !== "wavex")).toEqual([]);
+  });
+
+  it("types +for items from the collection (the proven case, scoped)", async () => {
+    const fixture = resolve(fixturesDir, "scopes-bad.wx");
+    const checker = createChecker([fixture]);
+    const diagnostics = await checker.check(fixture);
+    const tsError = diagnostics.find((diagnostic) => String(diagnostic.message).includes("toUpperCase"));
+    expect(tsError).toBeDefined();
   });
 });

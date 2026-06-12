@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
   "name": "WAVEx",
   "scopeName": "source.wavex",
-  "comment": "Thin, drift-tolerant grammar for highlight-before-LSP and GitHub views. The @wavex/core parser (via the LSP) is the source of truth; this is cosmetic only.",
+  "comment": "Drift-tolerant grammar; the @wavex/core parser (via the LSP) is the source of truth. TypeScript is injected into the prelude, interpolations, and directive expressions.",
   "patterns": [
     {
       "comment": "TypeScript prelude up to the ~~~ wave separator",
@@ -18,56 +18,132 @@
     "template": {
       "patterns": [
         { "match": "^\\s*(~~~)\\s*$", "captures": { "1": { "name": "keyword.control.separator.wavex" } } },
-        { "match": "//.*$", "name": "comment.line.double-slash.wavex" },
+        { "match": "^\\s*//.*$", "name": "comment.line.double-slash.wavex" },
         { "include": "#interpolation" },
         {
-          "comment": "Directives: +if, +for, +loading, ...",
-          "match": "(?<=^\\s*)(\\+[\\w-]+)",
-          "name": "keyword.control.directive.wavex"
+          "comment": "+if / +for expressions are TypeScript",
+          "match": "(?<=^\\s*)(\\+(?:if|suspense))\\s+(.*)$",
+          "captures": {
+            "1": { "name": "keyword.control.directive.wavex" },
+            "2": { "name": "meta.embedded.expression.typescript.wavex", "patterns": [{ "include": "#interpolation" }, { "include": "#attribute" }, { "include": "source.ts" }] }
+          }
         },
         {
-          "comment": "Convex calls and references: $$tasks:list, $ai/summarize:run",
+          "comment": "+for item in collection",
+          "match": "(?<=^\\s*)(\\+for)\\s+([\\w$]+)\\s+(in)\\s+([^\\n]*?)(?:\\s+(key):(\\S+))?\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.directive.wavex" },
+            "2": { "name": "variable.other.readwrite.wavex" },
+            "3": { "name": "keyword.operator.expression.in.wavex" },
+            "4": { "name": "meta.embedded.expression.typescript.wavex", "patterns": [{ "include": "source.ts" }] },
+            "5": { "name": "entity.other.attribute-name.wavex" },
+            "6": { "name": "meta.embedded.expression.typescript.wavex", "patterns": [{ "include": "source.ts" }] }
+          }
+        },
+        {
+          "comment": "Other directives: +loading, +empty, +error err, ...",
+          "match": "(?<=^\\s*)(\\+[\\w-]+)(?:\\s+([a-zA-Z_$][\\w$]*))?\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.directive.wavex" },
+            "2": { "name": "variable.other.readwrite.wavex" }
+          }
+        },
+        { "match": "(?<=^\\s*)(\\+[\\w-]+)", "name": "keyword.control.directive.wavex" },
+        {
+          "comment": "Semantic events with Convex targets: :submit:$$tasks:create",
+          "match": "(?<=\\s)(:[\\w-]+:)(\\$\\$[\\w/.:$-]+)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.event.wavex" },
+            "2": { "name": "support.function.convex.wavex" }
+          }
+        },
+        {
+          "comment": "Raw and custom events: on:wa-show:opened, :click:openMenu, :track:name",
+          "match": "(?<=\\s)((?:on:)?:?[\\w-]+:)([\\w$.-]+)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.event.wavex" },
+            "2": { "name": "variable.function.handler.wavex" }
+          }
+        },
+        {
+          "comment": "Convex calls and references: $$tasks:list, $$ai/summarize:run",
           "match": "(\\${1,2})([\\w/.-]+(?::[\\w.-]+)+)",
           "captures": {
             "1": { "name": "punctuation.definition.convex.wavex" },
-            "2": { "name": "entity.name.function.convex.wavex" }
+            "2": { "name": "support.function.convex.wavex" }
           }
         },
         {
           "comment": "Components: @button, @tasks/item, @wa/card",
-          "match": "(?<=^\\s*|\\s)(@[\\w/-]+)",
-          "name": "support.class.component.wavex"
+          "match": "(?<=^\\s*|\\s)(@)([\\w/-]+)",
+          "captures": {
+            "1": { "name": "punctuation.definition.component.wavex" },
+            "2": { "name": "support.class.component.wavex" }
+          }
         },
+        {
+          "comment": "Utility groups: [stack gap-xl] -> wa-* classes",
+          "begin": "(?<=^|\\s)(\\[)",
+          "end": "(\\])",
+          "beginCaptures": { "1": { "name": "punctuation.definition.utilities.begin.wavex" } },
+          "endCaptures": { "1": { "name": "punctuation.definition.utilities.end.wavex" } },
+          "patterns": [{ "match": "[\\w-]+", "name": "entity.other.attribute-name.class.wavex" }]
+        },
+        { "include": "#attribute" },
         {
           "comment": "Native element heads",
           "match": "(?<=^\\s*)([a-z][\\w-]*)(?=\\s|$)",
           "name": "entity.name.tag.wavex"
         },
+        { "match": "(?<=^\\s*)(\\|)\\s?", "captures": { "1": { "name": "punctuation.definition.text.wavex" } } },
         {
-          "comment": "Utility groups: [stack gap-xl]",
-          "begin": "(?<=^|\\s)\\[",
-          "end": "\\]",
-          "name": "constant.other.utility.wavex"
+          "comment": "= expression lines are TypeScript",
+          "match": "(?<=^\\s*)(=)\\s+(.*)$",
+          "captures": {
+            "1": { "name": "keyword.operator.expression.wavex" },
+            "2": { "name": "meta.embedded.expression.typescript.wavex", "patterns": [{ "include": "source.ts" }] }
+          }
         },
+        { "match": "`[^`]+`", "name": "markup.inline.raw.string.wavex" },
+        { "match": "(?<=\\s|^)\\*[^*\\n]+\\*(?=[\\s.,;:!?)]|$)", "name": "markup.bold.wavex" },
+        { "match": "(?<=\\s|^)_[^_\\n]+_(?=[\\s.,;:!?)]|$)", "name": "markup.italic.wavex" },
+        { "match": "(?<=\\s|^)~[^~\\n]+~(?=[\\s.,;:!?)]|$)", "name": "markup.inserted.mark.wavex" }
+      ]
+    },
+    "attribute": {
+      "comment": "name:value attributes — quoted strings, paths, or TS expressions",
+      "patterns": [
         {
-          "comment": "Semantic events and raw events: :click:$$tasks:create, on:wa-show:opened",
-          "match": "(?<=\\s)(on:[\\w-]+:[\\w$/:.-]+|:[\\w-]+:[\\w$/:.-]+)",
-          "name": "entity.other.attribute-name.event.wavex"
-        },
-        {
-          "comment": "Attributes: name:value",
-          "match": "(?<=\\s)([\\w-]+)(:)(\"[^\"]*\"|[^\\s\\]]*)",
+          "match": "(?<=^|\\s)([\\w-]+)(:)(\"[^\"]*\")",
           "captures": {
             "1": { "name": "entity.other.attribute-name.wavex" },
             "2": { "name": "punctuation.separator.key-value.wavex" },
-            "3": { "name": "string.unquoted.attribute-value.wavex" }
+            "3": { "name": "string.quoted.double.wavex" }
           }
         },
-        { "match": "(?<=^\\s*)(\\|)", "name": "punctuation.definition.text.wavex" },
-        { "match": "(?<=^\\s*)(=)", "name": "keyword.operator.expression.wavex" },
-        { "match": "`[^`]+`", "name": "markup.inline.raw.wavex" },
-        { "match": "\\*[^*\\s][^*]*\\*", "name": "markup.bold.wavex" },
-        { "match": "(?<=\\s)_[^_]+_(?=\\s|$)", "name": "markup.italic.wavex" }
+        {
+          "match": "(?<=^|\\s)([\\w-]+)(:)(/[\\w\\-./:?=&%#~]*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.wavex" },
+            "2": { "name": "punctuation.separator.key-value.wavex" },
+            "3": { "name": "string.unquoted.path.wavex" }
+          }
+        },
+        {
+          "match": "(?<=^|\\s)([\\w-]+)(:)((?!\\{\\{)[^\\s\\]\"]+)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.wavex" },
+            "2": { "name": "punctuation.separator.key-value.wavex" },
+            "3": { "name": "meta.embedded.expression.typescript.wavex", "patterns": [{ "include": "source.ts" }] }
+          }
+        },
+        {
+          "match": "(?<=^|\\s)([\\w-]+)(:)(?=\\{\\{|\\s|$)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.wavex" },
+            "2": { "name": "punctuation.separator.key-value.wavex" }
+          }
+        }
       ]
     },
     "interpolation": {
