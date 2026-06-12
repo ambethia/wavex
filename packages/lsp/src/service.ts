@@ -1,6 +1,7 @@
 import type { LanguageServicePlugin } from "@volar/language-service";
 import { formatDiagnostic, parseWavex, type Diagnostic as WavexDiagnostic } from "@wavex/core";
 import type * as vscode from "vscode-languageserver-protocol";
+import { URI } from "vscode-uri";
 import { WAVEX_LANGUAGE_ID } from "./language.js";
 
 export interface WavexServiceOptions {
@@ -11,6 +12,8 @@ export interface WavexServiceOptions {
   /** Convex function references (e.g. "tasks:list"). */
   convexFunctions?: readonly string[];
 }
+
+export type WavexServiceOptionsResolver = WavexServiceOptions | ((documentUri: string) => WavexServiceOptions);
 
 const DIRECTIVE_NAMES = [
   "head",
@@ -26,7 +29,10 @@ const DIRECTIVE_NAMES = [
   "mutation-error"
 ];
 
-export function createWavexServicePlugin(options: WavexServiceOptions = {}): LanguageServicePlugin {
+export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsResolver = {}): LanguageServicePlugin {
+  const optionsFor = (documentUri: string): WavexServiceOptions =>
+    typeof optionsOrResolver === "function" ? optionsOrResolver(documentUri) : optionsOrResolver;
+
   return {
     name: "wavex",
     capabilities: {
@@ -48,6 +54,9 @@ export function createWavexServicePlugin(options: WavexServiceOptions = {}): Lan
         },
         provideCompletionItems(document, position) {
           if (document.languageId !== WAVEX_LANGUAGE_ID) return undefined;
+          const parsedUri = URI.parse(document.uri);
+          const sourceUri = context.decodeEmbeddedDocumentUri?.(parsedUri)?.[0] ?? parsedUri;
+          const options = optionsFor(sourceUri.toString());
           const text = document.getText();
           const offset = document.offsetAt(position);
           const lineStart = text.lastIndexOf("\n", offset - 1) + 1;

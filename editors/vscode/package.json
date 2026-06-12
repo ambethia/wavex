@@ -9,15 +9,24 @@
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["Programming Languages"],
+  "categories": [
+    "Programming Languages"
+  ],
   "main": "./dist/extension.cjs",
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:wavex"
+  ],
   "contributes": {
     "languages": [
       {
         "id": "wavex",
-        "aliases": ["WAVEx", "wavex"],
-        "extensions": [".wx"],
+        "aliases": [
+          "WAVEx",
+          "wavex"
+        ],
+        "extensions": [
+          ".wx"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
