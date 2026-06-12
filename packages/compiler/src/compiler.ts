@@ -22,6 +22,10 @@ export interface CompileWavexResult {
   code: string;
 }
 
+interface InternalCompileOptions extends CompileWavexOptions {
+  usedLocalComponents?: Set<string>;
+}
+
 const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 
 export function compileWavexModule(source: string, options: CompileWavexOptions = {}): CompileWavexResult {
@@ -31,17 +35,23 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   const resourceNames = [...new Set(ast.resources.map((resource) => resource.name).filter(isIdentifierName))];
   const prelude = ast.prelude.trim() ? `${ast.prelude.trim()}\n\n` : "";
   const localComponents = options.localComponents ?? [];
+  const usedLocalComponents = new Set<string>();
+  const compileOptions: InternalCompileOptions = { ...options, usedLocalComponents };
   const resourceDeclarations = resourceNames
     .map((name) => `  const ${name} = context.resources?.[${JSON.stringify(name)}];`)
     .join("\n");
   const resourceDefinitions = compileResourceDefinitions(ast.resources, resourceNames);
-  const renderBody = compileNodes(renderNodes, options);
-  const headBody = compileNodes(headNodes.flatMap((node) => node.children), options);
+  const renderBody = compileNodes(renderNodes, compileOptions);
+  const headBody = compileNodes(headNodes.flatMap((node) => node.children), compileOptions);
+  const componentImports = [...usedLocalComponents]
+    .sort()
+    .map((reference) => `import * as ${localComponentModuleName(reference)} from ${JSON.stringify(`/src/components/${reference}.wx`)};`);
 
   const code = [
     `import { html, nothing } from "lit";`,
     `import { repeat } from "lit/directives/repeat.js";`,
     `import type { RenderContext, ResourceDefinition } from "@wavex/runtime";`,
+    ...componentImports,
     "",
     prelude + `export const wxFile = ${JSON.stringify({ id: options.id ?? "<inline>", localComponents })} as const;`,
     resourceDefinitions,
@@ -130,11 +140,11 @@ function attributeValueExpression(attribute: Attribute | undefined): string | un
   return undefined;
 }
 
-function compileNodes(nodes: readonly TemplateNode[], options: CompileWavexOptions, resourceScope?: string): string {
+function compileNodes(nodes: readonly TemplateNode[], options: InternalCompileOptions, resourceScope?: string): string {
   return nodes.map((node) => compileNode(node, options, resourceScope)).join("");
 }
 
-function compileNode(node: TemplateNode, options: CompileWavexOptions, resourceScope?: string): string {
+function compileNode(node: TemplateNode, options: InternalCompileOptions, resourceScope?: string): string {
   switch (node.kind) {
     case "element":
       return compileElement(node, options, resourceScope);
@@ -155,7 +165,16 @@ function compileNode(node: TemplateNode, options: CompileWavexOptions, resourceS
   }
 }
 
-function compileElement(node: ElementNode, options: CompileWavexOptions, resourceScope?: string): string {
+function compileElement(node: ElementNode, options: InternalCompileOptions, resourceScope?: string): string {
+  if (node.tag === "slot") {
+    // Semantic slot projection: layouts and local components receive their
+    // composed content through context.slots; fallback content renders when
+    // the slot is unfilled. slot: *attributes* on elements stay native.
+    const nameAttribute = node.attributes.find((attribute) => attribute.name === "name");
+    const slotName = nameAttribute?.kind === "literal" ? nameAttribute.value : "default";
+    const fallback = node.children.length > 0 ? `html\`${compileNodes(node.children, options, resourceScope)}\`` : "nothing";
+    return `\${context.slots?.[${JSON.stringify(slotName)}] ?? ${fallback}}`;
+  }
   const attrs = compileAttributes(node.attributes, node.utilities);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
   const children = compileNodes(node.children, options, resourceScope);
@@ -163,7 +182,13 @@ function compileElement(node: ElementNode, options: CompileWavexOptions, resourc
   return `<${node.tag}${attrs}>${inlineText}${children}</${node.tag}>`;
 }
 
-function compileComponent(node: ComponentNode, options: CompileWavexOptions, resourceScope?: string): string {
+function compileComponent(node: ComponentNode, options: InternalCompileOptions, resourceScope?: string): string {
+  const localReference = resolveLocalComponentReference(node.reference, options);
+  if (localReference) {
+    options.usedLocalComponents?.add(localReference);
+    return compileLocalComponentInvocation(node, localReference, options, resourceScope);
+  }
+
   const tag = componentReferenceToTag(node.reference, {
     localComponents: options.localComponents,
     webAwesomeComponents: options.webAwesomeComponents
@@ -174,9 +199,77 @@ function compileComponent(node: ComponentNode, options: CompileWavexOptions, res
   return `<${tag}${attrs}>${inlineText}${children}</${tag}>`;
 }
 
+function resolveLocalComponentReference(reference: string, options: InternalCompileOptions): string | undefined {
+  const normalized = reference.replace(/^@/, "").replace(/^\/+|\/+$/g, "");
+  if (normalized.startsWith("wa/")) return undefined;
+  const candidates = new Set(options.localComponents ?? []);
+  if (normalized.startsWith("components/")) {
+    const direct = normalized.slice("components/".length);
+    return candidates.has(direct) ? direct : direct;
+  }
+  return candidates.has(normalized) ? normalized : undefined;
+}
+
+function compileLocalComponentInvocation(
+  node: ComponentNode,
+  reference: string,
+  options: InternalCompileOptions,
+  resourceScope?: string
+): string {
+  const moduleName = localComponentModuleName(reference);
+  const props: string[] = [];
+  for (const attribute of node.attributes) {
+    if (attribute.kind === "semantic-event" || attribute.kind === "raw-event") continue;
+    const key = JSON.stringify(attribute.name);
+    if (attribute.kind === "boolean") props.push(`${key}: true`);
+    else if (attribute.kind === "literal") props.push(`${key}: ${JSON.stringify(attribute.value)}`);
+    else if (attribute.kind === "expression") props.push(`${key}: ${attribute.expression}`);
+    else if (attribute.kind === "same-name") props.push(`${key}: ${attribute.name}`);
+  }
+
+  const slotEntries = new Map<string, string[]>();
+  const pushSlot = (name: string, compiled: string) => {
+    const bucket = slotEntries.get(name) ?? [];
+    bucket.push(compiled);
+    slotEntries.set(name, bucket);
+  };
+  for (const child of node.children) {
+    const slotTarget = slotTargetForNode(child);
+    if (slotTarget) {
+      pushSlot(slotTarget.name, compileNode(slotTarget.node, options, resourceScope));
+    } else {
+      pushSlot("default", compileNode(child, options, resourceScope));
+    }
+  }
+  if (node.inlineText) pushSlot("default", compileInlineText(node.inlineText));
+
+  const slots = [...slotEntries.entries()]
+    .map(([name, parts]) => `${JSON.stringify(name)}: html\`${parts.join("")}\``)
+    .join(", ");
+
+  return `\${(${moduleName}.default ?? ${moduleName}.render)({ ...context, props: { ${props.join(", ")} }, slots: { ${slots} } })}`;
+}
+
+/** Children with a literal slot:name attribute fill named slots; the attribute is consumed. */
+function slotTargetForNode(node: TemplateNode): { name: string; node: TemplateNode } | undefined {
+  if (node.kind !== "element" && node.kind !== "component") return undefined;
+  const slotAttribute = node.attributes.find(
+    (attribute) => attribute.name === "slot" && attribute.kind === "literal"
+  );
+  if (!slotAttribute || slotAttribute.kind !== "literal") return undefined;
+  return {
+    name: slotAttribute.value,
+    node: { ...node, attributes: node.attributes.filter((attribute) => attribute !== slotAttribute) }
+  };
+}
+
+function localComponentModuleName(reference: string): string {
+  return `__wxc_${reference.replace(/[^a-zA-Z0-9_$]+/g, "_")}`;
+}
+
 const RESOURCE_STATE_DIRECTIVES = new Set(["loading", "empty", "error"]);
 
-function compileDirective(node: DirectiveNode, options: CompileWavexOptions, resourceScope?: string): string {
+function compileDirective(node: DirectiveNode, options: InternalCompileOptions, resourceScope?: string): string {
   if (node.name === "head") return "";
   if (node.name === "if") {
     const expression = node.expression?.trim() || "false";
@@ -197,7 +290,7 @@ function compileDirective(node: DirectiveNode, options: CompileWavexOptions, res
   return compileNodes(node.children, options, resourceScope);
 }
 
-function compileResourceStateDirective(node: DirectiveNode, options: CompileWavexOptions, resourceScope: string): string {
+function compileResourceStateDirective(node: DirectiveNode, options: InternalCompileOptions, resourceScope: string): string {
   const name = JSON.stringify(resourceScope);
   const value = `context.resources?.[${name}]`;
   const status = `(context.resourceStates?.[${name}]?.status ?? (${value} === undefined ? "loading" : "ready"))`;
@@ -215,7 +308,7 @@ function compileResourceStateDirective(node: DirectiveNode, options: CompileWave
   return `\${${status} === "error" ? ((${binding}: unknown) => html\`${body}\`)(context.resourceStates?.[${name}]?.error) : nothing}`;
 }
 
-function compileConvexCall(node: ConvexCallNode, options: CompileWavexOptions): string {
+function compileConvexCall(node: ConvexCallNode, options: InternalCompileOptions): string {
   if (node.children.length === 0) return "";
   return compileNodes(node.children, options, node.bindingName);
 }

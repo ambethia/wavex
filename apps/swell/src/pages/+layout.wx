@@ -1,0 +1,8 @@
+import "@web.awesome.me/webawesome-pro/dist/components/page/page.js"
+
+~~~
+
+@page
+  @site-nav
+  main [stack gap-l] class:page-main
+    slot

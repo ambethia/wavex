@@ -1,50 +1,34 @@
-import "@web.awesome.me/webawesome-pro/dist/components/page/page.js"
 import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
 import "@web.awesome.me/webawesome-pro/dist/components/tag/tag.js"
 import "@web.awesome.me/webawesome-pro/dist/components/spinner/spinner.js"
 import "@web.awesome.me/webawesome-pro/dist/components/callout/callout.js"
-import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
 
 ~~~
 
 +head
   title Talk | Swell Conf
 
-@page
-  header slot:header [cluster gap-s align-items-center] class:site-header
-    @icon name:water
-    a href:/ class:wordmark
-      span [heading-s] Swell Conf
-    nav [cluster gap-m] class:site-nav
-      a href:/schedule Schedule
-      a href:/info/venue Venue
+$$talks:get args:{ slug: route.params.slug }
+  +loading
+    div [cluster gap-s align-items-center]
+      @spinner
+      span [caption-m] Loading talk…
 
-  main [stack gap-l] class:page-main
-    a href:/schedule class:back-link
-      @icon name:arrow-left
-      |  Back to schedule
+  +empty
+    @callout variant:warning
+      | No talk found for "{{ route.params.slug }}".
 
-    $$talks:get args:{ slug: route.params.slug }
-      +loading
+  +error err
+    @callout variant:danger
+      = String(err)
+
+  +if talk
+    article [stack gap-m]
+      header [stack gap-2xs]
         div [cluster gap-s align-items-center]
-          @spinner
-          span [caption-m] Loading talk…
-
-      +empty
-        @callout variant:warning
-          | No talk found for "{{ route.params.slug }}".
-
-      +error err
-        @callout variant:danger
-          = String(err)
-
-      +if talk
-        article [stack gap-m]
-          header [stack gap-2xs]
-            div [cluster gap-s align-items-center]
-              span [caption-m] {{ talk.startsAt }}
-              @tag size:s {{ talk.track }}
-            h1 [heading-2xl] {{ talk.title }}
-            p [caption-m] {{ talk.speaker }}
-          @card
-            p {{ talk.summary }}
+          span [caption-m] {{ talk.startsAt }}
+          @tag size:s {{ talk.track }}
+        h1 [heading-2xl] {{ talk.title }}
+        p [caption-m] {{ talk.speaker }}
+      @card
+        p {{ talk.summary }}

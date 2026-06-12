@@ -9,6 +9,34 @@ export interface RoutePageModule<Result = unknown> {
 
 export interface ClientRoute extends RouteDefinition {
   load: () => Promise<RoutePageModule>;
+  /** Layout modules, outermost first (src/pages/+layout.wx, then nested). */
+  layouts?: ReadonlyArray<{ file: string; load: () => Promise<RoutePageModule> }>;
+}
+
+/**
+ * Compose +layout.wx modules around a page render. Each layout receives the
+ * inner content through context.slots.default, matching the compiler's
+ * semantic slot projection for bare `slot` elements.
+ */
+export function composeLayoutRender(
+  layouts: ReadonlyArray<RoutePageModule>,
+  page: RoutePageModule
+): { render: RenderFunction; resources: readonly ResourceDefinition[] } {
+  const pageRender = page.default ?? page.render;
+  if (!pageRender) throw new Error("WAVEx page module has no render export.");
+
+  let render: RenderFunction = pageRender;
+  const resources: ResourceDefinition[] = [...(page.resources ?? [])];
+
+  for (const layout of [...layouts].reverse()) {
+    const layoutRender = layout.default ?? layout.render;
+    if (!layoutRender) continue;
+    resources.push(...(layout.resources ?? []));
+    const inner = render;
+    render = (context = {}) => layoutRender({ ...context, slots: { default: inner(context) } });
+  }
+
+  return { render, resources };
 }
 
 /**
@@ -31,10 +59,17 @@ export interface ClientRouterOptions {
 
 export interface ClientRouter {
   navigate(to: string, options?: { replace?: boolean }): Promise<void>;
-  /** Swap the module for a route file in place (HMR), keeping route state. */
+  /** Swap the module for a route or layout file in place (HMR), keeping route state. */
   hotReplacePage(file: string, module: RoutePageModule): void;
   current?: { route: RouteContext; file?: string };
   dispose(): void;
+}
+
+interface ActivePage {
+  route: RouteContext;
+  file?: string;
+  page?: RoutePageModule;
+  layouts?: Array<{ file: string; module: RoutePageModule }>;
 }
 
 const defaultNotFound: RenderFunction = () => undefined;
@@ -43,7 +78,13 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const win = options.window ?? window;
   const notFound = options.notFound ?? defaultNotFound;
   let navigationToken = 0;
-  let current: { route: RouteContext; file?: string } | undefined;
+  let current: ActivePage | undefined;
+
+  const applyCurrent = () => {
+    if (!current?.page) return;
+    const composed = composeLayoutRender(current.layouts?.map((layout) => layout.module) ?? [], current.page);
+    options.host.setPage({ render: composed.render, resources: composed.resources, route: current.route });
+  };
 
   const navigate = async (to: string, navOptions: { replace?: boolean; pop?: boolean } = {}) => {
     const url = new URL(to, win.location.href);
@@ -68,13 +109,20 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     }
 
     const clientRoute = match.route as ClientRoute;
-    const module = await clientRoute.load();
+    const layoutDefs = clientRoute.layouts ?? [];
+    const [module, ...layoutModules] = await Promise.all([
+      clientRoute.load(),
+      ...layoutDefs.map((layout) => layout.load())
+    ]);
     if (token !== navigationToken) return; // superseded by a newer navigation
-    const render = module.default ?? module.render;
-    if (!render) throw new Error(`WAVEx route module for ${clientRoute.file} has no render export.`);
 
-    current = { route, file: clientRoute.file };
-    options.host.setPage({ render, resources: module.resources ?? [], route });
+    current = {
+      route,
+      file: clientRoute.file,
+      page: module,
+      layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
+    };
+    applyCurrent();
     options.onNavigate?.(route);
   };
 
@@ -107,11 +155,18 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   return {
     navigate: (to, navOptions) => navigate(to, navOptions),
     hotReplacePage(file, module) {
+      if (!current) return;
       const normalized = file.replace(/^\/+/, "");
-      if (!current?.file || current.file.replace(/^\/+/, "") !== normalized) return;
-      const render = module.default ?? module.render;
-      if (!render) return;
-      options.host.setPage({ render, resources: module.resources ?? [], route: current.route });
+      if (current.file?.replace(/^\/+/, "") === normalized) {
+        current.page = module;
+        applyCurrent();
+        return;
+      }
+      const layout = current.layouts?.find((entry) => entry.file.replace(/^\/+/, "") === normalized);
+      if (layout) {
+        layout.module = module;
+        applyCurrent();
+      }
     },
     get current() {
       return current;

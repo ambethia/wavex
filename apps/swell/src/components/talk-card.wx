@@ -1,0 +1,13 @@
+import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
+import "@web.awesome.me/webawesome-pro/dist/components/tag/tag.js"
+
+~~~
+
+@card
+  div [stack gap-2xs]
+    div [cluster gap-s align-items-center]
+      span [caption-m] {{ props.talk.startsAt }}
+      @tag size:s {{ props.talk.track }}
+    a href:{{ "/talks/" + props.talk.slug }} class:talk-link
+      strong {{ props.talk.title }}
+    p [caption-m] {{ props.talk.speaker }}

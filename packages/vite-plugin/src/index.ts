@@ -76,7 +76,10 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         const routes = discoverRoutes(config.pagesDir, projectRoot);
         const entries = routes.map((route) => {
           const importPath = `/${route.file}`;
-          return `  { ...${JSON.stringify(route)}, load: () => import(${JSON.stringify(importPath)}) }`;
+          const layouts = discoverRouteLayouts(route.file, config.pagesDir, projectRoot)
+            .map((layout) => `{ file: ${JSON.stringify(layout)}, load: () => import(${JSON.stringify(`/${layout}`)}) }`)
+            .join(", ");
+          return `  { ...${JSON.stringify(route)}, layouts: [${layouts}], load: () => import(${JSON.stringify(importPath)}) }`;
         });
         return [
           `export const routes = [`,
@@ -216,6 +219,27 @@ function discoverRoutes(pagesDir: string, root: string) {
     const route = createRouteDefinition(relativeFile, relativePagesDir);
     return route ? [route] : [];
   });
+}
+
+/** Layout files (+layout.wx) from the pages root down to the route's directory, outermost first. */
+function discoverRouteLayouts(routeFile: string, pagesDir: string, root: string): string[] {
+  const relativePagesDir = normalizeSlashes(relative(root, pagesDir));
+  const routeRelative = normalizeSlashes(routeFile).startsWith(`${relativePagesDir}/`)
+    ? normalizeSlashes(routeFile).slice(relativePagesDir.length + 1)
+    : normalizeSlashes(routeFile);
+  const directories = routeRelative.split("/").slice(0, -1);
+
+  const layouts: string[] = [];
+  let dir = pagesDir;
+  const candidate = (base: string) => join(base, "+layout.wx");
+  if (existsSync(candidate(dir))) layouts.push(`${relativePagesDir}/+layout.wx`);
+  let prefix = "";
+  for (const segment of directories) {
+    dir = join(dir, segment);
+    prefix = prefix ? `${prefix}/${segment}` : segment;
+    if (existsSync(candidate(dir))) layouts.push(`${relativePagesDir}/${prefix}/+layout.wx`);
+  }
+  return layouts;
 }
 
 function discoverLocalComponents(componentsDir: string): string[] {

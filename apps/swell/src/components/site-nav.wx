@@ -1,0 +1,11 @@
+import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
+
+~~~
+
+header slot:header [cluster gap-s align-items-center] class:site-header
+  @icon name:water
+  a href:/ class:wordmark
+    span [heading-s] Swell Conf
+  nav [cluster gap-m] class:site-nav
+    a href:/schedule Schedule
+    a href:/info/venue Venue

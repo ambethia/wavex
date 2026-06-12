@@ -31,6 +31,8 @@ export interface RenderContext {
   resources?: Record<string, unknown>;
   resourceStates?: Record<string, ResourceState>;
   actionStates?: Record<string, ActionState>;
+  /** Slot content projected into layouts and local components (semantic slot composition). */
+  slots?: Record<string, unknown>;
   dispatch?: (event: WavexActionEvent) => void | Promise<void>;
 }
 
@@ -581,6 +583,7 @@ function cssEscape(value: string): string {
 }
 
 export {
+  composeLayoutRender,
   createClientRouter,
   type ClientRoute,
   type ClientRouter,

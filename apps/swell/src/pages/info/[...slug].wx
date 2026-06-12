@@ -1,33 +1,21 @@
-import "@web.awesome.me/webawesome-pro/dist/components/page/page.js"
 import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
-import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
 
 ~~~
 
 +head
   title Info | Swell Conf
 
-@page
-  header slot:header [cluster gap-s align-items-center] class:site-header
-    @icon name:water
-    a href:/ class:wordmark
-      span [heading-s] Swell Conf
-    nav [cluster gap-m] class:site-nav
-      a href:/schedule Schedule
-      a href:/info/venue Venue
+header [stack gap-2xs]
+  p [caption-m] info / {{ route.params.slug || "index" }}
+  h1 [heading-2xl] Attending Swell
 
-  main [stack gap-l] class:page-main
-    header [stack gap-2xs]
-      p [caption-m] info / {{ route.params.slug || "index" }}
-      h1 [heading-2xl] Attending Swell
+@card
+  div [stack gap-s]
+    h2 [heading-m] Venue
+    p The *Harborview Pavilion*, a ten-minute walk from the station. Doors open at `08:30` — badge pickup is in the _east lobby_.
+    p Lunch is on the lawn. Coffee is ~unlimited~.
 
-    @card
-      div [stack gap-s]
-        h2 [heading-m] Venue
-        p The *Harborview Pavilion*, a ten-minute walk from the station. Doors open at `08:30` — badge pickup is in the _east lobby_.
-        p Lunch is on the lawn. Coffee is ~unlimited~.
-
-    @card
-      div [stack gap-s]
-        h2 [heading-m] Getting around
-        p Trains run every twenty minutes. Bike valet is free with your badge.
+@card
+  div [stack gap-s]
+    h2 [heading-m] Getting around
+    p Trains run every twenty minutes. Bike valet is free with your badge.

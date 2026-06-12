@@ -151,7 +151,7 @@ Done criteria:
 
 ### 6. Template components and layouts
 
-Goal: make reusable `.wx` components and route layouts credible.
+Status: **complete** (2026-06-12). Local `.wx` components and `+layout.wx` compose at the render-function level: the compiler statically imports used components from `src/components/` and invokes their render with `{ ...context, props, slots }`; bare `slot` elements (with fallback content) compile to `context.slots` projection, while `slot:` *attributes* stay native for Web Awesome shadow-DOM slots; children with `slot:name` fill named slots of local components. `@wa/` stays explicit and local components shadow Web Awesome names (test-covered). The routes virtual module carries per-route layout chains (`+layout.wx` from the pages root down, outermost first) and the router composes them via `composeLayoutRender`, merging layout+page resources and hot-recomposing when a page or layout module HMRs. Component templates read props via `props.<name>` (bare prop locals are future sugar). Components with their own `$$` resources are not yet supported. Demo coverage: Swell gained `src/components/site-nav.wx` + `talk-card.wx` and root + nested `talks/+layout.wx`. Browser-validated: wa-page/site-nav rendered by the root layout on every route and *persisting* across client navigation (canary survives — only slot content swaps), talk cards rendering from props, nested layout composing inside the root one, back-link navigation, and a `+layout.wx` HMR edit recomposing in place with zero console errors.
 
 Tasks:
 

@@ -1,9 +1,5 @@
-import "@web.awesome.me/webawesome-pro/dist/components/page/page.js"
-import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
-import "@web.awesome.me/webawesome-pro/dist/components/tag/tag.js"
 import "@web.awesome.me/webawesome-pro/dist/components/spinner/spinner.js"
 import "@web.awesome.me/webawesome-pro/dist/components/callout/callout.js"
-import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
 
 ~~~
 
@@ -11,45 +7,28 @@ import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
   title Schedule | Swell Conf
   meta name:description content:"The Swell Conf program."
 
-@page
-  header slot:header [cluster gap-s align-items-center] class:site-header
-    @icon name:water
-    a href:/ class:wordmark
-      span [heading-s] Swell Conf
-    nav [cluster gap-m] class:site-nav
-      a href:/schedule Schedule
-      a href:/info/venue Venue
+header [stack gap-2xs]
+  h1 [heading-2xl] Schedule
+  p [caption-m] Filter by track, or browse the full day.
 
-  main [stack gap-l] class:page-main
-    header [stack gap-2xs]
-      h1 [heading-2xl] Schedule
-      p [caption-m] Filter by track, or browse the full day.
+nav [cluster gap-s] class:track-filter
+  a href:/schedule All
+  a href:/schedule?track=systems Systems
+  a href:/schedule?track=frameworks Frameworks
 
-    nav [cluster gap-s] class:track-filter
-      a href:/schedule All
-      a href:/schedule?track=systems Systems
-      a href:/schedule?track=frameworks Frameworks
+$$talks:list args:{ track: route.query.track || undefined }
+  +loading
+    div [cluster gap-s align-items-center]
+      @spinner
+      span [caption-m] Loading the program…
 
-    $$talks:list args:{ track: route.query.track || undefined }
-      +loading
-        div [cluster gap-s align-items-center]
-          @spinner
-          span [caption-m] Loading the program…
+  +empty
+    p [caption-m] No talks on this track yet.
 
-      +empty
-        p [caption-m] No talks on this track yet.
+  +error err
+    @callout variant:danger
+      = String(err)
 
-      +error err
-        @callout variant:danger
-          = String(err)
-
-      div [stack gap-m]
-        +for talk in talks key:talk.slug
-          @card
-            div [stack gap-2xs]
-              div [cluster gap-s align-items-center]
-                span [caption-m] {{ talk.startsAt }}
-                @tag size:s {{ talk.track }}
-              a href:{{ "/talks/" + talk.slug }} class:talk-link
-                strong {{ talk.title }}
-              p [caption-m] {{ talk.speaker }}
+  div [stack gap-m]
+    +for talk in talks key:talk.slug
+      @talk-card talk:

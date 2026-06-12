@@ -36,6 +36,51 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`(context.resourceStates?.["tasks"]?.error)`);
   });
 
+  it("compiles local components as render-function composition with props and slots", () => {
+    const compiled = compileWavexModule(
+      `~~~\n@page-shell layout:"wide"\n  h1 slot:title Tasks\n  @tasks/item task: required\n  p Body content\n`,
+      { id: "src/pages/index.wx", localComponents: ["page-shell", "tasks/item"] }
+    );
+
+    expect(compiled.code).toContain(`import * as __wxc_page_shell from "/src/components/page-shell.wx";`);
+    expect(compiled.code).toContain(`import * as __wxc_tasks_item from "/src/components/tasks/item.wx";`);
+    // Props flow through, including same-name shorthand and booleans
+    expect(compiled.code).toContain(`"layout": "wide"`);
+    expect(compiled.code).toContain(`"task": task`);
+    expect(compiled.code).toContain(`"required": true`);
+    // slot:title child fills a named slot and loses the slot attribute
+    expect(compiled.code).toContain(`"title": html\`<h1>Tasks</h1>\``);
+    // remaining children fill the default slot
+    expect(compiled.code).toContain(`"default": html\``);
+    expect(compiled.code).toContain(`(__wxc_page_shell.default ?? __wxc_page_shell.render)({ ...context, props:`);
+  });
+
+  it("compiles bare slot elements to semantic projection with fallback", () => {
+    const compiled = compileWavexModule(`~~~\nmain\n  slot\n  slot name:title\n    h2 Default title\n`, {
+      id: "src/components/page-shell.wx"
+    });
+
+    expect(compiled.code).toContain(`\${context.slots?.["default"] ?? nothing}`);
+    expect(compiled.code).toContain(`\${context.slots?.["title"] ?? html\`<h2>Default title</h2>\`}`);
+  });
+
+  it("keeps slot: attributes native for Web Awesome components", () => {
+    const compiled = compileWavexModule(`~~~\n@page\n  header slot:header Site\n`, { id: "src/pages/index.wx" });
+
+    expect(compiled.code).toContain(`<wa-page`);
+    expect(compiled.code).toContain(`slot="header"`);
+  });
+
+  it("resolves @wa/ explicitly even when a local component shadows the name", () => {
+    const compiled = compileWavexModule(`~~~\n@badge Local\n@wa/badge Native\n`, {
+      id: "src/pages/index.wx",
+      localComponents: ["badge"]
+    });
+
+    expect(compiled.code).toContain(`__wxc_badge.default ?? __wxc_badge.render`);
+    expect(compiled.code).toContain(`<wa-badge`);
+  });
+
   it("leaves resource-state directives inert outside a $$ block", () => {
     const compiled = compileWavexModule(`~~~\nmain\n  +loading\n    p Should render unconditionally\n`, {
       id: "src/pages/index.wx"

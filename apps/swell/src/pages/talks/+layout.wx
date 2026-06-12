@@ -1,0 +1,9 @@
+import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
+
+~~~
+
+div [stack gap-l] class:talks-section
+  a href:/schedule class:back-link
+    @icon name:arrow-left
+    |  Back to schedule
+  slot
