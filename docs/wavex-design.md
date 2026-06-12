@@ -259,6 +259,26 @@ dist/
       tasks.id.assets.js
 ```
 
+### Document shell and mount contract
+
+`index.html` carries no framework mount node — no `<div id="app">`. The body contains only the bootstrap module script, and the WAVEx bootstrap renders the app directly under `<body>` so the app's own root element is the first element in the body:
+
+```html
+<body>
+  <script type="module" src="/@wavex/bootstrap"></script>
+</body>
+```
+
+By convention the root layout renders `@page` (`<wa-page>`) as that root element, composing its named slots (`banner`, `header`, `navigation`, `main-header`, `aside`, `footer`, …) through native `slot:` attributes:
+
+```txt
+document.body
+  -> <wa-page>            (app-rendered root, from src/pages/+layout.wx)
+  -> route content        (native slot composition)
+```
+
+Prerendered HTML emits the same shape, so the served document and the hydrated document agree, with no wrapper divs in either. `<wa-page>` expects zeroed `html`/`body` margins (`html, body { min-height: 100%; margin: 0; padding: 0 }`, or Web Awesome's native styles), which WAVEx default styles should provide.
+
 ### Client navigation
 
 Native links remain native:

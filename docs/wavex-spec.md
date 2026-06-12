@@ -32,6 +32,18 @@ public/
 
 These paths are framework law. WAVEx tooling should not support alternate page or component roots.
 
+### Document shell
+
+WAVEx owns the document body. `index.html` contains no mount element (no `<div id="app">`); the app renders directly under `<body>`. The root layout conventionally renders `@page` (Web Awesome `<wa-page>`) as the app's root element, filling its named regions through native `slot:` attributes:
+
+```wx
+// src/pages/+layout.wx
+@page
+  header slot:header [cluster gap-m align-items-center]
+    @site-nav
+  slot
+```
+
 ## 3. Router
 
 Routes are inferred from `src/pages/`.

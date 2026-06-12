@@ -122,6 +122,7 @@ Tasks:
 - Use `@icon` for the add and delete affordances instead of text glyphs (the current `×` button).
 - Enforce the utility-shorthand decision (2026-06-12): the dash form is canonical — tokens are literal `wa-*` suffixes (`gap-xl` → `wa-gap-xl`, no `:` overloading), with room for WAVEx-defined utilities resolving first, like `@` component lookup. The spec is updated; remove the compiler's silent colon normalization (`token.replace(/:/g, "-")` in `packages/compiler/src/compiler.ts`) so colon tokens produce a diagnostic, and cover both forms in parser/compiler tests.
 - Adopt the spec's resource-state directives (`+loading`, `+empty`) in place of `+if !tasks` checks, adding parser/compiler/runtime support if not yet landed.
+- Replace the `#app` mount contract (decision 2026-06-12): the bootstrap renders directly under `<body>` and the app's root template renders `@page` (`<wa-page>`) as the root element. Drop `<div id="app">` from `apps/todo/index.html`, update the bootstrap in `packages/vite-plugin` (currently throws on missing `#app`), and zero `html`/`body` margins per `<wa-page>` guidance.
 
 Done criteria:
 
