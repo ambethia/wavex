@@ -13,7 +13,7 @@ nav [cluster gap-s] class:track-filter
   a href:/schedule?track=systems Systems
   a href:/schedule?track=frameworks Frameworks
 
-$$talks:list args:{ track: route.query.track || undefined }
+$$talks:list track:{{ route.query.track || undefined }}
   +loading
     div [cluster gap-s align-items-center]
       @spinner

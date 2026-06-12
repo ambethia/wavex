@@ -529,7 +529,23 @@ Rules:
 - If two resources collide, use `as:name`.
 
 ```wx
-$$tasks:list as:openTasks args:{ status: "open" }
+$$tasks:list as:openTasks status:"open"
+```
+
+### Resource arguments
+
+Query arguments use the same colon-attribute syntax as everything else in WAVEx. Every attribute on a `$$` call other than the reserved `as:` and `args:` becomes a Convex argument:
+
+```wx
+$$tasks:get id:route.params.id
+$$talks:list track:{{ route.query.track || undefined }}
+$$questions:listByTalk talkSlug:route.params.slug
+```
+
+The explicit object form remains available for computed or spread-style argument objects, and may be combined with attribute args (attributes win on conflicts):
+
+```wx
+$$tasks:search args:{ ...savedFilters, query: state.query }
 ```
 
 ## 12. Forms, Events, and Actions

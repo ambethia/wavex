@@ -11,7 +11,7 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain("import { html, nothing } from \"lit\"");
     expect(compiled.code).toContain("satisfies readonly ResourceDefinition[]");
     expect(compiled.code).toContain("getArgs(context: RenderContext)");
-    expect(compiled.code).toContain("return { status: route.query.status };");
+    expect(compiled.code).toContain("return { ...({ status: route.query.status }) };");
     expect(compiled.code).toContain("repeat(tasks ?? []");
     expect(compiled.code).toContain("<wa-button");
     expect(compiled.code).toContain("class=\"wa-stack wa-gap-xl\"");
@@ -103,6 +103,19 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`!== "pending" ? html`);
     expect(compiled.code).toContain(`((problem: unknown) =>`);
     expect(compiled.code).toContain(`?.error) : nothing}`);
+  });
+
+  it("compiles attribute args on $$ calls (the wavex-native form)", () => {
+    const compiled = compileWavexModule(
+      `~~~\n$$talks:get slug:route.params.slug\n$$talks:list as:systemsTalks track:"systems" featured\n$$tasks:search args:{ ...base } query:state.q\n`,
+      { id: "src/pages/x.wx" }
+    );
+
+    expect(compiled.code).toContain(`return { "slug": route.params.slug };`);
+    expect(compiled.code).toContain(`return { "track": "systems", "featured": true };`);
+    // args: object spreads first; attribute args win on conflicts
+    expect(compiled.code).toContain(`return { ...({ ...base }), "query": state.q };`);
+    expect(compiled.code).not.toContain(`"as":`);
   });
 
   it("honors as: renames for resource bindings", () => {

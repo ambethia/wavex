@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import type { CodeMapping, LanguagePlugin, VirtualCode } from "@volar/language-core";
 import { forEachEmbeddedCode } from "@volar/language-core";
 // Side-effect import: augments LanguagePlugin with the `typescript` integration hook.
@@ -22,9 +24,9 @@ export function createWavexLanguagePlugin(): LanguagePlugin<URI> {
     getLanguageId(uri) {
       return uri.path.endsWith(".wx") ? WAVEX_LANGUAGE_ID : undefined;
     },
-    createVirtualCode(_uri, languageId, snapshot) {
+    createVirtualCode(uri, languageId, snapshot) {
       if (languageId !== WAVEX_LANGUAGE_ID) return undefined;
-      return new WavexVirtualCode(snapshot);
+      return new WavexVirtualCode(snapshot, uri.scheme === "file" ? uri.fsPath : undefined);
     },
     typescript: {
       extraFileExtensions: [{ extension: "wx", isMixedContent: true, scriptKind: 7 }],
@@ -52,7 +54,7 @@ export class WavexVirtualCode implements VirtualCode {
   embeddedCodes: VirtualCode[] = [];
   ast: WavexFile;
 
-  constructor(public snapshot: ts.IScriptSnapshot) {
+  constructor(public snapshot: ts.IScriptSnapshot, fsPath?: string) {
     const source = snapshot.getText(0, snapshot.getLength());
     this.ast = parseWavex(source);
     // The root code keeps the document text for non-TS features.
@@ -64,11 +66,29 @@ export class WavexVirtualCode implements VirtualCode {
         data: FULL_CAPABILITIES
       }
     ];
-    this.embeddedCodes = [createTypeScriptCode(source, this.ast)];
+    this.embeddedCodes = [createTypeScriptCode(source, this.ast, fsPath)];
   }
 }
 
-function createTypeScriptCode(source: string, ast: WavexFile): VirtualCode {
+/** Relative import to convex/_generated/api from the .wx file, when the app has one. */
+function convexApiImportPath(fsPath: string | undefined): string | undefined {
+  if (!fsPath) return undefined;
+  let dir = dirname(fsPath);
+  for (let depth = 0; depth < 20; depth += 1) {
+    if (existsSync(join(dir, "convex", "_generated", "api.d.ts"))) {
+      const relativePath = relative(dirname(fsPath), join(dir, "convex", "_generated", "api"))
+        .split("\\")
+        .join("/");
+      return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+  return undefined;
+}
+
+function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): VirtualCode {
   const mappings: CodeMapping[] = [];
   let generated = "";
 
@@ -93,11 +113,34 @@ function createTypeScriptCode(source: string, ast: WavexFile): VirtualCode {
 
   // 2. Ambient template context (unmapped scaffolding).
   append("\ndeclare const route: { path: string; params: Record<string, string>; query: Record<string, string> };\n");
-  append("declare const props: Record<string, any>;\n");
+  // Components declaring a Props type in their prelude get typed props.
+  if (/\b(?:type|interface)\s+Props\b/.test(ast.prelude)) {
+    append("declare const props: Props;\n");
+  } else {
+    append("declare const props: Record<string, any>;\n");
+  }
   append("declare const state: Record<string, any>;\n");
   append("declare const actionStates: Record<string, any>;\n");
-  for (const name of new Set(ast.resources.map((resource) => resource.name))) {
-    if (/^[A-Za-z_$][\w$]*$/.test(name)) append(`declare const ${name}: any;\n`);
+
+  // 2b. Resource bindings typed from the app's generated Convex api: the
+  //     query's return type (or any when no generated api is found).
+  const apiImport = ast.resources.length > 0 ? convexApiImportPath(fsPath) : undefined;
+  if (apiImport) {
+    append(`import type { api as __wxApi } from ${JSON.stringify(apiImport)};\n`);
+    append(`import type { FunctionReturnType as __WxReturn } from "convex/server";\n`);
+  }
+  const declaredResources = new Set<string>();
+  for (const resource of ast.resources) {
+    if (!/^[A-Za-z_$][\w$]*$/.test(resource.name) || declaredResources.has(resource.name)) continue;
+    declaredResources.add(resource.name);
+    if (apiImport) {
+      const apiPath = [...resource.address.modulePath.split("/"), resource.address.functionName]
+        .map((segment) => `[${JSON.stringify(segment)}]`)
+        .join("");
+      append(`declare const ${resource.name}: __WxReturn<typeof __wxApi${apiPath}> | undefined;\n`);
+    } else {
+      append(`declare const ${resource.name}: any;\n`);
+    }
   }
 
   // 3. Template expressions type-check inside their template scopes (+for
@@ -170,13 +213,12 @@ function emitNodes(nodes: readonly TemplateNode[], emitter: Emitter): void {
         if (attribute.kind === "same-name" && IDENTIFIER.test(attribute.name)) {
           emitExpression(attribute.name, base, raw);
         }
-        // Raw-event handlers (on:wa-show:faqOpened) and custom semantic
-        // targets (:click:openMenu) reference prelude declarations.
+        // Raw-event handlers (on:wa-show:faqOpened) compile to identifier
+        // references, so they count as prelude usage. Semantic-event targets
+        // (:click:openMenu, :track:todos_cleared) are dispatched by name at
+        // runtime and are NOT module identifiers.
         if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
           emitExpression(attribute.handler, base, raw);
-        }
-        if (attribute.kind === "semantic-event" && IDENTIFIER.test(attribute.target)) {
-          emitExpression(attribute.target, base, raw);
         }
       }
     }

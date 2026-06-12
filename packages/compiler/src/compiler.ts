@@ -98,10 +98,7 @@ function compileResourceDefinitions(resources: readonly ResourceBinding[], resou
   if (resources.length === 0) return `export const resources = [] as const satisfies readonly ResourceDefinition[];`;
 
   const entries = resources.map((resource) => {
-    const argsGetter = compileResourceArgsGetter(
-      resource.attributes.find((attribute) => attribute.name === "args"),
-      resourceNames
-    );
+    const argsGetter = compileResourceArgsGetter(resource.attributes, resourceNames);
     return [
       `  {`,
       `    name: ${JSON.stringify(resource.name)},`,
@@ -119,9 +116,30 @@ function compileResourceDefinitions(resources: readonly ResourceBinding[], resou
   return [`export const resources = [`, entries.join(",\n"), `] as const satisfies readonly ResourceDefinition[];`].join("\n");
 }
 
-function compileResourceArgsGetter(attribute: Attribute | undefined, resourceNames: readonly string[]): string {
-  const expression = attributeValueExpression(attribute);
-  if (!expression) return "";
+/** Args names reserved for WAVEx itself on $$ calls. */
+const RESERVED_RESOURCE_ATTRIBUTES = new Set(["as", "args"]);
+
+function compileResourceArgsGetter(attributes: readonly Attribute[], resourceNames: readonly string[]): string {
+  const parts: string[] = [];
+
+  // Explicit object form: args:{ ... } spreads first so attribute args win.
+  const argsAttribute = attributes.find((attribute) => attribute.name === "args");
+  const argsExpression = attributeValueExpression(argsAttribute);
+  if (argsExpression) parts.push(`...(${argsExpression})`);
+
+  // The wavex-native form: every other attribute is an arg.
+  // $$talks:get slug:route.params.slug
+  for (const attribute of attributes) {
+    if (RESERVED_RESOURCE_ATTRIBUTES.has(attribute.name)) continue;
+    const key = JSON.stringify(attribute.name);
+    if (attribute.kind === "expression") parts.push(`${key}: ${attribute.expression}`);
+    else if (attribute.kind === "literal") parts.push(`${key}: ${JSON.stringify(attribute.value)}`);
+    else if (attribute.kind === "same-name") parts.push(`${key}: ${attribute.name}`);
+    else if (attribute.kind === "boolean") parts.push(`${key}: true`);
+  }
+
+  if (parts.length === 0) return "";
+  const expression = `{ ${parts.join(", ")} }`;
 
   const declarations = resourceNames
     .filter(isIdentifierName)

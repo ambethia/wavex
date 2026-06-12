@@ -19,7 +19,7 @@ div [grid gap-m] class:live-grid
 
   section [stack gap-s]
     h2 [heading-m] Systems track only
-    $$talks:list as:systemsTalks args:{ track: "systems" }
+    $$talks:list as:systemsTalks track:"systems"
       +loading
         @spinner
       +empty

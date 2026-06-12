@@ -177,9 +177,15 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
             }
             const detail = options.webAwesomeDetails?.get(name.replace(/^wa\//, ""));
             if (detail) {
-              const attrs = detail.attributes.slice(0, 8).map((attribute) => `\`${attribute.name}\``).join(" ");
+              const attrs = detail.attributes
+                .slice(0, 10)
+                .map((attribute) => {
+                  const type = attribute.type && attribute.type.length <= 48 ? `: ${attribute.type}` : "";
+                  return `- \`${attribute.name}${type}\``;
+                })
+                .join("\n");
               return hover(
-                `**@${name}** — \`<wa-${detail.name}>\`\n\n${detail.summary ?? ""}${attrs ? `\n\nAttributes: ${attrs}` : ""}`
+                `**@${name}** — \`<wa-${detail.name}>\`\n\n${detail.summary ?? ""}${attrs ? `\n\n**Attributes**\n${attrs}` : ""}`
               );
             }
           }

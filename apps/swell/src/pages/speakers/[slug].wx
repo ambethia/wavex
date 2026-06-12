@@ -3,7 +3,7 @@
 +head
   title {{ speaker ? `${speaker.name} | Swell Conf` : "Speaker | Swell Conf" }}
 
-$$speakers:get args:{ slug: route.params.slug }
+$$speakers:get slug:route.params.slug
   +loading
     @spinner
 

@@ -5,7 +5,7 @@
   meta name:description content:{{ talk?.summary ?? "Swell Conf talk" }}
 
 +suspense reveal:together
-  $$talks:get args:{ slug: route.params.slug }
+  $$talks:get slug:route.params.slug
     +empty
       @callout variant:warning
         | No talk found for "{{ route.params.slug }}".
@@ -61,7 +61,7 @@
             @callout variant:danger
               = String(problem)
 
-        $$questions:listByTalk args:{ talkSlug: route.params.slug }
+        $$questions:listByTalk talkSlug:route.params.slug
           +loading
             @spinner
 
