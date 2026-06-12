@@ -9,7 +9,7 @@ const [command = "help", ...args] = process.argv.slice(2);
 
 switch (command) {
   case "check":
-    check(args[0] ?? process.cwd());
+    await check(args[0] ?? process.cwd());
     break;
   case "routes":
     routes(args[0] ?? process.cwd());
@@ -50,20 +50,42 @@ Commands:
 `);
 }
 
-function check(rootInput: string) {
+async function check(rootInput: string) {
   const root = resolve(rootInput);
   const files = walkWxFiles(root);
   let errorCount = 0;
 
+  // Capability context: the app root holds node_modules and src/components.
+  const appRoot = existsSync(join(root, "node_modules")) ? root : process.cwd();
+  const { detectCapabilities, validateComponentReferences } = await import("@wavex/core/capabilities");
+  const capabilities = detectCapabilities(appRoot);
+  const componentsDir = join(appRoot, createDefaultConfig().componentsDir);
+  const localComponents = walkWxFiles(componentsDir).map((file) =>
+    normalizeSlashes(relative(componentsDir, file)).replace(/\.wx$/, "")
+  );
+
   for (const file of files) {
     const parsed = parseWavex(readFileSync(file, "utf8"), { fileName: file });
-    for (const diagnostic of parsed.diagnostics) {
+    const capabilityDiagnostics = validateComponentReferences(parsed, {
+      localComponents,
+      webAwesome: capabilities.webAwesome,
+      fontAwesome: capabilities.fontAwesome
+    });
+    for (const diagnostic of [...parsed.diagnostics, ...capabilityDiagnostics]) {
       if (diagnostic.severity === "error") errorCount += 1;
       console.log(`${normalizeSlashes(relative(root, file))}: ${formatDiagnostic(diagnostic)}`);
     }
   }
 
-  console.log(`Checked ${files.length} .wx file${files.length === 1 ? "" : "s"}.`);
+  const summary = capabilities.webAwesome
+    ? `Web Awesome: ${capabilities.webAwesome.packageName} (${capabilities.webAwesome.components.size} components)`
+    : "Web Awesome: not installed";
+  const fa = capabilities.fontAwesome;
+  const faSummary =
+    fa.kits.length > 0 || fa.packages.length > 0
+      ? `Font Awesome: ${[...fa.kits, ...fa.packages].join(", ")}`
+      : "Font Awesome: none installed";
+  console.log(`Checked ${files.length} .wx file${files.length === 1 ? "" : "s"}. ${summary}; ${faSummary}.`);
   if (errorCount > 0) process.exitCode = 1;
 }
 

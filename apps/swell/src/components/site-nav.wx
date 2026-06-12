@@ -1,5 +1,3 @@
-import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
-
 ~~~
 
 header slot:header [cluster gap-s align-items-center] class:site-header

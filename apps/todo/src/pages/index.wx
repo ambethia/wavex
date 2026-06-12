@@ -1,13 +1,3 @@
-import "@web.awesome.me/webawesome-pro/dist/components/page/page.js"
-import "@web.awesome.me/webawesome-pro/dist/components/button/button.js"
-import "@web.awesome.me/webawesome-pro/dist/components/input/input.js"
-import "@web.awesome.me/webawesome-pro/dist/components/checkbox/checkbox.js"
-import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
-import "@web.awesome.me/webawesome-pro/dist/components/callout/callout.js"
-import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
-import "@web.awesome.me/webawesome-pro/dist/components/spinner/spinner.js"
-import "@web.awesome.me/webawesome-pro/dist/components/divider/divider.js"
-
 ~~~
 
 +head

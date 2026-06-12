@@ -187,7 +187,7 @@ Done criteria:
 
 ### 8. Web Awesome and Font Awesome capability detection
 
-Goal: move from tag naming conventions to package-aware imports and diagnostics.
+Status: **complete** (2026-06-12). `@wavex/core/capabilities` (a Node-only subpath, kept out of the browser-facing core index) detects the installed Web Awesome package (pro `@web.awesome.me/webawesome-pro` or free `@awesome.me/webawesome`) and reads its real component list from `dist/custom-elements.json` (82 tags for the pro package), plus Font Awesome kits (`@awesome.me/kit-*`) and `@fortawesome/*` packages. The Vite plugin feeds the detected component set to the compiler (replacing the hand-maintained default list when a package is installed) and prepends per-template component imports for exactly the `wa-*` components each `.wx` file uses, from whichever package is installed — all manual Web Awesome imports were deleted from both apps' preludes. `wavex check` now layers `validateComponentReferences` diagnostics (WX101) over parser diagnostics: unknown `@component` (not local, not in the installed package), `@wa/` references missing from the package, and an info-level note when `@icon` is used with only bundled free icons — with a capability summary line. Pro capabilities unlock purely by what the app owner installed; nothing licensed is bundled by WAVEx itself. Validated: both apps run and build with generated imports only (todo 14/14, swell layout suite 7/7 in-browser), prerender still works, and a fixture with `@mystery-widget` / `@wa/chart-fake` fails `wavex check` with actionable errors.
 
 Tasks:
 

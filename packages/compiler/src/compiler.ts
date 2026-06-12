@@ -20,10 +20,13 @@ export interface CompileWavexOptions {
 export interface CompileWavexResult {
   ast: WavexFile;
   code: string;
+  /** Web Awesome component names (without the wa- prefix) referenced by this template. */
+  usedWebAwesomeComponents: readonly string[];
 }
 
 interface InternalCompileOptions extends CompileWavexOptions {
   usedLocalComponents?: Set<string>;
+  usedWebAwesomeComponents?: Set<string>;
 }
 
 const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
@@ -36,7 +39,8 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   const prelude = ast.prelude.trim() ? `${ast.prelude.trim()}\n\n` : "";
   const localComponents = options.localComponents ?? [];
   const usedLocalComponents = new Set<string>();
-  const compileOptions: InternalCompileOptions = { ...options, usedLocalComponents };
+  const usedWebAwesomeComponents = new Set<string>();
+  const compileOptions: InternalCompileOptions = { ...options, usedLocalComponents, usedWebAwesomeComponents };
   const resourceDeclarations = resourceNames
     .map((name) => `  const ${name} = context.resources?.[${JSON.stringify(name)}];`)
     .join("\n");
@@ -80,7 +84,7 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     ""
   ].join("\n");
 
-  return { ast, code };
+  return { ast, code, usedWebAwesomeComponents: [...usedWebAwesomeComponents].sort() };
 }
 
 function compileResourceDefinitions(resources: readonly ResourceBinding[], resourceNames: readonly string[]): string {
@@ -232,6 +236,7 @@ function compileComponent(node: ComponentNode, options: InternalCompileOptions, 
     localComponents: options.localComponents,
     webAwesomeComponents: options.webAwesomeComponents
   });
+  if (tag.startsWith("wa-")) options.usedWebAwesomeComponents?.add(tag.slice(3));
   const attrs = compileAttributes(node.attributes, node.utilities);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
   const children = compileNodes(node.children, options, resourceScope);

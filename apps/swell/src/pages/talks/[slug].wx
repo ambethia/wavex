@@ -1,8 +1,3 @@
-import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
-import "@web.awesome.me/webawesome-pro/dist/components/tag/tag.js"
-import "@web.awesome.me/webawesome-pro/dist/components/spinner/spinner.js"
-import "@web.awesome.me/webawesome-pro/dist/components/callout/callout.js"
-
 ~~~
 
 +head

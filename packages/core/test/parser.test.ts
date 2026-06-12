@@ -85,6 +85,48 @@ describe("parseWavex", () => {
   });
 });
 
+describe("validateComponentReferences", () => {
+  const webAwesome = { packageName: "@web.awesome.me/webawesome-pro", components: new Set(["button", "card", "icon"]) };
+
+  it("accepts local components, installed WA components, and explicit @wa/", async () => {
+    const { validateComponentReferences } = await import("../src/capabilities.js");
+    const parsed = parseWavex(`~~~\n@task-card task:\n@button Go\n@wa/card\n@icon name:plus\n`);
+    const diagnostics = validateComponentReferences(parsed, {
+      localComponents: ["task-card"],
+      webAwesome,
+      fontAwesome: { kits: ["@awesome.me/kit-x"], packages: [] }
+    });
+    expect(diagnostics).toEqual([]);
+  });
+
+  it("flags unknown components and missing WA capabilities", async () => {
+    const { validateComponentReferences } = await import("../src/capabilities.js");
+    const parsed = parseWavex(`~~~\n@mystery-widget\n@wa/chart\n`);
+    const diagnostics = validateComponentReferences(parsed, {
+      localComponents: [],
+      webAwesome,
+      fontAwesome: { kits: [], packages: [] }
+    });
+    expect(diagnostics).toMatchObject([
+      { code: "WX101", severity: "error" },
+      { code: "WX101", severity: "error" }
+    ]);
+    expect(diagnostics[0]!.message).toContain("@mystery-widget");
+    expect(diagnostics[1]!.message).toContain("wa-chart");
+  });
+
+  it("downgrades @icon to info when only bundled free icons are available", async () => {
+    const { validateComponentReferences } = await import("../src/capabilities.js");
+    const parsed = parseWavex(`~~~\n@icon name:plus\n`);
+    const diagnostics = validateComponentReferences(parsed, {
+      localComponents: [],
+      webAwesome,
+      fontAwesome: { kits: [], packages: [] }
+    });
+    expect(diagnostics).toMatchObject([{ code: "WX101", severity: "info" }]);
+  });
+});
+
 describe("matchRoutePath", () => {
   const routes = [
     "src/pages/index.wx",

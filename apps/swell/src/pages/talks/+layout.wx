@@ -1,5 +1,3 @@
-import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
-
 ~~~
 
 div [stack gap-l] class:talks-section

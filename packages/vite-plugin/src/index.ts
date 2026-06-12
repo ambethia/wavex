@@ -2,6 +2,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
 import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes } from "@wavex/core";
+import { detectCapabilities, type ProjectCapabilities } from "@wavex/core/capabilities";
 import type { Plugin, ViteDevServer } from "vite";
 import { transformWithOxc } from "vite";
 
@@ -17,6 +18,8 @@ const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
 
 export function wavex(options: WavexVitePluginOptions = {}): Plugin {
   let projectRoot = process.cwd();
+  let capabilities: ProjectCapabilities | undefined;
+  const projectCapabilities = () => (capabilities ??= detectCapabilities(projectRoot));
 
   return {
     name: "wavex",
@@ -98,10 +101,13 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
       this.addWatchFile(file);
       const config = resolveDirs(projectRoot);
       const localComponents = discoverLocalComponents(config.componentsDir);
+      const detected = projectCapabilities();
       const compiled = compileWavexModule(code, {
         id: normalizeSlashes(relative(projectRoot, file)),
         localComponents,
-        webAwesomeComponents: options.webAwesomeComponents
+        webAwesomeComponents:
+          options.webAwesomeComponents ??
+          (detected.webAwesome ? [...detected.webAwesome.components] : undefined)
       });
 
       const error = compiled.ast.diagnostics.find((diagnostic) => diagnostic.severity === "error");
@@ -113,9 +119,19 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         });
       }
 
+      // Capability-driven imports: load only the Web Awesome components this
+      // template uses, from whichever package (free/pro) is installed.
+      let moduleCode = compiled.code;
+      if (detected.webAwesome && compiled.usedWebAwesomeComponents.length > 0) {
+        const importLines = compiled.usedWebAwesomeComponents
+          .filter((name) => detected.webAwesome!.components.has(name))
+          .map((name) => `import "${detected.webAwesome!.packageName}/dist/components/${name}/${name}.js";`)
+          .join("\n");
+        if (importLines) moduleCode = `${importLines}\n${moduleCode}`;
+      }
+
       // Page modules self-accept so route-level HMR works for dynamically
       // imported pages; the client router swaps the module in place.
-      let moduleCode = compiled.code;
       if (isInside(file, config.pagesDir)) {
         const publicPath = `/${normalizeSlashes(relative(projectRoot, file))}`;
         moduleCode += [
