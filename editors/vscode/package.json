@@ -13,9 +13,7 @@
     "Programming Languages"
   ],
   "main": "./dist/extension.cjs",
-  "activationEvents": [
-    "onLanguage:wavex"
-  ],
+  "activationEvents": [],
   "contributes": {
     "languages": [
       {

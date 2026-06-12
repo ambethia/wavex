@@ -209,21 +209,31 @@ function emitNodes(nodes: readonly TemplateNode[], emitter: Emitter): void {
     if (node.kind === "expression") emitExpression(node.expression, base, raw);
 
     if (node.kind === "element" || node.kind === "component" || node.kind === "convex-call") {
+      // Anchor attribute expressions to the attribute's own raw text so the
+      // mapping never lands on an earlier occurrence elsewhere on the line
+      // (e.g. the `talk` inside `@talk-card` for a `talk:` attribute).
+      const emitWithinAttribute = (expressionText: string, attributeRaw: string | undefined) => {
+        if (!attributeRaw) return;
+        const attributeIndex = raw.indexOf(attributeRaw);
+        if (attributeIndex === -1) return;
+        emitExpression(expressionText, base + attributeIndex, attributeRaw);
+      };
+
       for (const attribute of node.attributes) {
         // Bare expression attributes (checked:todo.completed) outside mustaches.
         if (attribute.kind === "expression" && !attribute.raw?.includes("{{")) {
-          emitExpression(attribute.expression, base, raw);
+          emitWithinAttribute(attribute.expression, attribute.raw);
         }
         // Same-name shorthand (task:) references the in-scope value.
         if (attribute.kind === "same-name" && IDENTIFIER.test(attribute.name)) {
-          emitExpression(attribute.name, base, raw);
+          emitWithinAttribute(attribute.name, attribute.raw);
         }
         // Raw-event handlers (on:wa-show:faqOpened) compile to identifier
         // references, so they count as prelude usage. Semantic-event targets
         // (:click:openMenu, :track:todos_cleared) are dispatched by name at
         // runtime and are NOT module identifiers.
         if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
-          emitExpression(attribute.handler, base, raw);
+          emitWithinAttribute(attribute.handler, attribute.raw);
         }
       }
     }

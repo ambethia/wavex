@@ -158,6 +158,31 @@ describe("@wavex/lsp", () => {
   });
 });
 
+describe("virtual code mappings", () => {
+  it("anchors same-name attribute expressions to the attribute, not the component name", async () => {
+    const { WavexVirtualCode } = await import("../src/index.js");
+    const text = "~~~\n+for talk in talks\n  @talk-card talk:\n";
+    const snapshot = {
+      getText: (start: number, end: number) => text.slice(start, end),
+      getLength: () => text.length,
+      getChangeRange: () => undefined
+    };
+    const code = new WavexVirtualCode(snapshot as never);
+    const tsCode = code.embeddedCodes[0]!;
+    const generated = tsCode.snapshot.getText(0, tsCode.snapshot.getLength());
+
+    // The `talk` reference from `talk:` must map to the attribute position,
+    // not the `talk` inside `@talk-card`.
+    const attributeOffset = text.indexOf(" talk:") + 1;
+    const componentNameOffset = text.indexOf("@talk-card") + 1;
+    const talkMappings = tsCode.mappings.filter(
+      (mapping) => generated.slice(mapping.generatedOffsets[0]!, mapping.generatedOffsets[0]! + mapping.lengths[0]!) === "talk"
+    );
+    expect(talkMappings.some((mapping) => mapping.sourceOffsets[0] === attributeOffset)).toBe(true);
+    expect(talkMappings.some((mapping) => mapping.sourceOffsets[0] === componentNameOffset)).toBe(false);
+  });
+});
+
 describe("template scopes in virtual code", () => {
   it("declares +for items and +error bindings; raw-event handlers count as used", async () => {
     const fixture = resolve(fixturesDir, "scopes.wx");
