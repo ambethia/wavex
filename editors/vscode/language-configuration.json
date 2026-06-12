@@ -1,0 +1,100 @@
+{
+  "comments": {
+    "lineComment": "//"
+  },
+  "brackets": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ]
+  ],
+  "autoClosingPairs": [
+    {
+      "open": "{",
+      "close": "}"
+    },
+    {
+      "open": "[",
+      "close": "]"
+    },
+    {
+      "open": "(",
+      "close": ")"
+    },
+    {
+      "open": "\"",
+      "close": "\"",
+      "notIn": [
+        "string"
+      ]
+    },
+    {
+      "open": "'",
+      "close": "'",
+      "notIn": [
+        "string"
+      ]
+    },
+    {
+      "open": "`",
+      "close": "`",
+      "notIn": [
+        "string"
+      ]
+    },
+    {
+      "open": "{{",
+      "close": " }}"
+    }
+  ],
+  "surroundingPairs": [
+    [
+      "{",
+      "}"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "(",
+      ")"
+    ],
+    [
+      "\"",
+      "\""
+    ],
+    [
+      "'",
+      "'"
+    ],
+    [
+      "`",
+      "`"
+    ],
+    [
+      "*",
+      "*"
+    ],
+    [
+      "_",
+      "_"
+    ],
+    [
+      "~",
+      "~"
+    ]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(\\+(if|for|loading|empty|error|pending|idle|boundary|suspense|head|mutation-error)\\b.*|\\$\\$[\\w/:.-]+\\b.*)$",
+    "decreaseIndentPattern": "^\\s+$"
+  }
+}

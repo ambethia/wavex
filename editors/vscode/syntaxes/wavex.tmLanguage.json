@@ -1,0 +1,82 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "WAVEx",
+  "scopeName": "source.wavex",
+  "comment": "Thin, drift-tolerant grammar for highlight-before-LSP and GitHub views. The @wavex/core parser (via the LSP) is the source of truth; this is cosmetic only.",
+  "patterns": [
+    {
+      "comment": "TypeScript prelude up to the ~~~ wave separator",
+      "begin": "\\A(?!~~~)",
+      "end": "^(~~~)\\s*$",
+      "endCaptures": { "1": { "name": "keyword.control.separator.wavex" } },
+      "contentName": "meta.embedded.block.typescript.wavex",
+      "patterns": [{ "include": "source.ts" }]
+    },
+    { "include": "#template" }
+  ],
+  "repository": {
+    "template": {
+      "patterns": [
+        { "match": "^\\s*(~~~)\\s*$", "captures": { "1": { "name": "keyword.control.separator.wavex" } } },
+        { "match": "//.*$", "name": "comment.line.double-slash.wavex" },
+        { "include": "#interpolation" },
+        {
+          "comment": "Directives: +if, +for, +loading, ...",
+          "match": "(?<=^\\s*)(\\+[\\w-]+)",
+          "name": "keyword.control.directive.wavex"
+        },
+        {
+          "comment": "Convex calls and references: $$tasks:list, $ai/summarize:run",
+          "match": "(\\${1,2})([\\w/.-]+(?::[\\w.-]+)+)",
+          "captures": {
+            "1": { "name": "punctuation.definition.convex.wavex" },
+            "2": { "name": "entity.name.function.convex.wavex" }
+          }
+        },
+        {
+          "comment": "Components: @button, @tasks/item, @wa/card",
+          "match": "(?<=^\\s*|\\s)(@[\\w/-]+)",
+          "name": "support.class.component.wavex"
+        },
+        {
+          "comment": "Native element heads",
+          "match": "(?<=^\\s*)([a-z][\\w-]*)(?=\\s|$)",
+          "name": "entity.name.tag.wavex"
+        },
+        {
+          "comment": "Utility groups: [stack gap-xl]",
+          "begin": "(?<=^|\\s)\\[",
+          "end": "\\]",
+          "name": "constant.other.utility.wavex"
+        },
+        {
+          "comment": "Semantic events and raw events: :click:$$tasks:create, on:wa-show:opened",
+          "match": "(?<=\\s)(on:[\\w-]+:[\\w$/:.-]+|:[\\w-]+:[\\w$/:.-]+)",
+          "name": "entity.other.attribute-name.event.wavex"
+        },
+        {
+          "comment": "Attributes: name:value",
+          "match": "(?<=\\s)([\\w-]+)(:)(\"[^\"]*\"|[^\\s\\]]*)",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.wavex" },
+            "2": { "name": "punctuation.separator.key-value.wavex" },
+            "3": { "name": "string.unquoted.attribute-value.wavex" }
+          }
+        },
+        { "match": "(?<=^\\s*)(\\|)", "name": "punctuation.definition.text.wavex" },
+        { "match": "(?<=^\\s*)(=)", "name": "keyword.operator.expression.wavex" },
+        { "match": "`[^`]+`", "name": "markup.inline.raw.wavex" },
+        { "match": "\\*[^*\\s][^*]*\\*", "name": "markup.bold.wavex" },
+        { "match": "(?<=\\s)_[^_]+_(?=\\s|$)", "name": "markup.italic.wavex" }
+      ]
+    },
+    "interpolation": {
+      "begin": "{{",
+      "end": "}}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.interpolation.begin.wavex" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.interpolation.end.wavex" } },
+      "contentName": "meta.embedded.expression.typescript.wavex",
+      "patterns": [{ "include": "source.ts" }]
+    }
+  }
+}

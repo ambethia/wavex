@@ -1,0 +1,62 @@
+{
+  "name": "wavex-vscode",
+  "displayName": "WAVEx",
+  "description": "WAVEx (.wx) language support: syntax highlighting and the Volar-based language server.",
+  "version": "0.0.1",
+  "publisher": "wavex",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Programming Languages"],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "wavex",
+        "aliases": ["WAVEx", "wavex"],
+        "extensions": [".wx"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "wavex",
+        "scopeName": "source.wavex",
+        "path": "./syntaxes/wavex.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.typescript.wavex": "typescript",
+          "meta.embedded.expression.typescript.wavex": "typescript"
+        }
+      }
+    ],
+    "configuration": {
+      "title": "WAVEx",
+      "properties": {
+        "wavex.typescript.tsdk": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a TypeScript lib directory for the language server. Defaults to the workspace's node_modules/typescript/lib."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -b --pretty false",
+    "package": "pnpm build && vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@wavex/lsp": "workspace:*",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.27.0",
+    "typescript": "~6.0.2"
+  }
+}

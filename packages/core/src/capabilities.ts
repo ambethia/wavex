@@ -151,3 +151,50 @@ function capabilityDiagnostic(node: ComponentNode, message: string): Diagnostic 
     message
   };
 }
+
+/**
+ * Classify public Convex functions by scanning convex/ sources
+ * ("module/path:fn" -> kind). Shared by the Vite plugin (semantic event
+ * dispatch) and the LSP (completions).
+ */
+export function discoverConvexFunctionKinds(root: string): Record<string, "query" | "mutation" | "action"> {
+  const convexDir = join(root, "convex");
+  const kinds: Record<string, "query" | "mutation" | "action"> = {};
+  const walk = (dir: string) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "_generated" && entry.name !== "node_modules") walk(path);
+        continue;
+      }
+      if (!entry.name.endsWith(".ts") || entry.name.endsWith(".d.ts")) continue;
+      const modulePath = path.slice(convexDir.length + 1).replace(/\\/g, "/").replace(/\.ts$/, "");
+      const source = readFileSync(path, "utf8");
+      for (const match of source.matchAll(/export\s+const\s+(\w+)\s*=\s*(query|mutation|action)\s*\(/g)) {
+        kinds[`${modulePath}:${match[1]}`] = match[2] as "query" | "mutation" | "action";
+      }
+    }
+  };
+  walk(convexDir);
+  return kinds;
+}
+
+/** Local component references discovered from src/components (e.g. "talk-card", "tasks/item"). */
+export function discoverLocalComponents(root: string): string[] {
+  const componentsDir = join(root, "src", "components");
+  const components: string[] = [];
+  const walk = (dir: string, prefix: string) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path, prefix ? `${prefix}/${entry.name}` : entry.name);
+      else if (entry.isFile() && entry.name.endsWith(".wx")) {
+        const name = entry.name.replace(/\.wx$/, "");
+        components.push(prefix ? `${prefix}/${name}` : name);
+      }
+    }
+  };
+  walk(componentsDir, "");
+  return components.sort();
+}
