@@ -1,0 +1,11 @@
+type Talk = { title: string; minutes: number }
+
+function format(talk: Talk) {
+  return `${talk.title} (${talk.minutes}m)`
+}
+
+~~~
+
+main [stack gap-xl]
+  p {{ format({ title: "Realtime", minutes: 30 }) }}
+  p {{ format({ title: "Broken" }) }}

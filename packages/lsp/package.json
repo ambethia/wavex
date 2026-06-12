@@ -1,0 +1,42 @@
+{
+  "name": "@wavex/lsp",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "WAVEx Volar-based language server.",
+  "bin": {
+    "wavex-language-server": "./bin/wavex-language-server.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@volar/language-core": "^2.4.28",
+    "@volar/language-server": "^2.4.28",
+    "@volar/language-service": "^2.4.28",
+    "@wavex/core": "workspace:*",
+    "volar-service-typescript": "^0.0.71",
+    "@volar/typescript": "^2.4.28",
+    "vscode-uri": "^3.0.8",
+    "vscode-languageserver-protocol": "^3.17.5"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@volar/kit": "^2.4.28",
+    "typescript": "~6.0.2"
+  },
+  "peerDependencies": {
+    "typescript": "*"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "license": "MIT"
+}
