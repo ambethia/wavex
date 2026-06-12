@@ -1,0 +1,49 @@
+function faqOpened(event: Event) {
+  console.log("wx-raw-event: faq opened", (event.target as HTMLElement)?.getAttribute("summary"))
+}
+
+~~~
+
++head
+  title RSVP | Swell Conf
+
+header [stack gap-2xs]
+  h1 [heading-2xl] RSVP
+  p [caption-m] One day, two tracks, all the waves.
+
+section [grid gap-m] class:tier-grid
+  @card
+    div [stack gap-2xs]
+      strong General
+      p [heading-l] $89
+      p [caption-m] Talks, lunch, and the beach break.
+  @card
+    div [stack gap-2xs]
+      strong Supporter
+      p [heading-l] $189
+      p [caption-m] Everything in General plus the speaker dinner.
+
+@card
+  form :submit:$$rsvps:create :track:rsvp_submitted [stack gap-m]
+    @input name:name label:"Name" required autocomplete:off
+    @input name:email label:"Email" type:email required autocomplete:off
+    @select name:tier label:"Ticket tier" value:general
+      @option value:general General — $89
+      @option value:supporter Supporter — $189
+    div [cluster gap-s align-items-center]
+      @button type:submit variant:brand
+        +pending
+          @spinner
+          | Registering…
+        +idle
+          | Register
+    +mutation-error problem
+      @callout variant:danger
+        = String(problem)
+
+section [stack gap-s]
+  h2 [heading-l] FAQ
+  @details summary:"What's included?" on:wa-show:faqOpened
+    p Talks, lunch on the lawn, and ~unlimited~ coffee.
+  @details summary:"Are talks recorded?" on:wa-show:faqOpened
+    p Yes — every talk is published the week after the conference.

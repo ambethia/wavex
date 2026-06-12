@@ -52,3 +52,21 @@
   font-size: var(--wa-font-size-3xl);
   color: var(--wa-color-danger-on-quiet);
 }
+
+.speaker-grid,
+.tier-grid {
+  --wa-grid-min-size: 18ch;
+}
+
+.live-grid {
+  --wa-grid-min-size: 28ch;
+}
+
+.question-item {
+  padding-block: var(--wa-space-xs);
+  border-block-end: 1px solid var(--wa-color-surface-border);
+}
+
+.ai-summary {
+  font-style: italic;
+}

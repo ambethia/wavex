@@ -6,4 +6,7 @@ header slot:header [cluster gap-s align-items-center] class:site-header
     span [heading-s] Swell Conf
   nav [cluster gap-m] class:site-nav
     a href:/schedule Schedule
+    a href:/speakers Speakers
+    a href:/live Live
+    a href:/rsvp RSVP
     a href:/info/venue Venue

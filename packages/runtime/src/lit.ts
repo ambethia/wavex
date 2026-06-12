@@ -55,14 +55,6 @@ export function mountLit<Result = unknown>(
   options: LitMountOptions = {}
 ): LitMount<Result> {
   const context = createRenderContext(initialContext);
-  if (options.actionClient) {
-    context.dispatch = createSemanticActionDispatcher(context, {
-      actionClient: options.actionClient,
-      dispatch: context.dispatch,
-      resolveActionKind: options.resolveActionKind,
-      analytics: options.analytics
-    });
-  }
   let result: Result | undefined;
   let renderCurrent = render;
   let resourceDefinitions = [...(options.resources ?? [])];
@@ -86,6 +78,22 @@ export function mountLit<Result = unknown>(
       update();
     });
   };
+
+  if (options.actionClient) {
+    const dispatcher = createSemanticActionDispatcher(context, {
+      actionClient: options.actionClient,
+      dispatch: context.dispatch,
+      resolveActionKind: options.resolveActionKind,
+      analytics: options.analytics
+    });
+    // Action lifecycle states (pending/idle/error) must rerender the page:
+    // once synchronously after dispatch marks pending, and again on settle.
+    context.dispatch = (event) => {
+      const dispatched = dispatcher(event);
+      requestUpdate();
+      return Promise.resolve(dispatched).finally(() => requestUpdate());
+    };
+  }
 
   const disposeDelegation = installSemanticEventDelegation(root, context);
   resourceController = createResourceController(context, resourceDefinitions, {

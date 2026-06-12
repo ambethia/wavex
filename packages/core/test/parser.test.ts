@@ -58,6 +58,16 @@ describe("parseWavex", () => {
     expect(parseAttributeToken("href:route.url")).toMatchObject({ kind: "expression", expression: "route.url" });
   });
 
+  it("does not mistake member-access brackets in directive expressions for utility groups", () => {
+    const parsed = parseWavex('~~~\n+if actionStates["$$ai/summarize:run"]?.result\n  p Yes\n');
+    const directive = parsed.nodes[0];
+    expect(directive).toMatchObject({
+      kind: "directive",
+      name: "if",
+      expression: 'actionStates["$$ai/summarize:run"]?.result'
+    });
+  });
+
   it("treats mustache tokens with inner colons as inline text, not attributes", () => {
     const parsed = parseWavex('~~~\n+head\n  title {{ talk ? `${talk.title} | Swell` : "Talk | Swell" }}\n');
     const head = parsed.nodes.find((node) => node.kind === "directive");

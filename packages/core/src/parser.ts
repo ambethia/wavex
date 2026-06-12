@@ -476,7 +476,10 @@ function extractUtilityGroups(input: string): { withoutUtilities: string; utilit
     if (char === "{") curlyDepth += 1;
     if (char === "}" && curlyDepth > 0) curlyDepth -= 1;
 
-    if (char === "[" && curlyDepth === 0) {
+    // Utility groups are whitespace-delimited bracket groups. A "[" attached to
+    // the preceding token is member access (actionStates["..."], items[0]).
+    const startsToken = index === 0 || /\s/.test(input[index - 1]!);
+    if (char === "[" && curlyDepth === 0 && startsToken) {
       const close = input.indexOf("]", index + 1);
       if (close !== -1) {
         utilities.push(...input.slice(index + 1, close).trim().split(/\s+/).filter(Boolean));

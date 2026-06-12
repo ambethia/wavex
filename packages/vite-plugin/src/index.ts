@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
 import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes } from "@wavex/core";
@@ -184,6 +184,34 @@ function resolveDirs(root: string): ResolvedDirs {
   };
 }
 
+/**
+ * Classify public Convex functions by scanning convex/ sources so semantic
+ * events dispatch mutations and actions through the right client method.
+ */
+function discoverConvexFunctionKinds(root: string): Record<string, "mutation" | "action"> {
+  const convexDir = join(root, "convex");
+  const kinds: Record<string, "mutation" | "action"> = {};
+  const walk = (dir: string) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "_generated" && entry.name !== "node_modules") walk(path);
+        continue;
+      }
+      if (!entry.name.endsWith(".ts") || entry.name.endsWith(".d.ts")) continue;
+      const modulePath = normalizeSlashes(relative(convexDir, path)).replace(/\.ts$/, "");
+      const source = readFileSync(path, "utf8");
+      for (const match of source.matchAll(/export\s+const\s+(\w+)\s*=\s*(query|mutation|action)\s*\(/g)) {
+        const kind = match[2];
+        if (kind === "mutation" || kind === "action") kinds[`${modulePath}:${match[1]}`] = kind;
+      }
+    }
+  };
+  walk(convexDir);
+  return kinds;
+}
+
 function generateBootstrapModule(config: ResolvedDirs, root: string): string {
   const styleImport = existsSync(config.styleFile) ? `import ${JSON.stringify(publicImportPath(root, config.styleFile))};` : "";
   const apiImport = existsSync(config.convexApiFile)
@@ -213,9 +241,11 @@ function generateBootstrapModule(config: ResolvedDirs, root: string): string {
     `  ? createPostHogCaptureClient({ apiKey: posthogKey, host: import.meta.env.VITE_POSTHOG_HOST })`,
     `  : undefined;`,
     ``,
+    `const convexFunctionKinds = ${JSON.stringify(discoverConvexFunctionKinds(root))};`,
     `const app = mountLit(root, () => undefined, {}, {`,
     `  resourceClient: convex ? createConvexResourceClient(convex, { api: convexApi }) : undefined,`,
     `  actionClient: convex ? createConvexActionClient(convex, { api: convexApi }) : undefined,`,
+    `  resolveActionKind: (definition) => convexFunctionKinds[definition.modulePath + ":" + definition.functionName],`,
     `  analytics,`,
     `});`,
     ``,

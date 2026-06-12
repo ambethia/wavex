@@ -29,6 +29,13 @@ interface InternalCompileOptions extends CompileWavexOptions {
   usedWebAwesomeComponents?: Set<string>;
 }
 
+interface CompileScope {
+  /** Binding name of the enclosing $$ resource block. */
+  resource?: string;
+  /** Semantic action target ($$module:fn) of the enclosing element. */
+  action?: string;
+}
+
 const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 
 export function compileWavexModule(source: string, options: CompileWavexOptions = {}): CompileWavexResult {
@@ -183,18 +190,18 @@ function attributeValueExpression(attribute: Attribute | undefined): string | un
   return undefined;
 }
 
-function compileNodes(nodes: readonly TemplateNode[], options: InternalCompileOptions, resourceScope?: string): string {
-  return nodes.map((node) => compileNode(node, options, resourceScope)).join("");
+function compileNodes(nodes: readonly TemplateNode[], options: InternalCompileOptions, scope: CompileScope = {}): string {
+  return nodes.map((node) => compileNode(node, options, scope)).join("");
 }
 
-function compileNode(node: TemplateNode, options: InternalCompileOptions, resourceScope?: string): string {
+function compileNode(node: TemplateNode, options: InternalCompileOptions, scope: CompileScope = {}): string {
   switch (node.kind) {
     case "element":
-      return compileElement(node, options, resourceScope);
+      return compileElement(node, options, scope);
     case "component":
-      return compileComponent(node, options, resourceScope);
+      return compileComponent(node, options, scope);
     case "directive":
-      return compileDirective(node, options, resourceScope);
+      return compileDirective(node, options, scope);
     case "text":
       return compileInlineText(node.text);
     case "expression":
@@ -208,28 +215,28 @@ function compileNode(node: TemplateNode, options: InternalCompileOptions, resour
   }
 }
 
-function compileElement(node: ElementNode, options: InternalCompileOptions, resourceScope?: string): string {
+function compileElement(node: ElementNode, options: InternalCompileOptions, scope: CompileScope = {}): string {
   if (node.tag === "slot") {
     // Semantic slot projection: layouts and local components receive their
     // composed content through context.slots; fallback content renders when
     // the slot is unfilled. slot: *attributes* on elements stay native.
     const nameAttribute = node.attributes.find((attribute) => attribute.name === "name");
     const slotName = nameAttribute?.kind === "literal" ? nameAttribute.value : "default";
-    const fallback = node.children.length > 0 ? `html\`${compileNodes(node.children, options, resourceScope)}\`` : "nothing";
+    const fallback = node.children.length > 0 ? `html\`${compileNodes(node.children, options, scope)}\`` : "nothing";
     return `\${context.slots?.[${JSON.stringify(slotName)}] ?? ${fallback}}`;
   }
   const attrs = compileAttributes(node.attributes, node.utilities);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
-  const children = compileNodes(node.children, options, resourceScope);
+  const children = compileNodes(node.children, options, scopeForChildren(node.attributes, scope));
   if (VOID_TAGS.has(node.tag)) return `<${node.tag}${attrs}>`;
   return `<${node.tag}${attrs}>${inlineText}${children}</${node.tag}>`;
 }
 
-function compileComponent(node: ComponentNode, options: InternalCompileOptions, resourceScope?: string): string {
+function compileComponent(node: ComponentNode, options: InternalCompileOptions, scope: CompileScope = {}): string {
   const localReference = resolveLocalComponentReference(node.reference, options);
   if (localReference) {
     options.usedLocalComponents?.add(localReference);
-    return compileLocalComponentInvocation(node, localReference, options, resourceScope);
+    return compileLocalComponentInvocation(node, localReference, options, scope);
   }
 
   const tag = componentReferenceToTag(node.reference, {
@@ -239,7 +246,7 @@ function compileComponent(node: ComponentNode, options: InternalCompileOptions, 
   if (tag.startsWith("wa-")) options.usedWebAwesomeComponents?.add(tag.slice(3));
   const attrs = compileAttributes(node.attributes, node.utilities);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
-  const children = compileNodes(node.children, options, resourceScope);
+  const children = compileNodes(node.children, options, scopeForChildren(node.attributes, scope));
   return `<${tag}${attrs}>${inlineText}${children}</${tag}>`;
 }
 
@@ -258,7 +265,7 @@ function compileLocalComponentInvocation(
   node: ComponentNode,
   reference: string,
   options: InternalCompileOptions,
-  resourceScope?: string
+  scope: CompileScope = {}
 ): string {
   const moduleName = localComponentModuleName(reference);
   const props: string[] = [];
@@ -280,9 +287,9 @@ function compileLocalComponentInvocation(
   for (const child of node.children) {
     const slotTarget = slotTargetForNode(child);
     if (slotTarget) {
-      pushSlot(slotTarget.name, compileNode(slotTarget.node, options, resourceScope));
+      pushSlot(slotTarget.name, compileNode(slotTarget.node, options, scope));
     } else {
-      pushSlot("default", compileNode(child, options, resourceScope));
+      pushSlot("default", compileNode(child, options, scope));
     }
   }
   if (node.inlineText) pushSlot("default", compileInlineText(node.inlineText));
@@ -311,13 +318,68 @@ function localComponentModuleName(reference: string): string {
   return `__wxc_${reference.replace(/[^a-zA-Z0-9_$]+/g, "_")}`;
 }
 
+
+function scopeForChildren(attributes: readonly Attribute[], scope: CompileScope): CompileScope {
+  const semanticTarget = attributes.find(
+    (attribute) => attribute.kind === "semantic-event" && attribute.event !== "track" && attribute.target.startsWith("$$")
+  );
+  if (!semanticTarget || semanticTarget.kind !== "semantic-event") return scope;
+  return { ...scope, action: semanticTarget.target };
+}
+
+const ACTION_STATE_DIRECTIVES = new Set(["pending", "idle", "mutation-error"]);
+
+function compileActionStateDirective(node: DirectiveNode, options: InternalCompileOptions, scope: CompileScope): string {
+  const target = JSON.stringify(scope.action);
+  const status = `context.actionStates?.[${target}]?.status`;
+  const body = compileNodes(node.children, options, scope);
+
+  if (node.name === "pending") {
+    return `\${${status} === "pending" ? html\`${body}\` : nothing}`;
+  }
+  if (node.name === "idle") {
+    return `\${${status} !== "pending" ? html\`${body}\` : nothing}`;
+  }
+  // +mutation-error err
+  const binding = isIdentifierName(node.expression?.trim() ?? "") ? node.expression!.trim() : "err";
+  return `\${${status} === "error" ? ((${binding}: unknown) => { void ${binding}; return html\`${body}\`; })(context.actionStates?.[${target}]?.error) : nothing}`;
+}
+
+/**
+ * +suspense reveal:together gates its content until every resource declared
+ * inside is ready; reveal:progressive renders immediately (each resource
+ * handles its own states). refresh:background is the resource controller's
+ * default behavior (previous values stay visible while re-subscribing).
+ */
+function compileSuspenseDirective(node: DirectiveNode, options: InternalCompileOptions, scope: CompileScope): string {
+  const names = new Set<string>();
+  const collect = (candidate: TemplateNode) => {
+    if (candidate.kind === "convex-call") names.add((candidate as ConvexCallNode).bindingName);
+    for (const child of candidate.children) collect(child);
+  };
+  for (const child of node.children) collect(child);
+
+  const body = compileNodes(node.children, options, scope);
+  const reveal = node.attributes.find((attribute) => attribute.name === "reveal");
+  const together = !(reveal?.kind === "literal" && reveal.value === "progressive");
+  if (!together || names.size === 0) return body;
+
+  const ready = [...names]
+    .map((name) => {
+      const key = JSON.stringify(name);
+      return `((context.resourceStates?.[${key}]?.status ?? (context.resources?.[${key}] === undefined ? "loading" : "ready")) === "ready")`;
+    })
+    .join(" && ");
+  return `\${${ready} ? html\`${body}\` : nothing}`;
+}
+
 const RESOURCE_STATE_DIRECTIVES = new Set(["loading", "empty", "error"]);
 
-function compileDirective(node: DirectiveNode, options: InternalCompileOptions, resourceScope?: string): string {
+function compileDirective(node: DirectiveNode, options: InternalCompileOptions, scope: CompileScope = {}): string {
   if (node.name === "head") return "";
   if (node.name === "if") {
     const expression = node.expression?.trim() || "false";
-    return `\${${expression} ? html\`${compileNodes(node.children, options, resourceScope)}\` : nothing}`;
+    return `\${${expression} ? html\`${compileNodes(node.children, options, scope)}\` : nothing}`;
   }
   if (node.name === "for" && node.for) {
     const { itemName, collectionExpression, keyExpression } = node.for;
@@ -325,16 +387,22 @@ function compileDirective(node: DirectiveNode, options: InternalCompileOptions, 
     return `\${repeat(${collectionExpression} ?? [], (${itemName}, index) => ${key}, (${itemName}, index) => html\`${compileNodes(
       node.children,
       options,
-      resourceScope
+      scope
     )}\`)}`;
   }
   if (node.name === "boundary") {
-    return compileBoundaryDirective(node, options, resourceScope);
+    return compileBoundaryDirective(node, options, scope);
   }
-  if (resourceScope && RESOURCE_STATE_DIRECTIVES.has(node.name)) {
-    return compileResourceStateDirective(node, options, resourceScope);
+  if (scope.action && ACTION_STATE_DIRECTIVES.has(node.name)) {
+    return compileActionStateDirective(node, options, scope);
   }
-  return compileNodes(node.children, options, resourceScope);
+  if (node.name === "suspense") {
+    return compileSuspenseDirective(node, options, scope);
+  }
+  if (scope.resource && RESOURCE_STATE_DIRECTIVES.has(node.name)) {
+    return compileResourceStateDirective(node, options, scope);
+  }
+  return compileNodes(node.children, options, scope);
 }
 
 /**
@@ -343,27 +411,27 @@ function compileDirective(node: DirectiveNode, options: InternalCompileOptions, 
  * evaluated eagerly during template construction, so a try/catch IIFE is the
  * right containment for render-time errors.
  */
-function compileBoundaryDirective(node: DirectiveNode, options: InternalCompileOptions, resourceScope?: string): string {
+function compileBoundaryDirective(node: DirectiveNode, options: InternalCompileOptions, scope: CompileScope = {}): string {
   const errorDirectives = node.children.filter(
     (child): child is DirectiveNode => child.kind === "directive" && child.name === "error"
   );
   const contentNodes = node.children.filter((child) => !errorDirectives.includes(child as DirectiveNode));
-  const body = compileNodes(contentNodes, options, resourceScope);
+  const body = compileNodes(contentNodes, options, scope);
 
   const fallbackDirective = errorDirectives[0];
   const binding = isIdentifierName(fallbackDirective?.expression?.trim() ?? "")
     ? fallbackDirective!.expression!.trim()
     : "err";
-  const fallback = fallbackDirective ? `html\`${compileNodes(fallbackDirective.children, options, resourceScope)}\`` : "nothing";
+  const fallback = fallbackDirective ? `html\`${compileNodes(fallbackDirective.children, options, scope)}\`` : "nothing";
 
   return `\${(() => { try { return html\`${body}\`; } catch (__wxBoundaryError) { return ((${binding}: unknown) => { void ${binding}; return ${fallback}; })(__wxBoundaryError); } })()}`;
 }
 
-function compileResourceStateDirective(node: DirectiveNode, options: InternalCompileOptions, resourceScope: string): string {
-  const name = JSON.stringify(resourceScope);
+function compileResourceStateDirective(node: DirectiveNode, options: InternalCompileOptions, scope: CompileScope): string {
+  const name = JSON.stringify(scope.resource);
   const value = `context.resources?.[${name}]`;
   const status = `(context.resourceStates?.[${name}]?.status ?? (${value} === undefined ? "loading" : "ready"))`;
-  const body = compileNodes(node.children, options, resourceScope);
+  const body = compileNodes(node.children, options, scope);
 
   if (node.name === "loading") {
     return `\${${status} === "loading" ? html\`${body}\` : nothing}`;
@@ -379,7 +447,7 @@ function compileResourceStateDirective(node: DirectiveNode, options: InternalCom
 
 function compileConvexCall(node: ConvexCallNode, options: InternalCompileOptions): string {
   if (node.children.length === 0) return "";
-  return compileNodes(node.children, options, node.bindingName);
+  return compileNodes(node.children, options, { resource: node.bindingName });
 }
 
 function compileAttributes(attributes: readonly Attribute[], utilities: readonly string[]): string {

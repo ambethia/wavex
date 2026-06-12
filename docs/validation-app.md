@@ -1,6 +1,6 @@
 # Swell Conf — Full-Feature Validation App
 
-> Status: planned, not started. Do not begin implementation until the TODO app has exhausted what it can usefully highlight (roadmap slices 1–4, including the Web Awesome adoption pass). This app is the validation target for roadmap slices 5–9.
+> Status: **built** (2026-06-12) as `apps/swell` on its own Convex deployment, incrementally across roadmap slices 5–9. The coverage map below is demonstrated by working, browser-validated screens (see `docs/validation-report.md`), with these deviations from the original plan: the Q&A thread is realtime + vote-ordered but uses no cursor pagination yet; the raw `on:wa-show` demo lives on the RSVP FAQ's `wa-details` rather than a confirmation dialog; local-component shadowing and the `@wa/` escape are compiler-test-covered rather than used in a Swell screen; analytics capture was validated on the TODO app (Swell runs analytics-free unless `VITE_POSTHOG_KEY` is set).
 
 ## Why this app
 

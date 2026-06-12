@@ -1,0 +1,19 @@
+~~~
+
++head
+  title {{ speaker ? `${speaker.name} | Swell Conf` : "Speaker | Swell Conf" }}
+
+$$speakers:get args:{ slug: route.params.slug }
+  +loading
+    @spinner
+
+  +empty
+    @callout variant:warning No speaker found.
+
+  +if speaker
+    article [stack gap-m]
+      header [stack gap-2xs]
+        h1 [heading-2xl] {{ speaker.name }}
+        p [caption-m] {{ speaker.company }}
+      @card
+        p {{ speaker.bio }}

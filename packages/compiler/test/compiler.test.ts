@@ -93,6 +93,38 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`<wa-badge`);
   });
 
+  it("compiles action-state directives inside semantic-event elements", () => {
+    const compiled = compileWavexModule(
+      `~~~\n@button :click:$$ai/summarize:run data-slug:talk.slug\n  +pending\n    @spinner\n    | Summarizing…\n  +idle\n    | Summarize\n  +mutation-error problem\n    span {{ String(problem) }}\n`,
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.code).toContain(`context.actionStates?.["$$ai/summarize:run"]?.status === "pending" ? html`);
+    expect(compiled.code).toContain(`!== "pending" ? html`);
+    expect(compiled.code).toContain(`((problem: unknown) =>`);
+    expect(compiled.code).toContain(`?.error) : nothing}`);
+  });
+
+  it("honors as: renames for resource bindings", () => {
+    const compiled = compileWavexModule(`~~~\n$$talks:list as:upNext args:{ when: "next" }\n  +for talk in upNext\n    p {{ talk.title }}\n`, {
+      id: "src/pages/live.wx"
+    });
+
+    expect(compiled.code).toContain(`name: "upNext"`);
+    expect(compiled.code).toContain(`const upNext = context.resources?.["upNext"]`);
+  });
+
+  it("compiles +suspense reveal:together as an all-resources-ready gate", () => {
+    const compiled = compileWavexModule(
+      `~~~\n+suspense reveal:together\n  $$speakers:get args:{ slug: route.params.slug }\n  $$talks:list\n  p {{ speaker.name }} / {{ (talks ?? []).length }}\n`,
+      { id: "src/pages/x.wx" }
+    );
+
+    expect(compiled.code).toContain(`context.resourceStates?.["speaker"]`);
+    expect(compiled.code).toContain(`context.resourceStates?.["talks"]`);
+    expect(compiled.code).toContain(`=== "ready") && (`);
+  });
+
   it("compiles +boundary to a try/catch around eager template evaluation", () => {
     const compiled = compileWavexModule(
       `~~~\n+boundary\n  +error problem\n    p\n      | Failed: {{ String(problem) }}\n  section\n    p {{ data.mustExist }}\n`,

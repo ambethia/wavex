@@ -8,6 +8,10 @@
  * @module
  */
 
+import type * as ai_summarize from "../ai/summarize.js";
+import type * as questions from "../questions.js";
+import type * as rsvps from "../rsvps.js";
+import type * as speakers from "../speakers.js";
 import type * as talks from "../talks.js";
 
 import type {
@@ -17,6 +21,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "ai/summarize": typeof ai_summarize;
+  questions: typeof questions;
+  rsvps: typeof rsvps;
+  speakers: typeof speakers;
   talks: typeof talks;
 }>;
 

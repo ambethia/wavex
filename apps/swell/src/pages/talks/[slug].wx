@@ -4,27 +4,79 @@
   title {{ talk ? `${talk.title} | Swell Conf` : "Talk | Swell Conf" }}
   meta name:description content:{{ talk?.summary ?? "Swell Conf talk" }}
 
-$$talks:get args:{ slug: route.params.slug }
-  +loading
-    div [cluster gap-s align-items-center]
-      @spinner
-      span [caption-m] Loading talk…
++suspense reveal:together
+  $$talks:get args:{ slug: route.params.slug }
+    +empty
+      @callout variant:warning
+        | No talk found for "{{ route.params.slug }}".
 
-  +empty
-    @callout variant:warning
-      | No talk found for "{{ route.params.slug }}".
-
-  +error err
-    @callout variant:danger
-      = String(err)
+    +error err
+      @callout variant:danger
+        = String(err)
 
   +if talk
-    article [stack gap-m]
+    article [stack gap-l]
       header [stack gap-2xs]
         div [cluster gap-s align-items-center]
           span [caption-m] {{ talk.startsAt }}
           @tag size:s {{ talk.track }}
         h1 [heading-2xl] {{ talk.title }}
         p [caption-m] {{ talk.speaker }}
+
       @card
-        p {{ talk.summary }}
+        div [stack gap-m]
+          p {{ talk.summary }}
+          +boundary
+            +error problem
+              @callout variant:danger
+                | Summary unavailable: {{ String(problem) }}
+            div [stack gap-s]
+              div [cluster gap-s align-items-center]
+                @button size:s appearance:outlined :click:$$ai/summarize:run data-slug:{{ talk.slug }}
+                  +pending
+                    @spinner
+                    | Summarizing…
+                  +idle
+                    | AI summary
+              +if actionStates["$$ai/summarize:run"]?.result
+                p [caption-m] class:ai-summary {{ actionStates["$$ai/summarize:run"].result }}
+              +if actionStates["$$ai/summarize:run"]?.status === "error"
+                @callout variant:danger
+                  = String(actionStates["$$ai/summarize:run"].error)
+
+      section [stack gap-m] class:qa-section
+        h2 [heading-l] Live Q&A
+        form :submit:$$questions:create :track:question_asked [stack gap-s]
+          input type:hidden name:talkSlug value:{{ route.params.slug }}
+          @input name:author label:"Your name" placeholder:"Anonymous" autocomplete:off
+          @input name:text label:"Your question" required autocomplete:off
+          div [cluster gap-s]
+            @button type:submit variant:brand
+              +pending
+                @spinner
+                | Asking…
+              +idle
+                | Ask
+          +mutation-error problem
+            @callout variant:danger
+              = String(problem)
+
+        $$questions:listByTalk args:{ talkSlug: route.params.slug }
+          +loading
+            @spinner
+
+          +empty
+            div [stack gap-xs align-items-center] class:empty-state
+              @icon name:comments class:empty-state-icon
+              p [heading-s] No questions yet
+              p [caption-m] Be the first to ask.
+
+          div [stack gap-s] class:question-list
+            +for question in questions key:question._id
+              div [cluster gap-s align-items-center justify-content-space-between] class:question-item
+                div [stack gap-2xs]
+                  p class:question-text {{ question.text }}
+                  p [caption-s] {{ question.author }}
+                @button size:s appearance:plain data-id:{{ question._id }} :click:$$questions:upvote :track:question_upvoted
+                  @icon name:arrow-up
+                  |  {{ question.votes }}

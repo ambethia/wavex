@@ -1,0 +1,23 @@
+~~~
+
++head
+  title Speakers | Swell Conf
+
+header [stack gap-2xs]
+  h1 [heading-2xl] Speakers
+  p [caption-m] Four humans who think about realtime all day.
+
+$$speakers:list
+  +loading
+    @spinner
+
+  +empty
+    p [caption-m] Speakers are being confirmed.
+
+  div [grid gap-m] class:speaker-grid
+    +for speaker in speakers key:speaker.slug
+      @card
+        div [stack gap-2xs]
+          a href:{{ "/speakers/" + speaker.slug }} class:talk-link
+            strong {{ speaker.name }}
+          p [caption-m] {{ speaker.company }}
