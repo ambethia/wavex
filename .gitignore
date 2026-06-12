@@ -4,3 +4,5 @@ coverage/
 .DS_Store
 *.log
 editors/*/grammars/
+/.agents/skills/using-fontawesome
+/.agents/skills/using-webawesome
