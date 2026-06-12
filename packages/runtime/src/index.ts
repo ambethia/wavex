@@ -27,7 +27,8 @@ export interface ActionState<T = unknown> {
 
 export interface RenderContext {
   route?: RouteContext;
-  props?: Record<string, unknown>;
+  /** Component attributes (and the route error for +error.wx pages). */
+  attrs?: Record<string, unknown>;
   state?: Record<string, unknown>;
   resources?: Record<string, unknown>;
   resourceStates?: Record<string, ResourceState>;
@@ -176,7 +177,7 @@ export function createRouteContext(input: string | URL = globalThis.location?.hr
 export function createRenderContext(context: RenderContext = {}): RenderContext {
   return {
     route: context.route ?? createRouteContext(),
-    props: context.props ?? {},
+    attrs: context.attrs ?? {},
     state: context.state ?? {},
     resources: context.resources ?? {},
     resourceStates: context.resourceStates ?? {},

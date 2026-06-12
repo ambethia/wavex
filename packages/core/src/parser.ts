@@ -442,7 +442,7 @@ function unwrapQuotedString(value: string): string | undefined {
 function looksLikeExpression(value: string): boolean {
   if (value.startsWith("{") || value.startsWith("[")) return true;
   if (/^(true|false|null|undefined)\b/.test(value)) return true;
-  if (/^(route|props|state|api|ctx|context)\b/.test(value)) return true;
+  if (/^(route|attrs|state|api|ctx|context)\b/.test(value)) return true;
   // URL-path values like href:/tasks or src:/assets/logo.svg are literals.
   if (/^\/[\w\-./:?=&%#~]*$/.test(value)) return false;
   return /[.()[\]{}]|=>|[+*/%]|===?|!==?|&&|\|\|/.test(value);

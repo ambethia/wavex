@@ -269,3 +269,42 @@ export function formatDiagnostic(diagnostic: Diagnostic): string {
 function toSet(values: ReadonlySet<string> | readonly string[] | undefined): ReadonlySet<string> {
   return values instanceof Set ? values : new Set(values ?? []);
 }
+
+/**
+ * Top-level keys of a component's `type Attrs = { ... }` (or `interface Attrs`)
+ * prelude declaration. Components declaring Attrs get each attribute as a bare,
+ * typed local in their template. Returns undefined when no Attrs is declared.
+ */
+export function extractAttrsTypeKeys(prelude: string): string[] | undefined {
+  const head = /(?:type\s+Attrs\s*=\s*|interface\s+Attrs\s*(?:extends\s+[^{]+)?)\{/.exec(prelude);
+  if (!head) return undefined;
+
+  let depth = 1;
+  let body = "";
+  for (let index = head.index + head[0].length; index < prelude.length && depth > 0; index += 1) {
+    const char = prelude[index]!;
+    if (char === "{") depth += 1;
+    else if (char === "}") depth -= 1;
+    if (depth > 0) body += char;
+  }
+
+  const keys: string[] = [];
+  let nested = 0;
+  let segment = "";
+  const flush = () => {
+    const match = /^\s*(?:readonly\s+)?([A-Za-z_$][\w$]*)\??\s*:/.exec(segment);
+    if (match) keys.push(match[1]!);
+    segment = "";
+  };
+  for (const char of body) {
+    if (char === "{" || char === "(" || char === "[" || char === "<") nested += 1;
+    else if (char === "}" || char === ")" || char === "]" || char === ">") nested = Math.max(0, nested - 1);
+    if (nested === 0 && (char === ";" || char === "\n" || char === ",")) {
+      flush();
+      continue;
+    }
+    segment += char;
+  }
+  flush();
+  return keys;
+}

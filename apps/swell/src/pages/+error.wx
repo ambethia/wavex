@@ -6,6 +6,6 @@
 main [stack gap-m align-items-center] class:error-page
   @icon name:triangle-exclamation class:error-icon
   h1 [heading-xl] Something went wrong
-  p [caption-m] {{ String(props.error ?? "Unknown error") }}
+  p [caption-m] {{ String(attrs.error ?? "Unknown error") }}
   @button variant:brand
     a href:/ Back to the start

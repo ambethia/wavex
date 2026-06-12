@@ -1,4 +1,4 @@
-import { componentReferenceToTag, expandUtilityClassList, toKebabCase } from "@wavex/core";
+import { componentReferenceToTag, expandUtilityClassList, extractAttrsTypeKeys, toKebabCase } from "@wavex/core";
 import { parseWavex } from "@wavex/core";
 import type {
   Attribute,
@@ -51,6 +51,12 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   const resourceDeclarations = resourceNames
     .map((name) => `  const ${name} = context.resources?.[${JSON.stringify(name)}];`)
     .join("\n");
+  // Components declaring `type Attrs = { ... }` get each attribute as a bare local.
+  const attrsKeys = (extractAttrsTypeKeys(ast.prelude) ?? []).filter(isIdentifierName);
+  const attrsDeclarations =
+    attrsKeys.length > 0
+      ? `  const { ${attrsKeys.join(", ")} } = attrs as Attrs;\n  void ${attrsKeys.join("; void ")};`
+      : "";
   const resourceDefinitions = compileResourceDefinitions(ast.resources, resourceNames);
   const renderBody = compileNodes(renderNodes, compileOptions);
   const headEntriesBody = compileHeadEntries(headNodes.flatMap((node) => node.children));
@@ -69,21 +75,23 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     "",
     `export function headEntries(context: RenderContext = {}): HeadEntry[] {`,
     `  const route = context.route ?? { path: "/", params: {}, query: {} };`,
-    `  const props = context.props ?? {};`,
+    `  const attrs = context.attrs ?? {};`,
     `  const state = context.state ?? {};`,
     `  const actionStates = context.actionStates ?? {};`,
     resourceDeclarations,
-    `  void route; void props; void state; void actionStates;`,
+    attrsDeclarations,
+    `  void route; void attrs; void state; void actionStates;`,
     `  return [${headEntriesBody}];`,
     `}`,
     "",
     `export function render(context: RenderContext = {}) {`,
     `  const route = context.route ?? { path: "/", params: {}, query: {} };`,
-    `  const props = context.props ?? {};`,
+    `  const attrs = context.attrs ?? {};`,
     `  const state = context.state ?? {};`,
     `  const actionStates = context.actionStates ?? {};`,
     resourceDeclarations,
-    `  void route; void props; void state; void actionStates;`,
+    attrsDeclarations,
+    `  void route; void attrs; void state; void actionStates;`,
     `  return html\`${renderBody}\`;`,
     `}`,
     "",
@@ -149,11 +157,11 @@ function compileResourceArgsGetter(attributes: readonly Attribute[], resourceNam
   return [
     `    getArgs(context: RenderContext) {`,
     `      const route = context.route ?? { path: "/", params: {}, query: {} };`,
-    `      const props = context.props ?? {};`,
+    `      const attrs = context.attrs ?? {};`,
     `      const state = context.state ?? {};`,
     `      const contextResources = context.resources ?? {};`,
     declarations,
-    `      void route; void props; void state; void contextResources;`,
+    `      void route; void attrs; void state; void contextResources;`,
     `      return ${expression};`,
     `    },`
   ]
@@ -286,14 +294,14 @@ function compileLocalComponentInvocation(
   scope: CompileScope = {}
 ): string {
   const moduleName = localComponentModuleName(reference);
-  const props: string[] = [];
+  const attrArgs: string[] = [];
   for (const attribute of node.attributes) {
     if (attribute.kind === "semantic-event" || attribute.kind === "raw-event") continue;
     const key = JSON.stringify(attribute.name);
-    if (attribute.kind === "boolean") props.push(`${key}: true`);
-    else if (attribute.kind === "literal") props.push(`${key}: ${JSON.stringify(attribute.value)}`);
-    else if (attribute.kind === "expression") props.push(`${key}: ${attribute.expression}`);
-    else if (attribute.kind === "same-name") props.push(`${key}: ${attribute.name}`);
+    if (attribute.kind === "boolean") attrArgs.push(`${key}: true`);
+    else if (attribute.kind === "literal") attrArgs.push(`${key}: ${JSON.stringify(attribute.value)}`);
+    else if (attribute.kind === "expression") attrArgs.push(`${key}: ${attribute.expression}`);
+    else if (attribute.kind === "same-name") attrArgs.push(`${key}: ${attribute.name}`);
   }
 
   const slotEntries = new Map<string, string[]>();
@@ -316,7 +324,7 @@ function compileLocalComponentInvocation(
     .map(([name, parts]) => `${JSON.stringify(name)}: html\`${parts.join("")}\``)
     .join(", ");
 
-  return `\${(${moduleName}.default ?? ${moduleName}.render)({ ...context, props: { ${props.join(", ")} }, slots: { ${slots} } })}`;
+  return `\${(${moduleName}.default ?? ${moduleName}.render)({ ...context, attrs: { ${attrArgs.join(", ")} }, slots: { ${slots} } })}`;
 }
 
 /** Children with a literal slot:name attribute fill named slots; the attribute is consumed. */

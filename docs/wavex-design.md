@@ -524,7 +524,7 @@ is equivalent to:
 @tasks/item task:{{ task }}
 ```
 
-This is primarily for local/template component props and directive/resource bindings. For native/Web Awesome attributes, use explicit literal values such as `variant:brand` or explicit expression values such as `checked:{{ task.isCompleted }}`.
+This is primarily for local/template component attrs and directive/resource bindings. For native/Web Awesome attributes, use explicit literal values such as `variant:brand` or explicit expression values such as `checked:{{ task.isCompleted }}`.
 
 Do not use `::task` or `task::` for same-name prop shorthand. The missing value in `task:` is intentionally visible and reads as “infer the value for this prop.” Reserve `name::expr` for a possible future expression shorthand, e.g. `disabled::pending` as sugar for `disabled:{{ pending }}`, but it is not MVP syntax.
 

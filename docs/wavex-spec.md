@@ -323,6 +323,24 @@ Explicit Web Awesome lookup uses `@wa/`.
 
 Local components intentionally shadow Web Awesome components.
 
+### Component inputs
+
+Components receive the attributes written at their invocation site — the same colon-attribute syntax used everywhere else; there is no separate props concept. A component that declares `type Attrs = { ... }` in its prelude gets each declared attribute as a bare, typed local in its template:
+
+```wx
+import type { Doc } from "../../convex/_generated/dataModel"
+
+type Attrs = { talk: Doc<"talks"> }
+
+~~~
+
+@card
+  strong {{ talk.title }}
+  p {{ talk.speaker }}
+```
+
+Without an `Attrs` declaration, attributes are available on an untyped `attrs` record (`attrs.talk`).
+
 ### Slots
 
 Use native `slot`, not a WAVEx-specific slot directive.

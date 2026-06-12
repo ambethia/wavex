@@ -4,7 +4,7 @@ import type { CodeMapping, LanguagePlugin, VirtualCode } from "@volar/language-c
 import { forEachEmbeddedCode } from "@volar/language-core";
 // Side-effect import: augments LanguagePlugin with the `typescript` integration hook.
 import "@volar/typescript";
-import { parseWavex, type TemplateNode, type WavexFile } from "@wavex/core";
+import { extractAttrsTypeKeys, parseWavex, type TemplateNode, type WavexFile } from "@wavex/core";
 import type * as ts from "typescript";
 import type { URI } from "vscode-uri";
 
@@ -113,11 +113,16 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
 
   // 2. Ambient template context (unmapped scaffolding).
   append("\ndeclare const route: { path: string; params: Record<string, string>; query: Record<string, string> };\n");
-  // Components declaring a Props type in their prelude get typed props.
-  if (/\b(?:type|interface)\s+Props\b/.test(ast.prelude)) {
-    append("declare const props: Props;\n");
+  // Components declaring `type Attrs = { ... }` get typed attrs plus each
+  // attribute as a bare, typed local — mirroring page-level resource bindings.
+  const attrsKeys = extractAttrsTypeKeys(ast.prelude);
+  if (attrsKeys) {
+    append("declare const attrs: Attrs;\n");
+    for (const key of attrsKeys) {
+      if (/^[A-Za-z_$][\w$]*$/.test(key)) append(`declare const ${key}: Attrs[${JSON.stringify(key)}];\n`);
+    }
   } else {
-    append("declare const props: Record<string, any>;\n");
+    append("declare const attrs: Record<string, any>;\n");
   }
   append("declare const state: Record<string, any>;\n");
   append("declare const actionStates: Record<string, any>;\n");

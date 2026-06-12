@@ -162,7 +162,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     if (!errorRender) throw error;
     current = { route, file: errorDef.file, page: errorModule, layouts: [] };
     options.host.setPage({
-      render: (context = {}) => errorRender({ ...context, props: { ...context.props, error } }),
+      render: (context = {}) => errorRender({ ...context, attrs: { ...context.attrs, error } }),
       resources: [],
       route,
       head: (context) => errorModule.headEntries?.(context) ?? []

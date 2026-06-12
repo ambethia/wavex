@@ -48,7 +48,7 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain('{ tag: "link", attributes: { "rel": "canonical", "href": "https://swell.example/talks" } }');
   });
 
-  it("compiles local components as render-function composition with props and slots", () => {
+  it("compiles local components as render-function composition with attrs and slots", () => {
     const compiled = compileWavexModule(
       `~~~\n@page-shell layout:"wide"\n  h1 slot:title Tasks\n  @tasks/item task: required\n  p Body content\n`,
       { id: "src/pages/index.wx", localComponents: ["page-shell", "tasks/item"] }
@@ -64,7 +64,7 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`"title": html\`<h1>Tasks</h1>\``);
     // remaining children fill the default slot
     expect(compiled.code).toContain(`"default": html\``);
-    expect(compiled.code).toContain(`(__wxc_page_shell.default ?? __wxc_page_shell.render)({ ...context, props:`);
+    expect(compiled.code).toContain(`(__wxc_page_shell.default ?? __wxc_page_shell.render)({ ...context, attrs:`);
   });
 
   it("compiles bare slot elements to semantic projection with fallback", () => {
