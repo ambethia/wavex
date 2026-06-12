@@ -17,9 +17,14 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false"
   },
+  "dependencies": {
+    "@wavex/core": "workspace:*"
+  },
   "peerDependencies": {
     "lit": ">=3.0.0"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "license": "MIT"
 }

@@ -1,0 +1,44 @@
+@import "@web.awesome.me/webawesome-pro/dist/styles/webawesome.css";
+@import "@web.awesome.me/webawesome-pro/dist/styles/native.css";
+
+.site-header {
+  padding-block: var(--wa-space-s);
+}
+
+.site-header .wordmark {
+  text-decoration: none;
+  color: inherit;
+}
+
+.site-nav a {
+  text-decoration: none;
+  color: var(--wa-color-text-quiet);
+}
+
+.page-main {
+  width: min(100%, 72ch);
+  margin-inline: auto;
+  padding: var(--wa-space-xl) var(--wa-space-l) var(--wa-space-3xl);
+}
+
+.hero {
+  padding-block: var(--wa-space-xl);
+}
+
+.feature-grid {
+  --wa-grid-min-size: 16ch;
+}
+
+.talk-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.talk-link:hover strong {
+  color: var(--wa-color-brand-on-quiet);
+}
+
+.back-link {
+  text-decoration: none;
+  color: var(--wa-color-text-quiet);
+}

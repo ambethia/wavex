@@ -10,7 +10,8 @@ import {
   type RenderFunction,
   type ResourceClient,
   type ResourceController,
-  type ResourceDefinition
+  type ResourceDefinition,
+  type RouteContext
 } from "./index.js";
 
 export interface LitMountOptions {
@@ -31,6 +32,8 @@ export interface LitMount<Result = unknown> {
   update(nextContext?: RenderContext): void;
   setRender(nextRender: RenderFunction<Result>): void;
   setResources(nextResources: readonly ResourceDefinition[]): void;
+  /** Atomically swap render, resources, and route in a single update (used by the client router). */
+  setPage(page: { render: RenderFunction<Result>; resources: readonly ResourceDefinition[]; route: RouteContext }): void;
   dispose(): void;
   root: HTMLElement;
   result?: Result;
@@ -92,6 +95,12 @@ export function mountLit<Result = unknown>(
     update();
   };
 
+  const setPage = (page: { render: RenderFunction<Result>; resources: readonly ResourceDefinition[]; route: RouteContext }) => {
+    renderCurrent = page.render;
+    resourceDefinitions = [...page.resources];
+    update({ route: page.route });
+  };
+
   update(context);
 
   return {
@@ -103,6 +112,7 @@ export function mountLit<Result = unknown>(
     update,
     setRender,
     setResources,
+    setPage,
     dispose() {
       resourceController?.dispose();
       resourceController = undefined;

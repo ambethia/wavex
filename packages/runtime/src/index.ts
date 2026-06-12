@@ -579,3 +579,12 @@ function headSelector(entry: HeadEntry): string | undefined {
 function cssEscape(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"");
 }
+
+export {
+  createClientRouter,
+  type ClientRoute,
+  type ClientRouter,
+  type ClientRouterOptions,
+  type RoutePageModule,
+  type RouterPageHost
+} from "./router.js";

@@ -126,6 +126,77 @@ export function createRouteDefinition(file: string, pagesDir = "src/pages"): Rou
   };
 }
 
+export interface RouteMatch {
+  route: RouteDefinition;
+  params: Record<string, string>;
+}
+
+/**
+ * Match a pathname against route definitions using the same segment
+ * semantics as createRouteDefinition. Static segments win over params,
+ * params win over splats; among equals the more specific (longer static
+ * prefix) route wins.
+ */
+export function matchRoutePath(routes: readonly RouteDefinition[], pathname: string): RouteMatch | undefined {
+  const parts = pathname.split("?")[0]!.split("/").filter(Boolean).map(decodeURIComponentSafe);
+  let best: { match: RouteMatch; score: number } | undefined;
+
+  for (const route of routes) {
+    const result = matchSegments(route.segments, parts);
+    if (!result) continue;
+    if (!best || result.score > best.score) {
+      best = { match: { route, params: result.params }, score: result.score };
+    }
+  }
+
+  return best?.match;
+}
+
+function matchSegments(
+  segments: readonly RouteSegment[],
+  parts: readonly string[]
+): { params: Record<string, string>; score: number } | undefined {
+  const params: Record<string, string> = {};
+  let score = 0;
+  let index = 0;
+
+  for (const segment of segments) {
+    if (segment.kind === "splat") {
+      params[segment.name] = parts.slice(index).join("/");
+      // A splat consumes everything that remains (including nothing).
+      return { params, score: score + 1 };
+    }
+    const part = parts[index];
+    if (part === undefined) return undefined;
+    if (segment.kind === "static") {
+      if (part !== segment.value) return undefined;
+      score += 3;
+    } else {
+      params[segment.name] = part;
+      score += 2;
+    }
+    index += 1;
+  }
+
+  return index === parts.length ? { params, score } : undefined;
+}
+
+export function parseQueryString(search: string): Record<string, string> {
+  const query: Record<string, string> = {};
+  for (const [key, value] of new URLSearchParams(search.startsWith("?") ? search.slice(1) : search)) {
+    if (!(key in query)) query[key] = value;
+  }
+  return query;
+}
+
+function decodeURIComponentSafe(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export function inferResourceBindingName(modulePath: string, functionName: string): string {
   if (SINGLETON_FUNCTIONS.has(functionName)) return singularize(lastPathSegment(modulePath));
   if (COLLECTION_FUNCTIONS.has(functionName)) return pluralize(lastPathSegment(modulePath));

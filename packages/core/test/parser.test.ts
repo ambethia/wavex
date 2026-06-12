@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAttributeToken, parseWavex } from "../src/index.js";
+import { createRouteDefinition, matchRoutePath, parseAttributeToken, parseQueryString, parseWavex } from "../src/index.js";
 
 describe("parseWavex", () => {
   it("splits the TypeScript prelude and parses core MVP syntax", () => {
@@ -49,6 +49,13 @@ describe("parseWavex", () => {
       event: "wa-show",
       handler: "opened"
     });
+    // URL paths are literals, not expressions (a href:/tasks Tasks)
+    expect(parseAttributeToken("href:/tasks")).toMatchObject({ kind: "literal", value: "/tasks" });
+    expect(parseAttributeToken("href:/schedule?track=systems")).toMatchObject({
+      kind: "literal",
+      value: "/schedule?track=systems"
+    });
+    expect(parseAttributeToken("href:route.url")).toMatchObject({ kind: "expression", expression: "route.url" });
   });
 
   it("rejects colon-form utility tokens with WX005", () => {
@@ -65,5 +72,42 @@ describe("parseWavex", () => {
 
     expect(parsed.diagnostics).toEqual([]);
     expect(parsed.nodes[0]).toMatchObject({ utilities: ["stack", "gap-xl", "align-items-center"] });
+  });
+});
+
+describe("matchRoutePath", () => {
+  const routes = [
+    "src/pages/index.wx",
+    "src/pages/about.wx",
+    "src/pages/talks/index.wx",
+    "src/pages/talks/[id].wx",
+    "src/pages/talks/new.wx",
+    "src/pages/info/[...slug].wx"
+  ].map((file) => createRouteDefinition(file)!);
+
+  it("matches static, dynamic, and catch-all routes with createRouteDefinition semantics", () => {
+    expect(matchRoutePath(routes, "/")).toMatchObject({ route: { path: "/" }, params: {} });
+    expect(matchRoutePath(routes, "/about")).toMatchObject({ route: { path: "/about" } });
+    expect(matchRoutePath(routes, "/talks")).toMatchObject({ route: { path: "/talks" } });
+    expect(matchRoutePath(routes, "/talks/intro-to-wavex")).toMatchObject({
+      route: { path: "/talks/:id" },
+      params: { id: "intro-to-wavex" }
+    });
+    expect(matchRoutePath(routes, "/info/venue/parking")).toMatchObject({
+      route: { path: "/info/*slug" },
+      params: { slug: "venue/parking" }
+    });
+    expect(matchRoutePath(routes, "/info")).toMatchObject({ route: { path: "/info/*slug" }, params: { slug: "" } });
+  });
+
+  it("prefers static segments over params and decodes param values", () => {
+    expect(matchRoutePath(routes, "/talks/new")).toMatchObject({ route: { path: "/talks/new" } });
+    expect(matchRoutePath(routes, "/talks/caf%C3%A9")).toMatchObject({ params: { id: "café" } });
+    expect(matchRoutePath(routes, "/nowhere/at/all")).toBeUndefined();
+  });
+
+  it("parses query strings into route context shape", () => {
+    expect(parseQueryString("?track=systems&track=web&q=lit")).toEqual({ track: "systems", q: "lit" });
+    expect(parseQueryString("")).toEqual({});
   });
 });

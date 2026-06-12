@@ -1,0 +1,42 @@
+import "@web.awesome.me/webawesome-pro/dist/components/page/page.js"
+import "@web.awesome.me/webawesome-pro/dist/components/button/button.js"
+import "@web.awesome.me/webawesome-pro/dist/components/card/card.js"
+import "@web.awesome.me/webawesome-pro/dist/components/icon/icon.js"
+
+~~~
+
++head
+  title Swell Conf
+  meta name:description content:"A one-day conference about realtime web apps."
+
+@page
+  header slot:header [cluster gap-s align-items-center] class:site-header
+    @icon name:water
+    span [heading-s] Swell Conf
+    nav [cluster gap-m] class:site-nav
+      a href:/schedule Schedule
+      a href:/info/venue Venue
+
+  main [stack gap-xl] class:page-main
+    section [stack gap-s] class:hero
+      p [caption-m] June 26, 2026 · Santa Barbara, CA
+      h1 [heading-3xl] Swell Conf
+      p A one-day conference about *realtime web apps* — schedules, live Q&A, and the tools that make the web feel alive.
+      div [cluster gap-s]
+        @button variant:brand
+          a href:/schedule Browse the schedule
+        @button appearance:outlined
+          a href:/info/venue Plan your visit
+
+    section [stack gap-m]
+      h2 [heading-l] Why Swell?
+      div [grid gap-m] class:feature-grid
+        @card
+          strong Realtime first
+          p Every session explores apps that update live, no refresh button required.
+        @card
+          strong One day, two tracks
+          p Systems and frameworks tracks with no overlap angst — everything repeats.
+        @card
+          strong By the water
+          p A short walk from the beach. Bring a board for the lunch break.

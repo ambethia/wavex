@@ -31,6 +31,46 @@ importers:
         specifier: npm:@voidzero-dev/vite-plus-test@latest
         version: '@voidzero-dev/vite-plus-test@0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.1)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.1)(esbuild@0.27.0)(typescript@6.0.3))(esbuild@0.27.0)(typescript@6.0.3)'
 
+  apps/swell:
+    dependencies:
+      '@awesome.me/kit-bb4fac79fe':
+        specifier: ^1.0.132
+        version: 1.0.132
+      '@web.awesome.me/webawesome-pro':
+        specifier: ^3.7.0
+        version: 3.8.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)
+      convex:
+        specifier: ^1.40.0
+        version: 1.41.0
+    devDependencies:
+      '@wavex/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
+      '@wavex/vite-plugin':
+        specifier: workspace:*
+        version: link:../../packages/vite-plugin
+      convex-test:
+        specifier: ^0.0.53
+        version: 0.0.53(convex@1.41.0)
+      lit:
+        specifier: latest
+        version: 3.3.3
+      typescript:
+        specifier: ~6.0.2
+        version: 6.0.3
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@latest
+        version: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.1)(esbuild@0.27.0)(typescript@6.0.3)'
+      vite-plus:
+        specifier: latest
+        version: 0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.1)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.1)(esbuild@0.27.0)(typescript@6.0.3))(esbuild@0.27.0)(typescript@6.0.3)
+      vitest:
+        specifier: npm:@voidzero-dev/vite-plus-test@latest
+        version: '@voidzero-dev/vite-plus-test@0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.1)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.1)(esbuild@0.27.0)(typescript@6.0.3))(esbuild@0.27.0)(typescript@6.0.3)'
+      wavex:
+        specifier: workspace:*
+        version: link:../../packages/wavex
+
   apps/todo:
     dependencies:
       '@awesome.me/kit-bb4fac79fe':
@@ -93,6 +133,9 @@ importers:
 
   packages/runtime:
     dependencies:
+      '@wavex/core':
+        specifier: workspace:*
+        version: link:../core
       lit:
         specifier: '>=3.0.0'
         version: 3.3.3

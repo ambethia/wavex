@@ -1,0 +1,31 @@
+{
+  "name": "swell",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "tsc && vp build",
+    "preview": "vp preview",
+    "check": "vp check",
+    "test": "vp test run",
+    "wavex:check": "wavex check src",
+    "wavex:routes": "wavex routes ."
+  },
+  "dependencies": {
+    "@awesome.me/kit-bb4fac79fe": "^1.0.132",
+    "@web.awesome.me/webawesome-pro": "^3.7.0",
+    "convex": "^1.40.0"
+  },
+  "devDependencies": {
+    "@wavex/runtime": "workspace:*",
+    "@wavex/vite-plugin": "workspace:*",
+    "convex-test": "^0.0.53",
+    "lit": "latest",
+    "typescript": "~6.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vite-plus": "latest",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.24",
+    "wavex": "workspace:*"
+  }
+}

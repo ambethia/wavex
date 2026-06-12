@@ -132,7 +132,7 @@ Done criteria:
 
 ### 5. Multi-route runtime
 
-Goal: turn discovered routes into client navigation, not just metadata.
+Status: **complete** (2026-06-12). `virtual:wavex/routes` now carries lazy `load()` importers, `@wavex/core` gained `matchRoutePath`/`parseQueryString` (static > param > splat specificity, same segment semantics as `createRouteDefinition`), and `@wavex/runtime` gained `createClientRouter` (History API pushState/popstate, progressive `a href` interception that leaves unmatched and external links native, atomic `setPage` swaps on the Lit mount, last-navigation-wins racing). Page modules self-accept HMR and the router hot-swaps the active route. Evaluated `@lit-labs/router` per the design doc: it is a reactive-controller/outlet model for Lit components, which does not fit WAVEx's page-module + resource-controller mount, so the thin (~120-line) router stands on `matchRoutePath` instead. Fixes surfaced by validation: `href:/path` values now parse as literals instead of JS expressions (regex-literal compile error), and Web Awesome packages are excluded from dep optimization so lazily-loaded routes don't trigger mid-session re-optimization reloads/double custom-element registration. Browser-validated on the new `apps/swell` scaffold (4 talks seeded on its own Convex deployment): direct loads and client-side navigation for `/`, `/schedule` (with `?track=` query filtering), `/talks/:slug` (`$$talks:get` from `route.params`), `/info/*slug` catch-all, back-button popstate, deep links, `+empty` for unknown slugs — all without reloads and with zero console errors; `wavex routes` output matches runtime matching.
 
 Tasks:
 
