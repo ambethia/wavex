@@ -42,7 +42,7 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     .join("\n");
   const resourceDefinitions = compileResourceDefinitions(ast.resources, resourceNames);
   const renderBody = compileNodes(renderNodes, compileOptions);
-  const headBody = compileNodes(headNodes.flatMap((node) => node.children), compileOptions);
+  const headEntriesBody = compileHeadEntries(headNodes.flatMap((node) => node.children));
   const componentImports = [...usedLocalComponents]
     .sort()
     .map((reference) => `import * as ${localComponentModuleName(reference)} from ${JSON.stringify(`/src/components/${reference}.wx`)};`);
@@ -50,20 +50,20 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   const code = [
     `import { html, nothing } from "lit";`,
     `import { repeat } from "lit/directives/repeat.js";`,
-    `import type { RenderContext, ResourceDefinition } from "@wavex/runtime";`,
+    `import type { HeadEntry, RenderContext, ResourceDefinition } from "@wavex/runtime";`,
     ...componentImports,
     "",
     prelude + `export const wxFile = ${JSON.stringify({ id: options.id ?? "<inline>", localComponents })} as const;`,
     resourceDefinitions,
     "",
-    `export function head(context: RenderContext = {}) {`,
+    `export function headEntries(context: RenderContext = {}): HeadEntry[] {`,
     `  const route = context.route ?? { path: "/", params: {}, query: {} };`,
     `  const props = context.props ?? {};`,
     `  const state = context.state ?? {};`,
     `  const actionStates = context.actionStates ?? {};`,
     resourceDeclarations,
     `  void route; void props; void state; void actionStates;`,
-    `  return html\`${headBody}\`;`,
+    `  return [${headEntriesBody}];`,
     `}`,
     "",
     `export function render(context: RenderContext = {}) {`,
@@ -130,6 +130,45 @@ function compileResourceArgsGetter(attribute: Attribute | undefined, resourceNam
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/** Compile +head children (title/meta/link elements) into HeadEntry object literals. */
+function compileHeadEntries(nodes: readonly TemplateNode[]): string {
+  const entries: string[] = [];
+  for (const node of nodes) {
+    if (node.kind !== "element") continue;
+    if (node.tag === "title") {
+      entries.push(`{ tag: "title", text: ${compileTextToStringLiteral(node.inlineText ?? "")} }`);
+      continue;
+    }
+    if (node.tag !== "meta" && node.tag !== "link") continue;
+    const attributes = node.attributes
+      .flatMap((attribute) => {
+        const key = JSON.stringify(attribute.name);
+        if (attribute.kind === "literal") return [`${key}: ${JSON.stringify(attribute.value)}`];
+        if (attribute.kind === "expression") return [`${key}: String(${attribute.expression})`];
+        if (attribute.kind === "same-name") return [`${key}: String(${attribute.name})`];
+        if (attribute.kind === "boolean") return [`${key}: ""`];
+        return [];
+      })
+      .join(", ");
+    entries.push(`{ tag: ${JSON.stringify(node.tag)}, attributes: { ${attributes} } }`);
+  }
+  return entries.join(", ");
+}
+
+/** Inline text with {{ interpolations }} as a plain JS template literal (no HTML escaping or prose spans). */
+function compileTextToStringLiteral(text: string): string {
+  let output = "";
+  let cursor = 0;
+  const interpolation = /{{([\s\S]*?)}}/g;
+  for (const match of text.matchAll(interpolation)) {
+    output += escapeTemplateStatic(text.slice(cursor, match.index));
+    output += `\${${(match[1] ?? "").trim()}}`;
+    cursor = (match.index ?? 0) + match[0].length;
+  }
+  output += escapeTemplateStatic(text.slice(cursor));
+  return `\`${output}\``;
 }
 
 function attributeValueExpression(attribute: Attribute | undefined): string | undefined {

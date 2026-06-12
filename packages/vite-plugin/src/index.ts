@@ -181,6 +181,8 @@ function generateBootstrapModule(config: ResolvedDirs, root: string): string {
     ``,
     `// WAVEx owns the document body: no #app wrapper, the app's root element`,
     `// (conventionally <wa-page> from the root layout) renders directly under <body>.`,
+    `// Prerendered HTML is an output optimization only; the live app replaces it.`,
+    `document.querySelector("[data-wx-prerender]")?.remove();`,
     `const root = document.body;`,
     ``,
     `const convexUrl = import.meta.env.VITE_CONVEX_URL;`,

@@ -398,6 +398,8 @@ export function parseAttributeToken(token: string): Attribute | undefined {
 
 function isAttributeLike(token: string): boolean {
   if (!token) return false;
+  // {{ interpolation }} tokens are inline text, even when the expression contains ":".
+  if (token.startsWith("{{")) return false;
   if (token.startsWith(":") || token.startsWith("on:")) return true;
   if (token.includes(":")) return true;
   if (BOOLEAN_ATTRIBUTE_NAMES.has(token)) return true;

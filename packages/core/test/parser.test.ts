@@ -58,6 +58,16 @@ describe("parseWavex", () => {
     expect(parseAttributeToken("href:route.url")).toMatchObject({ kind: "expression", expression: "route.url" });
   });
 
+  it("treats mustache tokens with inner colons as inline text, not attributes", () => {
+    const parsed = parseWavex('~~~\n+head\n  title {{ talk ? `${talk.title} | Swell` : "Talk | Swell" }}\n');
+    const head = parsed.nodes.find((node) => node.kind === "directive");
+    expect(head?.children[0]).toMatchObject({
+      kind: "element",
+      tag: "title",
+      inlineText: '{{ talk ? `${talk.title} | Swell` : "Talk | Swell" }}'
+    });
+  });
+
   it("rejects colon-form utility tokens with WX005", () => {
     const parsed = parseWavex(`~~~\nmain [stack gap:xl]\n  p Hello\n`);
 

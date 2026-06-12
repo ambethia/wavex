@@ -1,11 +1,13 @@
 import { render as litRender } from "lit";
 import {
+  applyHead,
   createRenderContext,
   createResourceController,
   createSemanticActionDispatcher,
   installSemanticEventDelegation,
   type ActionClient,
   type ActionKindResolver,
+  type HeadEntry,
   type RenderContext,
   type RenderFunction,
   type ResourceClient,
@@ -32,8 +34,13 @@ export interface LitMount<Result = unknown> {
   update(nextContext?: RenderContext): void;
   setRender(nextRender: RenderFunction<Result>): void;
   setResources(nextResources: readonly ResourceDefinition[]): void;
-  /** Atomically swap render, resources, and route in a single update (used by the client router). */
-  setPage(page: { render: RenderFunction<Result>; resources: readonly ResourceDefinition[]; route: RouteContext }): void;
+  /** Atomically swap render, resources, route, and head in a single update (used by the client router). */
+  setPage(page: {
+    render: RenderFunction<Result>;
+    resources: readonly ResourceDefinition[];
+    route: RouteContext;
+    head?: (context?: RenderContext) => HeadEntry[];
+  }): void;
   dispose(): void;
   root: HTMLElement;
   result?: Result;
@@ -58,12 +65,14 @@ export function mountLit<Result = unknown>(
   let resourceDefinitions = [...(options.resources ?? [])];
   let resourceController: ResourceController | undefined;
   let updateRequested = false;
+  let headCurrent: ((context?: RenderContext) => HeadEntry[]) | undefined;
 
   const update = (nextContext: RenderContext = {}) => {
     Object.assign(context, createRenderContext({ ...context, ...nextContext }));
     resourceController?.update(resourceDefinitions);
     result = renderCurrent(context);
     litRender(result as unknown, root);
+    if (headCurrent && typeof document !== "undefined") applyHead(headCurrent(context));
   };
 
   const requestUpdate = () => {
@@ -95,9 +104,15 @@ export function mountLit<Result = unknown>(
     update();
   };
 
-  const setPage = (page: { render: RenderFunction<Result>; resources: readonly ResourceDefinition[]; route: RouteContext }) => {
+  const setPage = (page: {
+    render: RenderFunction<Result>;
+    resources: readonly ResourceDefinition[];
+    route: RouteContext;
+    head?: (context?: RenderContext) => HeadEntry[];
+  }) => {
     renderCurrent = page.render;
     resourceDefinitions = [...page.resources];
+    headCurrent = page.head;
     update({ route: page.route });
   };
 

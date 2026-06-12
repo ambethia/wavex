@@ -170,7 +170,7 @@ Done criteria:
 
 ### 7. Head management and prerender baseline
 
-Goal: make `+head` useful beyond compiled render output.
+Status: **complete** (2026-06-12). The compiler now emits structured `headEntries(context): HeadEntry[]` (title text and meta/link attributes as plain values — DOM-free, shared by the live head manager and prerendering). `applyHead` reconciles: managed elements carry `data-wx-head`, stale entries are removed, attributes sync. The Lit mount applies the active page's head on every update, so resource updates retitle the document (e.g. `$$talks:get` resolving renames the talk page); `composeLayoutRender` merges layout + page head with the page winning. `wavex prerender` renders static, resource-free routes through the app's own Vite config (`ssrLoadModule`) and `@lit-labs/ssr` — Web Awesome components emit declarative shadow DOM — injecting body content (`data-wx-prerender` wrapper), title, and meta into `dist/<path>/index.html`; the bootstrap removes the prerendered DOM before mounting (replace-not-hydrate for now, per the output-optimization framing). Parser fix surfaced by validation: `{{ … }}` tokens containing `:` (ternaries) were misparsed as attributes, emptying dynamic titles. Browser-validated: per-route titles and managed meta in dev, resource-driven talk titles, stale-meta removal, and the prerendered landing page booting into exactly one live wa-page with no duplicates.
 
 Tasks:
 

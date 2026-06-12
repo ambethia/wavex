@@ -23,6 +23,9 @@ switch (command) {
   case "build":
     proxyVite(["build", ...args]);
     break;
+  case "prerender":
+    await (await import("./prerender.js")).prerender(args[0] ?? process.cwd());
+    break;
   case "help":
   case "--help":
   case "-h":
@@ -43,6 +46,7 @@ Commands:
   wavex compile <file.wx>  Compile one .wx file to a Lit render module.
   wavex dev [args...]      Proxy to vite dev for now.
   wavex build [args...]    Proxy to vite build for now.
+  wavex prerender [root]   Prerender static, resource-free routes into dist/.
 `);
 }
 

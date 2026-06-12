@@ -1,10 +1,11 @@
 import { matchRoutePath, parseQueryString, type RouteDefinition } from "@wavex/core";
-import type { RenderFunction, ResourceDefinition, RouteContext } from "./index.js";
+import type { HeadEntry, RenderContext, RenderFunction, ResourceDefinition, RouteContext } from "./index.js";
 
 export interface RoutePageModule<Result = unknown> {
   default?: RenderFunction<Result>;
   render?: RenderFunction<Result>;
   resources?: readonly ResourceDefinition[];
+  headEntries?: (context?: RenderContext) => HeadEntry[];
 }
 
 export interface ClientRoute extends RouteDefinition {
@@ -21,7 +22,11 @@ export interface ClientRoute extends RouteDefinition {
 export function composeLayoutRender(
   layouts: ReadonlyArray<RoutePageModule>,
   page: RoutePageModule
-): { render: RenderFunction; resources: readonly ResourceDefinition[] } {
+): {
+  render: RenderFunction;
+  resources: readonly ResourceDefinition[];
+  headEntries: (context?: RenderContext) => HeadEntry[];
+} {
   const pageRender = page.default ?? page.render;
   if (!pageRender) throw new Error("WAVEx page module has no render export.");
 
@@ -36,7 +41,12 @@ export function composeLayoutRender(
     render = (context = {}) => layoutRender({ ...context, slots: { default: inner(context) } });
   }
 
-  return { render, resources };
+  // Layout head entries first, page entries last so the page wins on conflicts.
+  const headSources = [...layouts, page];
+  const headEntries = (context?: RenderContext) =>
+    headSources.flatMap((module) => module.headEntries?.(context) ?? []);
+
+  return { render, resources, headEntries };
 }
 
 /**
@@ -44,7 +54,12 @@ export function composeLayoutRender(
  * satisfies this shape; any renderer backend can implement it.
  */
 export interface RouterPageHost {
-  setPage(page: { render: RenderFunction; resources: readonly ResourceDefinition[]; route: RouteContext }): void;
+  setPage(page: {
+    render: RenderFunction;
+    resources: readonly ResourceDefinition[];
+    route: RouteContext;
+    head?: (context?: RenderContext) => HeadEntry[];
+  }): void;
   update(nextContext?: { route?: RouteContext }): void;
 }
 
@@ -83,7 +98,12 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const applyCurrent = () => {
     if (!current?.page) return;
     const composed = composeLayoutRender(current.layouts?.map((layout) => layout.module) ?? [], current.page);
-    options.host.setPage({ render: composed.render, resources: composed.resources, route: current.route });
+    options.host.setPage({
+      render: composed.render,
+      resources: composed.resources,
+      route: current.route,
+      head: composed.headEntries
+    });
   };
 
   const navigate = async (to: string, navOptions: { replace?: boolean; pop?: boolean } = {}) => {

@@ -350,6 +350,8 @@ export function installSemanticEventDelegation(root: ParentNode & EventTarget, c
 }
 
 export function applyHead(entries: readonly HeadEntry[], documentRef: Document = document): void {
+  const managed = new Set<Element>(documentRef.head.querySelectorAll("[data-wx-head]"));
+
   for (const entry of entries) {
     if (entry.tag === "title") {
       documentRef.title = entry.text ?? "";
@@ -357,13 +359,20 @@ export function applyHead(entries: readonly HeadEntry[], documentRef: Document =
     }
 
     const selector = headSelector(entry);
-    const element = selector
-      ? (documentRef.head.querySelector(selector) as HTMLElement | null) ?? documentRef.createElement(entry.tag)
-      : documentRef.createElement(entry.tag);
+    const existing = selector ? (documentRef.head.querySelector(selector) as HTMLElement | null) : null;
+    const element = existing ?? documentRef.createElement(entry.tag);
 
+    for (const name of element.getAttributeNames()) {
+      if (name !== "data-wx-head" && !(name in (entry.attributes ?? {}))) element.removeAttribute(name);
+    }
     for (const [name, value] of Object.entries(entry.attributes ?? {})) element.setAttribute(name, value);
+    element.setAttribute("data-wx-head", "");
     if (!element.parentNode) documentRef.head.append(element);
+    managed.delete(element);
   }
+
+  // Remove previously managed entries the current page no longer declares.
+  for (const stale of managed) stale.remove();
 }
 
 function resolveResourceDefinition(definition: ResourceDefinition, context: RenderContext): ResolvedResourceDefinition {

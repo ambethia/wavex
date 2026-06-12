@@ -36,6 +36,18 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`(context.resourceStates?.["tasks"]?.error)`);
   });
 
+  it("compiles +head into structured headEntries", () => {
+    const compiled = compileWavexModule(
+      `~~~\n+head\n  title {{ talk.title }} | Swell\n  meta name:description content:talk.summary\n  link rel:canonical href:"https://swell.example/talks"\n`,
+      { id: "src/pages/talks/[slug].wx" }
+    );
+
+    expect(compiled.code).toContain(`export function headEntries(context: RenderContext = {}): HeadEntry[]`);
+    expect(compiled.code).toContain('{ tag: "title", text: `${talk.title} | Swell` }');
+    expect(compiled.code).toContain('{ tag: "meta", attributes: { "name": "description", "content": String(talk.summary) } }');
+    expect(compiled.code).toContain('{ tag: "link", attributes: { "rel": "canonical", "href": "https://swell.example/talks" } }');
+  });
+
   it("compiles local components as render-function composition with props and slots", () => {
     const compiled = compileWavexModule(
       `~~~\n@page-shell layout:"wide"\n  h1 slot:title Tasks\n  @tasks/item task: required\n  p Body content\n`,

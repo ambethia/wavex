@@ -6,7 +6,8 @@ import "@web.awesome.me/webawesome-pro/dist/components/callout/callout.js"
 ~~~
 
 +head
-  title Talk | Swell Conf
+  title {{ talk ? `${talk.title} | Swell Conf` : "Talk | Swell Conf" }}
+  meta name:description content:{{ talk?.summary ?? "Swell Conf talk" }}
 
 $$talks:get args:{ slug: route.params.slug }
   +loading

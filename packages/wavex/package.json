@@ -18,8 +18,20 @@
   },
   "dependencies": {
     "@wavex/compiler": "workspace:*",
-    "@wavex/core": "workspace:*"
+    "@wavex/core": "workspace:*",
+    "@wavex/runtime": "workspace:*",
+    "@lit-labs/ssr": "^3.3.0"
   },
-  "files": ["dist"],
-  "license": "MIT"
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "vite": "*"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  }
 }
