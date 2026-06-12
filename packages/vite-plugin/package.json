@@ -7,6 +7,9 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./client.d.ts"
     }
   },
   "scripts": {
@@ -15,11 +18,15 @@
   },
   "dependencies": {
     "@wavex/compiler": "workspace:*",
-    "@wavex/core": "workspace:*"
+    "@wavex/core": "workspace:*",
+    "@wavex/runtime": "workspace:*"
   },
   "peerDependencies": {
     "vite": ">=5.0.0"
   },
-  "files": ["dist"],
+  "files": [
+    "dist",
+    "client.d.ts"
+  ],
   "license": "MIT"
 }

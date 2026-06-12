@@ -1,3 +1,5 @@
+// Module declarations for .wx files as transformed by the wavex Vite plugin.
+// Reference from an app tsconfig: "types": ["@wavex/vite-plugin/client"].
 declare module "*.wx" {
   import type { HeadEntry, RenderContext, RenderFunction, ResourceDefinition } from "@wavex/runtime";
 
