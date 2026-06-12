@@ -8,6 +8,7 @@ WAVEx is a TypeScript-first framework: `.wx` files compile to Lit. This is the W
   - `docs/wavex-spec.md` — user-facing `.wx` syntax and app model.
   - `docs/wavex-design.md` — architecture/design decisions and MVP sequence.
   - `docs/roadmap.md` — concrete implementation roadmap and current next slices.
+  - `docs/validation-app.md` — planned Swell Conf full-feature validation app (post-TODO; no implementation yet).
 - `packages/` — `@wavex/core` (parser/AST/diagnostics + shared project model — the single source of truth for `.wx`), `@wavex/compiler`, `@wavex/runtime` (Lit renderer at `@wavex/runtime/lit`), `@wavex/vite-plugin`, and the `wavex` CLI. A Volar-based `@wavex/lsp` is planned.
 - `apps/todo/` — WAVEx TODO demo app. Currently the main proving ground for Convex-backed resources/mutations.
 

@@ -219,6 +219,10 @@ Done criteria:
 - Template expressions type-check against prelude/Convex types in at least one proven case.
 - No second grammar definition exists; the LSP consumes the same parser as the compiler.
 
+## Post-TODO validation app
+
+Once the TODO app has exhausted what it can highlight, the full-feature validation target is the Swell Conf companion app planned in `docs/validation-app.md`. It is the proving ground for slices 4–8; build it incrementally as those slices land.
+
 ## Explicit deferrals
 
 Do not start these before the Convex-backed TODO milestone unless a slice explicitly requires them:
