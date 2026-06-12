@@ -48,6 +48,11 @@ If browser validation cannot run (no deployment, no browser access), the work is
 - Stay inside the documented scope. If the spec is ambiguous, make the smallest spec-consistent decision, record it in the relevant doc in the same commit, and continue.
 - Respect the roadmap's explicit deferrals (no SSR beyond the prerender baseline, no Zig/WASM, no per-editor extensions beyond the LSP baseline).
 
-## Blockers
+## Self-provisioning and blockers
 
-When blocked on something only a human can provide — a new Convex deployment for the Swell app, registry tokens (`FONTAWESOME_NPM_TOKEN` / `WEBAWESOME_NPM_TOKEN`), license questions — add a `## Blocked` note at the top of `docs/roadmap.md` naming exactly what is needed, switch to unblocked work (slice 10 is usually available), and surface the blocker prominently in the session summary.
+The environment is provisioned for autonomous work — verify before declaring anything blocked:
+
+- `FONTAWESOME_NPM_TOKEN` and `WEBAWESOME_NPM_TOKEN` are set in the shell environment, and the root `.npmrc` consumes them, so installing Web Awesome / Font Awesome Pro packages just works.
+- The Convex CLI is already authorized. `apps/todo` has a dev deployment (`apps/todo/.env.local`). When the Swell app needs its own project, create it yourself: `npx convex dev --once --configure=new` from the new app directory writes that app's `.env.local`.
+
+Genuine blockers are the exception — expired or rotated credentials, license/account questions, or a decision the docs don't settle and that has real product consequences. Only then add a `## Blocked` note at the top of `docs/roadmap.md` naming exactly what is needed, switch to unblocked work (slice 10 is usually available), and surface the blocker prominently in the session summary.
