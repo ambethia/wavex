@@ -77,7 +77,7 @@ Every spec feature gets a non-contrived home:
 | Custom non-Convex handlers | `:click:openMenu` mobile nav |
 | `:track:` + implicit analytics | `:track:question_upvoted`, `:track:rsvp_submitted`; pageviews via routing (PostHog slice) |
 | Local component shadowing + `@wa/` escape | `@badge` shadows Web Awesome; somewhere uses explicit `@wa/badge` |
-| Utility shorthand | layout throughout (`[stack gap:xl]`, `[grid cols:3]`, `[cluster …]`) |
+| Utility shorthand | layout throughout (`[stack gap-xl]`, `[grid gap-m]`, `[cluster …]`) |
 | Inline prose spans | `info/` content pages (heavy `` `code` ``/`*strong*`/`_em_`/`~mark~` use) |
 | TS prelude | time-slot formatting, track grouping helpers, `Doc<"talks">` types |
 | `@icon` incl. families | UI icons + brand icons for speaker social links (exercises FA Pro detection) |

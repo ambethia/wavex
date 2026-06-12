@@ -70,7 +70,7 @@ Layouts compose through native `slot`.
 
 ```wx
 // src/pages/+layout.wx
-main [stack gap:xl]
+main [stack gap-xl]
   @site-nav
   slot
 ```
@@ -128,7 +128,7 @@ Rules:
 `.wx` templates are indentation-based.
 
 ```wx
-main [stack gap:xl]
+main [stack gap-xl]
   h1 Tasks
   p Manage your tasks.
 ```
@@ -251,24 +251,27 @@ is equivalent to:
 Explicit `id` and `class` are allowed.
 
 ```wx
-section id:hero class:marketing-hero [stack gap:xl]
+section id:hero class:marketing-hero [stack gap-xl]
 ```
 
 ## 8. Utility Shorthand
 
-Bracket groups map to Web Awesome utility classes.
+Bracket groups map to Web Awesome utility classes by direct `wa-` prefix expansion.
 
 ```wx
-main [stack gap:xl]
-div [cluster gap:s align:center justify:between]
-section [grid gap:m cols:3]
-p [text:center color:brand]
+main [stack gap-xl]
+div [cluster gap-s align-items-center justify-content-space-between]
+section [grid gap-m]
 ```
+
+Each token is the literal Web Awesome utility suffix: `stack` → `wa-stack`, `gap-xl` → `wa-gap-xl`. There is no mapping table and no colon form — `:` inside a bracket group is invalid; colons belong to attributes.
+
+Mirroring `@` component lookup, utility tokens are shorthand for real `wa-*` classes, except where WAVEx adds its own utilities on top: a WAVEx-defined utility class may resolve a token first, with everything else passing straight through to `wa-` prefix expansion.
 
 Example expansion:
 
 ```wx
-div [cluster gap:s align:center]
+div [cluster gap-s align-items-center]
 ```
 
 ```html
@@ -314,7 +317,7 @@ Use native `slot`, not a WAVEx-specific slot directive.
 
 ```wx
 // src/components/app-shell.wx
-main [stack gap:xl]
+main [stack gap-xl]
   header
     slot name:header
   section

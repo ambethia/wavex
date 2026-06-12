@@ -120,7 +120,7 @@ Tasks:
 - Replace bespoke widgets with Web Awesome components via `@` shorthand (`@input`, `@button`, `@checkbox`, `@card`, `@callout`), starting from `.agents/skills/using-webawesome/patterns/` per AGENTS.md rather than inventing markup.
 - Replace custom CSS with Web Awesome utility classes and design tokens; shrink `src/style.css` to app-specific theming only.
 - Use `@icon` for the add and delete affordances instead of text glyphs (the current `×` button).
-- Resolve the utility-shorthand divergence: the spec writes `[stack gap:xl]` while the design doc, parser, and demo use `[stack gap-xl]`; pick one form and synchronize spec, design doc, parser tests, and the demo.
+- Enforce the utility-shorthand decision (2026-06-12): the dash form is canonical — tokens are literal `wa-*` suffixes (`gap-xl` → `wa-gap-xl`, no `:` overloading), with room for WAVEx-defined utilities resolving first, like `@` component lookup. The spec is updated; remove the compiler's silent colon normalization (`token.replace(/:/g, "-")` in `packages/compiler/src/compiler.ts`) so colon tokens produce a diagnostic, and cover both forms in parser/compiler tests.
 - Adopt the spec's resource-state directives (`+loading`, `+empty`) in place of `+if !tasks` checks, adding parser/compiler/runtime support if not yet landed.
 
 Done criteria:

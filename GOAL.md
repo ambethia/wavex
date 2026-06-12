@@ -10,7 +10,7 @@ All of the following, verified — not assumed:
 2. `apps/todo` is fully Web Awesome (no bespoke widget CSS), and its realtime CRUD loop is proven in a real browser: two tabs open, a mutation in one updates the other without reload; HMR preserves Convex state across a `.wx` edit.
 3. The Swell Conf app (`docs/validation-app.md`) exists as an app in `apps/`, built incrementally as slices 5–9 land. Every row of its feature-coverage map is demonstrated by a working screen, browser-validated.
 4. `pnpm check` and every app's `pnpm build` pass at HEAD on every commit.
-5. The roadmap and docs are updated as slices land; spec, design doc, parser tests, and demos stay synchronized when syntax changes (e.g., the `gap:xl` vs `gap-xl` resolution in slice 4).
+5. The roadmap and docs are updated as slices land; spec, design doc, parser tests, and demos stay synchronized when syntax changes (e.g., the dash-form utility decision enforced in slice 4).
 
 ## Operating loop
 
