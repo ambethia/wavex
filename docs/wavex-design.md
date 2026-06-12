@@ -1,6 +1,6 @@
 # WAVEx Design Draft
 
-> Status: draft for discussion. This document captures decisions after the initial Zig/WASM and Vite+ spikes and guides the next implementation pass.
+> Status: draft for discussion. This document captures architecture decisions for the active implementation (the `packages/` monorepo). The early Zig/WASM and Vite spikes that informed these decisions have been retired; their conclusions are recorded in the implementation-decision section below.
 
 ## 1. Summary
 
@@ -191,7 +191,7 @@ vite.config.ts
 package.json
 ```
 
-The active implementation spike lives under `spikes/vite/`. The earlier Zig/WASM spike remains useful as research, but the design should converge toward the Vite+/TypeScript structure above.
+The active implementation is this repository's `packages/` monorepo with `apps/todo` as the proving ground; the earlier `spikes/vite` and Zig/WASM spikes are retired, with their conclusions recorded in the implementation-decision section above.
 
 Convex is the backend implementation. Use the default **`convex/`** directory unless there is a strong reason to add an adapter layer later:
 
@@ -349,9 +349,9 @@ Rules:
 ```wx
 main [stack gap-xl]
   @card [stack gap-m] with-header appearance:filled
-    div [cluster gap-s align-center] slot:header
+    div [cluster gap-s align-items-center] slot:header
       @icon name:rocket
-      span *Wavex* spike
+      span *WAVEx* demo
 
     p This template lives in `src/pages/index.wx`.
 
@@ -550,9 +550,9 @@ Bracket groups are whitespace-separated Web Awesome / WAVEx utility class suffix
 
 ```wx
 main [stack gap-xl]
-div [cluster gap-s align-center justify-between]
-section [grid gap-m cols-3]
-p [text-center brand]
+div [cluster gap-s align-items-center justify-content-space-between]
+section [grid gap-m]
+p [caption-l brand]
 ```
 
 Example expansion:
@@ -578,13 +578,13 @@ This avoids overloading Slim/Haml `#foo` and `.bar`, since Wavex apps should mos
 Inline prose should support a strict, opinionated WAVEx subset so authors do not need to drop into deeply nested text/code/span nodes for common inline content.
 
 ```wx
-p This template lives in `spikes/zig/pages/home.wx` and uses *strong*, _emphasis_, and ~mark~.
+p This template lives in `src/pages/index.wx` and uses *strong*, _emphasis_, and ~mark~.
 ```
 
 Expansion:
 
 ```html
-<p>This template lives in <code>spikes/zig/pages/home.wx</code> and uses <strong>strong</strong>, <em>emphasis</em>, and <mark>mark</mark>.</p>
+<p>This template lives in <code>src/pages/index.wx</code> and uses <strong>strong</strong>, <em>emphasis</em>, and <mark>mark</mark>.</p>
 ```
 
 MVP inline spans:
@@ -991,8 +991,6 @@ ActionError
 NavigationError
 NetworkError
 AuthError
-WasmPanic
-HostBridgeError
 ```
 
 In dev, errors should show an overlay with template file, route/component, Convex path, host stack, and retry/reload options.
@@ -1251,22 +1249,12 @@ export function snapshotState(): unknown;
 export function restoreState(snapshot: unknown): void;
 ```
 
-Current active spike:
+Current dev workflow:
 
 ```sh
-# Vite+/Convex spike; starts Convex and Vite together
-npm run dev:convex
-
-# Or run separately in two terminals
-npm run convex
-npm run dev
-```
-
-Historical research spike:
-
-```sh
-zig build --watch zig-spike
-python3 -m http.server 8080 --directory dist/zig
+# In two terminals, from apps/todo
+npx convex dev
+pnpm dev
 ```
 
 ## 20. Plain JavaScript Escape Hatches
@@ -1382,7 +1370,7 @@ But Convex remains the default backend. Any full-stack support should be an adap
 ## 24. Proposed MVP Sequence
 
 1. Vite+/Lit runtime foundation
-   - extract a real WAVEx runtime from `spikes/vite/src/main.ts`
+   - extract a real WAVEx runtime from the initial Vite spike (done: `@wavex/runtime`)
    - switch Web Awesome imports from `dist-cdn` to package `dist`
    - import/share Lit through Vite+
    - compile `.wx` to render modules instead of static HTML strings
