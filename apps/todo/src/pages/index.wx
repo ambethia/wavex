@@ -1,0 +1,38 @@
+~~~
++head
+  title WAVEx Todo
+  meta name:description content:"The quintessential TODO demo, written in WAVEx."
+
+$$tasks:list
+
+main [stack gap-xl]
+  header [stack gap-s]
+    p class:eyebrow WAVEx demo
+    h1 ~x Todo
+    p A realtime Convex-backed task list exercising `.wx` templates, resources, semantic mutation events, keyed loops, and Vite HMR.
+
+  section class:todo-shell [stack gap-m]
+    form :submit:$$tasks:create [cluster gap-s]
+      input name:text type:text placeholder:"What needs doing?" aria-label:"New todo" autocomplete:off required
+      button type:submit Add todo
+
+    div class:summary [cluster gap-s]
+      strong {{ (tasks ?? []).filter((todo) => !todo.completed).length }} left
+      span / {{ (tasks ?? []).length }} total
+      +if tasks && tasks.some((todo) => todo.completed)
+        button type:button class:link-button :click:$$tasks:clearCompleted Clear completed
+
+    +if !tasks
+      p class:empty-list Loading todos…
+
+    +if tasks && tasks.length === 0
+      p class:empty-list No todos yet. Add one above.
+
+    +if tasks && tasks.length > 0
+      ul class:todo-list [stack gap-s]
+        +for todo in tasks key:todo._id
+          li class:todo-item
+            label [cluster gap-s]
+              input type:checkbox checked:todo.completed data-id:todo._id :click:$$tasks:toggle
+              span class:{{ todo.completed ? "todo-text is-complete" : "todo-text" }} {{ todo.text }}
+            button type:button class:icon-button data-id:todo._id aria-label:"Delete todo" :click:$$tasks:deleteTask ×

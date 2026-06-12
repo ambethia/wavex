@@ -25,6 +25,12 @@ The Vite plugin and CLI treat those paths as framework law. Projects cannot over
 - `@wavex/runtime` — browser runtime primitives, with the Lit renderer at `@wavex/runtime/lit`.
 - `@wavex/vite-plugin` — Vite plugin for `.wx` modules and route metadata.
 
+## Apps
+
+Example/demo apps live in `apps/*` as workspace members consuming the packages via `workspace:*`:
+
+- `apps/todo` — Convex-backed realtime TODO demo, the main proving ground for resources, semantic mutation events, and HMR.
+
 ## Commands
 
 ```sh
