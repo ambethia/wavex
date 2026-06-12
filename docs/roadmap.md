@@ -30,7 +30,7 @@ Implemented enough to build demos:
 - Demo app
   - `apps/todo/` builds as a Convex-backed single-page `.wx` app with query resources, semantic form/click mutations, keyed loops, and HMR wiring.
 
-Current known gap: manual browser/dev-server verification of the Convex-backed TODO flow is still needed; automated Convex function tests and production build pass.
+Browser-validated 2026-06-12 (Playwright-driven Chromium against `npx convex dev` + `pnpm dev`): boot with resolved `$$tasks:list` resource, create/toggle/clear-completed/delete via semantic events, two-tab realtime propagation in both directions with no reloads, zero console errors, and a `.wx` HMR edit applied without losing the Convex client or task state.
 
 ## MVP north star
 
@@ -90,7 +90,7 @@ Done criteria:
 
 ### 3. Convert the TODO demo to real Convex
 
-Status: initial conversion landed with Convex schema/functions, convex-test coverage, resource-driven `.wx`, and generated WAVEx bootstrap replacing app-authored mount glue.
+Status: **complete** (2026-06-12). Initial conversion landed with Convex schema/functions, convex-test coverage, resource-driven `.wx`, and generated WAVEx bootstrap replacing app-authored mount glue; all done criteria including the live CRUD/realtime/HMR flow are browser-validated (see baseline note above).
 
 Goal: prove the primary WAVEx promise in the demo app.
 
