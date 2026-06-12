@@ -24,8 +24,9 @@ The name started as a portmanteau of Web Awesome and Convex, but the stylized �
 - **PostHog** analytics baked in.
 - **`.wx` templates** as the app authoring surface, with optional colocated TypeScript prelude.
 - **A Vite+/TypeScript WAVEx compiler/runtime** as the primary implementation path, with Lit as the initial DOM rendering backend.
+- **Build only what is WAVEx-specific; stand on the Lit ecosystem for the rest.** The genuinely novel pieces are the `.wx` → Lit compiler and the Convex/Web Awesome/Font Awesome capability inference. Downstream concerns should reuse proven packages before hand-rolling: `@lit/task` (async resource lifecycle), `@lit-labs/router` (client routing), `@lit/context` (runtime context plumbing), and `@lit-labs/ssr` (prerendering).
 - **TypeScript-first language tooling** for the compiler, Vite plugin, CLI, LSP, and editor integrations, so WAVEx can directly reuse TypeScript, Convex, Web Awesome, and Font Awesome metadata/types.
-- **Tree-sitter grammar** shared by editor extensions, syntax highlighting, structural parsing, and optional future native tooling.
+- **A single TypeScript parser in `@wavex/core`** as the only `.wx` grammar definition, consumed by both the compiler and the Volar-based LSP. Decision (2026-06): an earlier Tree-sitter grammar and Zed extension were deleted rather than maintained as a second grammar; do not reintroduce them.
 - **Zig as optional tooling research** for a future fast `.wx` compiler, prerender helper, or CLI binary, not the MVP browser runtime.
 - **Capability-based Web Awesome / Font Awesome integration**: free packages should work, Pro packages/kits unlock Pro completions/imports when installed. WAVEx should be open-sourceable without bundling or requiring licensed assets.
 - **No generic frontend framework dependency** (React/Svelte/Vue/etc.) in the default app workflow. Node/Bun/pnpm are expected for Convex development, Vite+/WAVEx tooling, and licensed package acquisition.
@@ -204,37 +205,30 @@ WAVEx treats directory structure as framework law. Routes live in `src/pages`, r
 
 ### Monorepo package structure
 
-WAVEx should be developed as a TypeScript-first monorepo under the `@wavex/*` namespace, with one CLI package for the `wavex` binary.
+WAVEx is developed as a TypeScript-first monorepo under the `@wavex/*` namespace, with one CLI package for the `wavex` binary. After the 2026-06 consolidation (7 → 5 packages: `language-core` merged into `@wavex/core`, `renderer-lit` merged into `@wavex/runtime` as the `@wavex/runtime/lit` subpath; Tree-sitter and Zed-extension packages deleted), the shape is:
 
 ```txt
 packages/
-  wavex/                 # CLI: wavex dev/build/check/lsp helpers
-  core/                  # shared config, project model, capabilities
-  language-core/         # .wx parse model, virtual files, diagnostics, completions substrate
-  compiler/              # .wx -> render module / IR
-  runtime/               # browser runtime: routing/resources/head/actions/analytics/HMR
-  renderer-lit/          # Lit renderer adapter/backend
+  wavex/                 # CLI: wavex dev/build/check/routes/compile
+  core/                  # .wx parser/AST/diagnostics + shared config, project model, capabilities
+  compiler/              # .wx -> Lit render module
+  runtime/               # browser runtime: resources/head/actions/analytics/HMR; Lit renderer at @wavex/runtime/lit
   vite-plugin/           # Vite+/Rolldown integration
-  lsp/                   # wavex-language-server
-  zed-extension/         # Zed extension wrapper/packaging
-  tree-sitter-wavex/     # Tree-sitter grammar + queries
-  metadata-webawesome/   # Web Awesome metadata/capability loader
-  metadata-fontawesome/  # Font Awesome metadata/icon loader
+  lsp/                   # planned: Volar-based wavex-language-server over the @wavex/core AST
 ```
 
-Likely public package names:
+Public package names:
 
 ```txt
 wavex
 @wavex/core
-@wavex/language-core
 @wavex/compiler
 @wavex/runtime
-@wavex/renderer-lit
 @wavex/vite-plugin
-@wavex/lsp
-@wavex/tree-sitter-wavex
+@wavex/lsp        (planned)
 ```
+
+Web Awesome / Font Awesome metadata loading lives in `@wavex/core` capabilities for now; separate metadata packages are a possible later split, not part of the current shape.
 
 ## 6. Routing
 
@@ -287,6 +281,8 @@ click link
 ```
 
 If JavaScript fails, prerendered pages should still provide useful HTML for public/SEO pages.
+
+Per the reuse principle, the client router should be evaluated against `@lit-labs/router` before hand-rolling route matching and asset loading; WAVEx-specific work should be limited to the file-convention route table and Convex subscription scoping.
 
 ## 7. `.wx` Template Language
 
@@ -1104,65 +1100,24 @@ error boundary events
 
 WAVEx should treat DX as a core feature. The `.wx` syntax is most valuable when the editor understands the shorthand and can complete/validate Convex functions, Web Awesome components, Font Awesome icons, and TypeScript expressions.
 
-### Tree-sitter grammar
+### Single parser, no second grammar
 
-Create a shared `tree-sitter-wavex` grammar.
-
-Use it for:
-
-- Zed syntax highlighting, folding, indentation, outline, and injections.
-- WAVEx compiler/LSP first-stage structural parsing.
-- Incremental parsing and error recovery while editing incomplete files.
-- Optional future native tooling through Zig Tree-sitter bindings.
-
-Tree-sitter should parse the structure, not replace semantic analysis.
+Decision (2026-06): the `@wavex/core` TypeScript parser is the single source of truth for `.wx`. It is consumed by the compiler today and by the future LSP. An earlier Tree-sitter grammar and Zed dev extension were deleted rather than maintained as a second, drift-prone grammar definition; they should not be reintroduced. Volar does not require Tree-sitter — Vue, Astro, and MDX all drive Volar with their own parsers.
 
 ```txt
 .wx source
-  -> Tree-sitter concrete syntax tree
-  -> WAVEx semantic AST/IR
-  -> diagnostics / completions / render modules
+  -> @wavex/core parse (AST with source ranges)
+  -> compiler render modules / LSP virtual documents
+  -> diagnostics / completions / semantic tokens
 ```
 
-The grammar should support TypeScript injections:
+Editor syntax highlighting comes from LSP semantic tokens, which work across VS Code, Zed, Neovim, Helix, and Emacs without per-editor grammars. A thin TextMate grammar is optional later for highlight-before-LSP-boots and GitHub views — drift-tolerant and cosmetic only, never a parsing input.
 
-```txt
-prelude before ~~~                -> TypeScript injection
-{{ expression }}                  -> TypeScript expression injection
-name:{{ expression }}             -> TypeScript expression-valued attribute/directive injection
-= expression                      -> TypeScript expression injection
-+for/key/if expressions           -> TypeScript expression injection where possible
-```
+### Volar-based, TypeScript-first LSP
 
-### Zed extension
+The WAVEx LSP (`@wavex/lsp`) should be built on Volar over the `@wavex/core` AST. Volar provides the virtual-document machinery (source maps between `.wx` regions and embedded TypeScript) that Vue and Astro already rely on, which is the big unlock for the typed-template DX: template expressions checked against prelude, Convex, and Web Awesome types is the main reason to prefer `.wx` over TSX, so this work should start early — it depends only on the parser, not on the runtime slices.
 
-A Zed extension should provide the syntax layer and launch the language server.
-
-```txt
-zed-wavex/
-  extension.toml
-  languages/wavex/
-    config.toml
-    highlights.scm
-    injections.scm
-    brackets.scm
-    outline.scm
-    indents.scm
-    semantic_token_rules.json
-```
-
-`languages/wavex/config.toml` should associate `.wx` files with the WAVEx grammar and line comments:
-
-```toml
-name = "WAVEx"
-grammar = "wavex"
-path_suffixes = ["wx"]
-line_comments = ["// "]
-```
-
-### TypeScript-first LSP
-
-The first WAVEx LSP should be TypeScript/Node-based, not Zig-based, because the deepest intelligence comes from TypeScript-native sources:
+The LSP should be TypeScript/Node-based, not Zig-based, because the deepest intelligence comes from TypeScript-native sources:
 
 - the TypeScript language service
 - Convex generated types and API metadata
@@ -1170,7 +1125,7 @@ The first WAVEx LSP should be TypeScript/Node-based, not Zig-based, because the 
 - Font Awesome installed package/kit contents
 - Vite/Node module resolution and `tsconfig`
 
-The LSP should create virtual TypeScript documents for `.wx` preludes and template expressions, then map completions, diagnostics, hover, and go-to-definition back to source positions in `.wx`.
+The LSP should create virtual TypeScript documents for `.wx` preludes and template expressions through Volar's virtual-code mapping, then map completions, diagnostics, hover, and go-to-definition back to source positions in `.wx` (the `@wavex/core` AST already carries source ranges).
 
 It should provide completions and diagnostics for:
 
@@ -1331,6 +1286,8 @@ This is the primary SEO and initial-load plan for MVP. The app is still browser-
   -> client boot binds events and starts Convex realtime
 ```
 
+Since compiled output is Lit templates, prerendering should be evaluated on top of `@lit-labs/ssr` rather than a bespoke HTML serializer.
+
 Good for:
 
 - landing pages
@@ -1389,9 +1346,9 @@ But Convex remains the default backend. Any full-stack support should be an adap
 
 ## 23. Open Questions
 
-1. How neutral should the generated render IR be versus compiling directly to Lit templates?
+1. ~~How neutral should the generated render IR be versus compiling directly to Lit templates?~~ Resolved 2026-06: compile directly to Lit templates; no neutral IR for MVP.
 2. What is the exact HMR contract for `.wx` page/component modules and colocated TypeScript state preservation?
-3. What is the exact `.wx` grammar for strict inline prose spans, and how much of it belongs in Tree-sitter versus semantic lowering?
+3. What is the exact `.wx` grammar for strict inline prose spans, and how much of it belongs in the parser versus semantic lowering?
 4. Which Web Awesome/WAVEx utility suffixes should be documented as recommended `[utility]` tokens now that utilities are simple `wa-` prefix expansion rather than a mapping table?
 5. Should a future `name::expr` shorthand be added for `name:{{ expr }}`, and if so where is it worth the extra syntax?
 6. What is the first-class state API for colocated TypeScript and/or generated runtime modules?
@@ -1422,7 +1379,7 @@ But Convex remains the default backend. Any full-stack support should be an adap
    - automatic Convex ambient types in TS prelude
    - `+head` directive
    - strict inline prose spans: `` `code` ``, `*strong*`, `_em_`, and `~mark~`
-   - decide whether the compiler parser is Tree-sitter-first immediately or whether Tree-sitter follows after the semantic prototype
+   - parser is the `@wavex/core` TypeScript parser (decided 2026-06; no Tree-sitter)
 
 3. Package capability detection
    - detect installed Web Awesome free/Pro providers
@@ -1470,18 +1427,16 @@ But Convex remains the default backend. Any full-stack support should be an adap
    - custom events
    - proxy strategy decision
 
-12. Tree-sitter and editor syntax baseline
-   - `tree-sitter-wavex` grammar
-   - Zed `highlights.scm` and `injections.scm`
-   - TypeScript injections for prelude and template expressions
-
-13. LSP baseline
+12. Volar LSP baseline — may start in parallel with items 5–11; it depends only on the `@wavex/core` parser
+   - `@wavex/lsp` on Volar over the `@wavex/core` AST
+   - semantic tokens for editor highlighting (replaces the deleted Tree-sitter/Zed syntax layer)
    - `@` component completions
    - `$module:function` and `$$module:function` Convex completions
    - Web Awesome prop/value diagnostics
    - Font Awesome icon completions
    - virtual TypeScript diagnostics for prelude/expressions, including `name:{{ expression }}` values
+   - optional thin TextMate grammar for highlight-before-LSP-boots and GitHub views (cosmetic only)
 
-14. Demo app
+13. Demo app
    - build a realistic app in final-ish syntax
    - work backwards from missing features

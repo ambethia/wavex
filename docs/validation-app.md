@@ -1,6 +1,6 @@
 # Swell Conf — Full-Feature Validation App
 
-> Status: planned, not started. Do not begin implementation until the TODO app has exhausted what it can usefully highlight (roadmap slices 1–3 plus whatever single-page polish remains). This app is the validation target for roadmap slices 4–8.
+> Status: planned, not started. Do not begin implementation until the TODO app has exhausted what it can usefully highlight (roadmap slices 1–4, including the Web Awesome adoption pass). This app is the validation target for roadmap slices 5–9.
 
 ## Why this app
 
@@ -90,17 +90,17 @@ Web Awesome patterns from `.agents/skills/using-webawesome/patterns/` map direct
 - **Payments** — ticket tiers link out; no checkout.
 - **`httpAction` / SSR beyond the prerender baseline** — per spec exclusions.
 
-Stretch ideas once slices 4–8 land: presence ("12 people viewing"), a Convex scheduled function flipping talks to "live now", real LLM behind `ai/summarize`.
+Stretch ideas once slices 5–9 land: presence ("12 people viewing"), a Convex scheduled function flipping talks to "live now", real LLM behind `ai/summarize`.
 
 ## Sequencing against the roadmap
 
 The app is the forcing function for the post-TODO slices, in order:
 
-1. Slice 4 (multi-route runtime): landing + schedule + talk detail navigation.
-2. Slice 5 (components/layouts): site shell, section layouts, local components.
-3. Slice 6 (head/prerender): dynamic talk metadata, prerendered info pages.
-4. Slice 7 (WA/FA capability detection): Pro icons and patterns used here.
-5. Slice 8 (boundaries/PostHog): Q&A error states, tracked events, pageviews.
+1. Slice 5 (multi-route runtime): landing + schedule + talk detail navigation.
+2. Slice 6 (components/layouts): site shell, section layouts, local components.
+3. Slice 7 (head/prerender): dynamic talk metadata, prerendered info pages.
+4. Slice 8 (WA/FA capability detection): Pro icons and patterns used here.
+5. Slice 9 (boundaries/PostHog): Q&A error states, tracked events, pageviews.
 
 Build it incrementally as each slice lands rather than all at once at the end — each slice's done criteria can point at a concrete Swell Conf screen.
 
