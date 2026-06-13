@@ -6,9 +6,11 @@
   "description": "WAVEx TypeScript-first framework workspace.",
   "scripts": {
     "build": "pnpm -r build",
-    "check": "pnpm typecheck && pnpm test",
+    "check": "pnpm typecheck && pnpm test && pnpm docs:check",
     "typecheck": "pnpm -r typecheck",
-    "test": "vp test run"
+    "test": "vp test run",
+    "docs:skill": "node scripts/build-docs-skill.mjs",
+    "docs:check": "node scripts/build-docs-skill.mjs --check"
   },
   "keywords": [
     "wavex",
@@ -29,6 +31,8 @@
   "devDependencies": {
     "@types/node": "latest",
     "lit": "latest",
+    "typedoc": "0.28.19",
+    "typedoc-plugin-markdown": "4.12.0",
     "typescript": "latest",
     "vite": "latest",
     "vite-plus": "latest",

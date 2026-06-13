@@ -5,6 +5,7 @@ import type * as vscode from "vscode-languageserver-protocol";
 import { URI } from "vscode-uri";
 import { WAVEX_LANGUAGE_ID } from "./language.js";
 
+/** Project context for completions/diagnostics, usually detected via `@wavex/core/capabilities`. */
 export interface WavexServiceOptions {
   /** Local component references (e.g. "talk-card", "tasks/item"). */
   localComponents?: readonly string[];
@@ -18,6 +19,7 @@ export interface WavexServiceOptions {
   convexFunctions?: readonly string[];
 }
 
+/** Static options, or a per-document resolver so multi-project workspaces get the right context. */
 export type WavexServiceOptionsResolver = WavexServiceOptions | ((documentUri: string) => WavexServiceOptions);
 
 const DIRECTIVE_NAMES = [
@@ -34,6 +36,12 @@ const DIRECTIVE_NAMES = [
   "mutation-error"
 ];
 
+/**
+ * Volar service plugin providing the WAVEx-specific editor features that
+ * aren't plain TypeScript: parser diagnostics, completions for `@` components
+ * (local + Web Awesome), `+` directives, `$`/`$$` Convex functions, and
+ * `[utility]` tokens, plus hover docs from Web Awesome metadata.
+ */
 export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsResolver = {}): LanguageServicePlugin {
   const optionsFor = (documentUri: string): WavexServiceOptions =>
     typeof optionsOrResolver === "function" ? optionsOrResolver(documentUri) : optionsOrResolver;

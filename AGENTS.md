@@ -4,31 +4,36 @@ WAVEx is a TypeScript-first framework: `.wx` files compile to Lit. This is the W
 
 ## Project map
 
-- `docs/` — design/spec/roadmap notes for WAVEx.
-  - `docs/wavex-spec.md` — user-facing `.wx` syntax and app model.
-  - `docs/wavex-design.md` — architecture/design decisions and MVP sequence.
-  - `docs/roadmap.md` — concrete implementation roadmap and current next slices.
-  - `docs/validation-app.md` — planned Swell Conf full-feature validation app (post-TODO; no implementation yet).
-- `packages/` — `@wavex/core` (parser/AST/diagnostics + shared project model — the single source of truth for `.wx`), `@wavex/compiler`, `@wavex/runtime` (Lit renderer at `@wavex/runtime/lit`), `@wavex/vite-plugin`, and the `wavex` CLI. A Volar-based `@wavex/lsp` is planned.
-- `apps/todo/` — WAVEx TODO demo app. Currently the main proving ground for Convex-backed resources/mutations.
+- `packages/` — `@wavex/core` (parser/AST/diagnostics + shared project model — the single source of truth for `.wx`), `@wavex/compiler`, `@wavex/runtime` (Lit renderer at `@wavex/runtime/lit`), `@wavex/vite-plugin`, the Volar-based `@wavex/lsp`, and the `wavex` CLI.
+- `apps/todo/` — Convex-backed realtime TODO demo. `apps/swell/` — Swell Conf, the full-feature validation app.
+
+## Documentation
+
+Documentation lives in the code, not in a separate docs tree:
+
+- **`.wx` language guides** — `packages/core/docs/*.md` is the authority on `.wx` syntax, directives, Convex references, and forms. Read the relevant guide before implementing or changing language behavior.
+- **Design intent per package** — each `packages/*/README.md` plus the `@packageDocumentation` header in each package's entry module (architecture decisions, deferrals, open questions).
+- **`using-wavex` agent skill** — `.agents/skills/using-wavex/` is the generated API + language reference (committed). Regenerate with `pnpm docs:skill` after changing TSDoc or guides; `pnpm check` includes a drift gate (`pnpm docs:check`) that fails when it's stale.
 
 ## Commands
 
-- `pnpm check` at the repo root is the main typecheck/test gate.
-- `pnpm build` builds all packages and the demo app; `cd apps/todo && pnpm build` verifies just the app.
+- `pnpm check` at the repo root is the main gate: typecheck, tests, and the docs drift check.
+- `pnpm build` builds all packages and the demo apps; `cd apps/todo && pnpm build` verifies just the app.
+- `pnpm docs:skill` regenerates the `using-wavex` skill from TSDoc + guides.
 - The workspace is standardized on Vite+ (`vp`); `vite`/`vitest` are overridden to Vite+ equivalents at the root.
 
 ## Working conventions
 
-- Before implementing WAVEx behavior, read the relevant docs in `docs/`, especially `docs/wavex-spec.md`, `docs/wavex-design.md`, and `docs/roadmap.md`.
-- Keep syntax changes synchronized across parser tests, compiler tests, docs, and demos.
-- The current roadmap priority is the Convex-backed TODO milestone: resource bridge, mutation/form bridge, and proving the demo app loop end to end.
+- Before implementing WAVEx behavior, read the relevant guide in `packages/core/docs/` and the affected package's README/module docs.
+- Keep syntax changes synchronized across parser tests, compiler tests, the language guides, and demos — then run `pnpm docs:skill` and commit the regenerated skill.
+- New exported APIs get TSDoc (the generated skill is only as good as the comments); design decisions go in the owning package's README or `@packageDocumentation` header, not a separate design doc.
 
 ## Agent skills
 
 Shared agent skills live in `.agents/skills/` (`.claude/skills` is a symlink to it; `skills-lock.json` at the root tracks installed skills — run `npx skills update`/`check` from the repo root, not from an app directory).
 
 - The `convex-*` skills are installed from `get-convex/agent-skills` and committed.
+- `using-wavex` is generated from this repo's own source (`pnpm docs:skill`) and **committed** — it is first-party content.
 - `using-webawesome` and `using-fontawesome` are generated locally from the vendors' docs sites and are **git-ignored on purpose**: the Web Awesome skill includes Pro-only docs that require a license and must never be committed or published. If they are missing locally, say so rather than answering from memory.
 
 ## UI work (Web Awesome / Font Awesome)

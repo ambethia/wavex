@@ -1,3 +1,22 @@
+/**
+ * Capability detection for Web Awesome components, Font Awesome icons, local
+ * `.wx` components, and Convex functions.
+ *
+ * WAVEx does not hard-require commercial packages: capabilities are detected
+ * from what an app actually has installed. A free Web Awesome / Font Awesome
+ * package unlocks the free surface, a Pro package or kit unlocks the Pro
+ * surface, and templates that use a missing capability get targeted
+ * diagnostics instead of broken output. This keeps the framework
+ * open-sourceable without bundling or requiring licensed assets — apps bring
+ * their own installed packages.
+ *
+ * The same detection feeds the compiler (generated imports), the LSP
+ * (completions and diagnostics), and the CLI (`wavex check`).
+ *
+ * Import from `@wavex/core/capabilities`.
+ *
+ * @module capabilities
+ */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { ComponentNode, TemplateNode, WavexFile } from "./ast.js";
@@ -83,6 +102,7 @@ export function readManifestComponents(manifestPath: string): ReadonlySet<string
   }
 }
 
+/** Depth-first visit of a template node tree. */
 export function walkTemplateNodes(nodes: readonly TemplateNode[], visit: (node: TemplateNode) => void): void {
   for (const node of nodes) {
     visit(node);
@@ -90,6 +110,7 @@ export function walkTemplateNodes(nodes: readonly TemplateNode[], visit: (node: 
   }
 }
 
+/** Detected capabilities to validate component/icon references against. */
 export interface ComponentValidationOptions {
   localComponents?: readonly string[];
   webAwesome?: Pick<WebAwesomeCapability, "packageName" | "components">;

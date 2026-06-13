@@ -1,0 +1,32 @@
+{
+  "$schema": "https://typedoc-plugin-markdown.org/schema.json",
+  "name": "WAVEx",
+  "plugin": ["typedoc-plugin-markdown"],
+  "entryPointStrategy": "packages",
+  "entryPoints": ["packages/*"],
+  "projectDocuments": [
+    "packages/core/docs/language-overview.md",
+    "packages/core/docs/template-syntax.md",
+    "packages/core/docs/components-and-directives.md",
+    "packages/core/docs/convex-and-forms.md",
+    "packages/core/docs/reserved-and-deferred.md"
+  ],
+  "out": ".agents/skills/using-wavex/api",
+  "readme": "none",
+  "disableGit": true,
+  "sourceLinkTemplate": "{path}#L{line}",
+  "includeVersion": false,
+  "packageOptions": {
+    "excludePrivate": true,
+    "excludeInternal": true,
+    "disableGit": true,
+    "sourceLinkTemplate": "{path}#L{line}",
+    "basePath": "../..",
+    "includeVersion": false
+  },
+  "outputFileStrategy": "modules",
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "useCodeBlocks": true,
+  "entryFileName": "index.md"
+}

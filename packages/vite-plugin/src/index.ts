@@ -57,13 +57,25 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     config() {
       return {
         resolve: {
-          dedupe: ["lit", "lit-html", "@lit/reactive-element"]
+          dedupe: ["lit", "lit-html", "lit-element", "@lit/reactive-element", "@lit/context"]
         },
         optimizeDeps: {
           // Web Awesome components are imported lazily by route modules; if the
           // optimizer discovers them mid-session it forces a full reload and can
           // register the same custom element twice. Serve them as native ESM.
-          exclude: ["@web.awesome.me/webawesome-pro", "@awesome.me/webawesome"]
+          // The Lit packages must be excluded with them: Web Awesome's bare
+          // `lit` imports bypass the optimizer, so a pre-bundled Lit copy for
+          // app/runtime imports would be a second module instance ("Multiple
+          // versions of Lit loaded").
+          exclude: [
+            "@web.awesome.me/webawesome-pro",
+            "@awesome.me/webawesome",
+            "lit",
+            "lit-html",
+            "lit-element",
+            "@lit/reactive-element",
+            "@lit/context"
+          ]
         }
       };
     },

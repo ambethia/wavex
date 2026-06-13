@@ -1,0 +1,5 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts", "src/lit.ts"],
+  "entryModule": "@wavex/runtime"
+}

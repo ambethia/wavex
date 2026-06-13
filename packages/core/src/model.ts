@@ -1,3 +1,8 @@
+/**
+ * Fixed directory layout of a WAVEx app. The structure is framework law, not
+ * configuration: routes live in `src/pages`, reusable template components in
+ * `src/components`, Convex functions in `convex`, static assets in `public`.
+ */
 export interface WavexConfig {
   sourceDir: string;
   pagesDir: string;
@@ -6,6 +11,7 @@ export interface WavexConfig {
   publicDir: string;
 }
 
+/** A file-derived route: `src/pages/tasks/[id].wx` → `/tasks/:id`. */
 export interface RouteDefinition {
   id: string;
   file: string;
@@ -13,11 +19,17 @@ export interface RouteDefinition {
   segments: RouteSegment[];
 }
 
+/** One path segment: static text, a `[param]`, or a `[...splat]` catch-all. */
 export type RouteSegment =
   | { kind: "static"; value: string }
   | { kind: "param"; name: string }
   | { kind: "splat"; name: string };
 
+/**
+ * A structured problem report with a 1-based source position. The parser and
+ * compiler collect diagnostics instead of throwing, so tooling (CLI, LSP,
+ * Vite plugin) can surface every problem in a file at once.
+ */
 export interface Diagnostic {
   code: string;
   message: string;
@@ -26,6 +38,12 @@ export interface Diagnostic {
   column: number;
 }
 
+/**
+ * Known component names used by {@link componentReferenceToTag} to resolve
+ * `@name` references. When omitted, a built-in set of common Web Awesome
+ * component names is used; real projects should pass names detected by
+ * `@wavex/core/capabilities`.
+ */
 export interface ComponentResolutionOptions {
   localComponents?: ReadonlySet<string> | readonly string[];
   webAwesomeComponents?: ReadonlySet<string> | readonly string[];
@@ -58,6 +76,7 @@ const DEFAULT_WEB_AWESOME_COMPONENTS = new Set([
 const COLLECTION_FUNCTIONS = new Set(["all", "list", "many", "page", "paginate", "search"]);
 const SINGLETON_FUNCTIONS = new Set(["byId", "get", "load", "me", "one"]);
 
+/** The standard WAVEx app layout (see {@link WavexConfig}). */
 export function createDefaultConfig(): WavexConfig {
   return {
     sourceDir: "src",
@@ -72,6 +91,11 @@ export function normalizeSlashes(path: string): string {
   return path.replace(/\\/g, "/");
 }
 
+/**
+ * Derive a route path from a page file path, or undefined for non-routable
+ * files (`+layout.wx`, `+error.wx`, non-`.wx` files). `index.wx` maps to the
+ * directory path, `[id]` to `:id`, and `[...slug]` to `*slug`.
+ */
 export function routePathFromPageFile(file: string, pagesDir = "src/pages"): string | undefined {
   const normalizedFile = normalizeSlashes(file);
   const normalizedPagesDir = normalizeSlashes(pagesDir).replace(/\/$/, "");
@@ -115,6 +139,7 @@ export function routeIdFromFile(file: string): string {
     .replace(/^\.+|\.+$/g, "") || "index";
 }
 
+/** Build a full {@link RouteDefinition} from a page file path, or undefined if the file is not routable. */
 export function createRouteDefinition(file: string, pagesDir = "src/pages"): RouteDefinition | undefined {
   const path = routePathFromPageFile(file, pagesDir);
   if (!path) return undefined;
@@ -181,6 +206,7 @@ function matchSegments(
   return index === parts.length ? { params, score } : undefined;
 }
 
+/** Parse a search string into a flat record; the first occurrence of a repeated key wins. */
 export function parseQueryString(search: string): Record<string, string> {
   const query: Record<string, string> = {};
   for (const [key, value] of new URLSearchParams(search.startsWith("?") ? search.slice(1) : search)) {
@@ -197,6 +223,13 @@ function decodeURIComponentSafe(value: string): string {
   }
 }
 
+/**
+ * Infer the template binding name for a `$$module:function` Convex resource.
+ * The rules are intentionally simple: the last module path segment is the
+ * base name; collection-style functions (`list`, `all`, `search`, …) bind
+ * plural, singleton-style functions (`get`, `byId`, `me`, …) bind singular.
+ * `as:name` in the template overrides the inference on collisions.
+ */
 export function inferResourceBindingName(modulePath: string, functionName: string): string {
   if (SINGLETON_FUNCTIONS.has(functionName)) return singularize(lastPathSegment(modulePath));
   if (COLLECTION_FUNCTIONS.has(functionName)) return pluralize(lastPathSegment(modulePath));
@@ -220,6 +253,11 @@ export function pluralize(name: string): string {
   return `${name}s`;
 }
 
+/**
+ * Expand one `[utility]` token to its class name. This is plain `wa-` prefix
+ * expansion by design — there is no semantic mapping table or `name:value`
+ * utility grammar, so `[stack gap-xl]` is exactly `wa-stack wa-gap-xl`.
+ */
 export function expandUtilityToken(token: string): string {
   const normalized = token.trim();
   if (!normalized) return "";
@@ -246,6 +284,15 @@ export function toKebabCase(value: string): string {
     .toLowerCase();
 }
 
+/**
+ * Resolve an `@name` component reference to a custom-element tag.
+ *
+ * Lookup order: local `src/components/` templates first, then Web Awesome —
+ * local components intentionally shadow Web Awesome components without
+ * warning, so an app can define its own `card.wx` that wraps `<wa-card>`.
+ * Explicit prefixes bypass the lookup: `@wa/card` always means `<wa-card>`,
+ * `@components/card` always means the local component.
+ */
 export function componentReferenceToTag(reference: string, options: ComponentResolutionOptions = {}): string {
   const normalized = reference.replace(/^@/, "").replace(/^\/+|\/+$/g, "");
   if (normalized.startsWith("wa/")) return `wa-${toKebabCase(normalized.slice(3))}`;
@@ -262,6 +309,7 @@ export function componentReferenceToTag(reference: string, options: ComponentRes
   return `wx-${toKebabCase(normalized)}`;
 }
 
+/** Render a diagnostic as a single `SEVERITY code line:column message` line for CLI/log output. */
 export function formatDiagnostic(diagnostic: Diagnostic): string {
   return `${diagnostic.severity.toUpperCase()} ${diagnostic.code} ${diagnostic.line}:${diagnostic.column} ${diagnostic.message}`;
 }
