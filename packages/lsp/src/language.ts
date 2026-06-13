@@ -8,6 +8,7 @@ import { extractAttrsTypeKeys, parseWavex, type TemplateNode, type WavexFile } f
 import type * as ts from "typescript";
 import type { URI } from "vscode-uri";
 
+/** The LSP language id for `.wx` documents. */
 export const WAVEX_LANGUAGE_ID = "wavex";
 
 const FULL_CAPABILITIES: CodeMapping["data"] = {
@@ -19,6 +20,12 @@ const FULL_CAPABILITIES: CodeMapping["data"] = {
   verification: true
 };
 
+/**
+ * Volar language plugin: recognizes `.wx` files and produces a
+ * {@link WavexVirtualCode} per document, with the embedded TypeScript code
+ * registered as the TypeScript service script so prelude and template
+ * expressions are type-checked by the real TS language service.
+ */
 export function createWavexLanguagePlugin(): LanguagePlugin<URI> {
   return {
     getLanguageId(uri) {
@@ -47,6 +54,12 @@ interface MappedExpression {
   text: string;
 }
 
+/**
+ * The Volar virtual code for one `.wx` document: parses with the
+ * `@wavex/core` parser (the single grammar), keeps the AST for non-TS
+ * features, and emits an embedded TypeScript document that maps the prelude
+ * and every `{{ … }}` / attribute expression back to its `.wx` source range.
+ */
 export class WavexVirtualCode implements VirtualCode {
   id = "root";
   languageId = WAVEX_LANGUAGE_ID;
@@ -126,6 +139,9 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
   }
   append("declare const state: Record<string, any>;\n");
   append("declare const actionStates: Record<string, any>;\n");
+  append(
+    "declare const navigation: { pending: boolean; to?: { path: string; params: Record<string, string>; query: Record<string, string> } };\n"
+  );
 
   // 2b. Resource bindings typed from the app's generated Convex api: the
   //     query's return type (or any when no generated api is found).

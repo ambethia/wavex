@@ -1,3 +1,17 @@
+/**
+ * Lit renderer backend for the WAVEx runtime.
+ *
+ * Lit is an implementation detail here, not the app authoring model: compiled
+ * `.wx` render modules call this adapter, and Lit handles DOM patching,
+ * property/attribute updates, and keyed list identity (preserving focus
+ * across rerenders). Reusing Lit instead of a bespoke renderer is a core
+ * decision — Web Awesome already depends on Lit, so the dependency is shared
+ * and deduped through the app bundle.
+ *
+ * Import from `@wavex/runtime/lit`.
+ *
+ * @module lit
+ */
 import { render as litRender } from "lit";
 import {
   applyHead,
@@ -9,6 +23,7 @@ import {
   type ActionKindResolver,
   type AnalyticsClient,
   type HeadEntry,
+  type NavigationState,
   type RenderContext,
   type RenderFunction,
   type ResourceClient,
@@ -17,6 +32,7 @@ import {
   type RouteContext
 } from "./index.js";
 
+/** Clients and resources wired into a mount; omit clients in tests to render without a backend. */
 export interface LitMountOptions {
   resources?: readonly ResourceDefinition[];
   resourceClient?: ResourceClient;
@@ -25,12 +41,14 @@ export interface LitMountOptions {
   analytics?: AnalyticsClient;
 }
 
+/** The exports of a compiled `.wx` page module, as loaded by the bootstrap/router. */
 export interface WavexPageModule<Result = unknown> {
   default?: RenderFunction<Result>;
   render?: RenderFunction<Result>;
   resources?: readonly ResourceDefinition[];
 }
 
+/** A live mounted page: the router and HMR drive it through `setPage`/`setRender`/`update`. */
 export interface LitMount<Result = unknown> {
   context: RenderContext;
   update(nextContext?: RenderContext): void;
@@ -43,11 +61,20 @@ export interface LitMount<Result = unknown> {
     route: RouteContext;
     head?: (context?: RenderContext) => HeadEntry[];
   }): void;
+  /** Navigation lifecycle from the client router; rerenders so `+if navigation.pending` UI updates. */
+  setNavigation(navigation: NavigationState): void;
   dispose(): void;
   root: HTMLElement;
   result?: Result;
 }
 
+/**
+ * Mount a render function into a root element with the full runtime wired up:
+ * resource subscriptions (rerendering on every value/state change), semantic
+ * event delegation, action lifecycle rerenders, and `+head` application.
+ * Updates are batched per microtask; Lit patches the DOM in place, so node
+ * identity and focus survive rerenders.
+ */
 export function mountLit<Result = unknown>(
   root: HTMLElement,
   render: RenderFunction<Result>,
@@ -63,6 +90,8 @@ export function mountLit<Result = unknown>(
   let headCurrent: ((context?: RenderContext) => HeadEntry[]) | undefined;
 
   const update = (nextContext: RenderContext = {}) => {
+    // A synchronous render supersedes any queued microtask render.
+    updateRequested = false;
     Object.assign(context, createRenderContext({ ...context, ...nextContext }));
     resourceController?.update(resourceDefinitions);
     result = renderCurrent(context);
@@ -115,6 +144,11 @@ export function mountLit<Result = unknown>(
     update();
   };
 
+  const setNavigation = (navigation: NavigationState) => {
+    context.navigation = navigation;
+    requestUpdate();
+  };
+
   const setPage = (page: {
     render: RenderFunction<Result>;
     resources: readonly ResourceDefinition[];
@@ -139,6 +173,7 @@ export function mountLit<Result = unknown>(
     setRender,
     setResources,
     setPage,
+    setNavigation,
     dispose() {
       resourceController?.dispose();
       resourceController = undefined;
@@ -148,6 +183,7 @@ export function mountLit<Result = unknown>(
   };
 }
 
+/** Mount a compiled `.wx` page module (render export + inferred resources) — the bootstrap entry point. */
 export function mountLitPage<Result = unknown>(
   root: HTMLElement,
   pageModule: WavexPageModule<Result>,

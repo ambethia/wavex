@@ -11,14 +11,20 @@ import type {
   WavexFile
 } from "@wavex/core";
 
+/** Options for {@link compileWavexModule}. */
 export interface CompileWavexOptions {
+  /** Module id used in diagnostics and the generated `wxFile` metadata (usually the file path). */
   id?: string;
+  /** Local `src/components/` references; these shadow Web Awesome names in `@` lookup. */
   localComponents?: readonly string[];
+  /** Web Awesome component names (without `wa-`) detected from the installed package. */
   webAwesomeComponents?: readonly string[];
 }
 
+/** Result of {@link compileWavexModule}: the parsed AST plus the generated module source. */
 export interface CompileWavexResult {
   ast: WavexFile;
+  /** Generated TypeScript module source (render function, resources, head entries). */
   code: string;
   /** Web Awesome component names (without the wa- prefix) referenced by this template. */
   usedWebAwesomeComponents: readonly string[];
@@ -38,6 +44,17 @@ interface CompileScope {
 
 const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 
+/**
+ * Compile `.wx` source into a Lit render module.
+ *
+ * The generated module preserves the TypeScript prelude verbatim, then
+ * exports: a `render(context)` function built on Lit `html`/`repeat`, a
+ * `resources` array of inferred Convex query definitions, and a
+ * `headEntries(context)` function for `+head` content. Components declaring
+ * `type Attrs = { … }` in their prelude get each attribute destructured as a
+ * bare typed local in template scope. Parse and compile problems are reported
+ * on `result.ast.diagnostics`, not thrown.
+ */
 export function compileWavexModule(source: string, options: CompileWavexOptions = {}): CompileWavexResult {
   const ast = parseWavex(source, { fileName: options.id });
   const renderNodes = ast.nodes.filter((node) => !(node.kind === "directive" && node.name === "head"));
@@ -78,9 +95,10 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     `  const attrs = context.attrs ?? {};`,
     `  const state = context.state ?? {};`,
     `  const actionStates = context.actionStates ?? {};`,
+    `  const navigation = context.navigation ?? { pending: false };`,
     resourceDeclarations,
     attrsDeclarations,
-    `  void route; void attrs; void state; void actionStates;`,
+    `  void route; void attrs; void state; void actionStates; void navigation;`,
     `  return [${headEntriesBody}];`,
     `}`,
     "",
@@ -89,9 +107,10 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     `  const attrs = context.attrs ?? {};`,
     `  const state = context.state ?? {};`,
     `  const actionStates = context.actionStates ?? {};`,
+    `  const navigation = context.navigation ?? { pending: false };`,
     resourceDeclarations,
     attrsDeclarations,
-    `  void route; void attrs; void state; void actionStates;`,
+    `  void route; void attrs; void state; void actionStates; void navigation;`,
     `  return html\`${renderBody}\`;`,
     `}`,
     "",
@@ -159,9 +178,10 @@ function compileResourceArgsGetter(attributes: readonly Attribute[], resourceNam
     `      const route = context.route ?? { path: "/", params: {}, query: {} };`,
     `      const attrs = context.attrs ?? {};`,
     `      const state = context.state ?? {};`,
+    `      const navigation = context.navigation ?? { pending: false };`,
     `      const contextResources = context.resources ?? {};`,
     declarations,
-    `      void route; void attrs; void state; void contextResources;`,
+    `      void route; void attrs; void state; void navigation; void contextResources;`,
     `      return ${expression};`,
     `    },`
   ]
@@ -594,10 +614,15 @@ function isIdentifierName(name: string): boolean {
   return /^[A-Za-z_$][\w$]*$/.test(name);
 }
 
+/**
+ * Resolve an `@name` reference to its custom-element tag using the compile
+ * options' component sets (local components shadow Web Awesome).
+ */
 export function componentTagForReference(reference: string, options: CompileWavexOptions = {}): string {
   return componentReferenceToTag(reference, options);
 }
 
+/** Expand one `[utility]` token to its `wa-` class (plain prefix expansion, no mapping table). */
 export function utilityClassForToken(token: string): string {
   return `wa-${toKebabCase(token)}`;
 }

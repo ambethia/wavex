@@ -70,3 +70,23 @@
 .ai-summary {
   font-style: italic;
 }
+
+/* nprogress-style top bar while the router loads the next page. */
+.nav-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 100;
+  --track-height: 3px;
+  --indicator-color: var(--wa-color-brand-fill-loud);
+  --track-color: transparent;
+  /* Anti-flash: only fade in if the navigation takes longer than a beat. */
+  opacity: 0;
+  animation: wx-nav-progress-reveal 0s linear 150ms forwards;
+}
+
+@keyframes wx-nav-progress-reveal {
+  to {
+    opacity: 1;
+  }
+}

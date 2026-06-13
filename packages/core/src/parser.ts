@@ -15,6 +15,7 @@ import type {
   WavexFile
 } from "./ast.js";
 
+/** Options for {@link parseWavex}. */
 export interface ParseWavexOptions {
   fileName?: string;
 }
@@ -38,6 +39,7 @@ const BOOLEAN_ATTRIBUTE_NAMES = new Set([
   "defer",
   "disabled",
   "hidden",
+  "indeterminate",
   "multiple",
   "open",
   "readonly",
@@ -47,6 +49,15 @@ const BOOLEAN_ATTRIBUTE_NAMES = new Set([
   "with-header"
 ]);
 
+/**
+ * Parse a complete `.wx` source file into a {@link WavexFile}.
+ *
+ * The TypeScript prelude (everything before the `~~~` wave separator) is kept
+ * as raw text for TypeScript tooling; the indentation-based template body is
+ * parsed into {@link TemplateNode} trees with source ranges. Parse problems
+ * are collected as diagnostics on the result rather than thrown, so a file
+ * with errors still yields a best-effort AST for the LSP and compiler.
+ */
 export function parseWavex(source: string, _options: ParseWavexOptions = {}): WavexFile {
   const diagnostics: Diagnostic[] = [];
   const allLines = source.split(/\r?\n/);
@@ -357,6 +368,12 @@ function parseAttributesAndInlineText(tokens: string[]): ParsedHead {
   return { attributes, inlineText };
 }
 
+/**
+ * Parse one attribute token into its {@link Attribute} form: boolean
+ * (`required`), literal (`variant:brand`), expression
+ * (`checked:{{ task.done }}`), same-name shorthand (`task:`), semantic event
+ * (`:click:save`), or raw DOM event (`on:wa-show:opened`).
+ */
 export function parseAttributeToken(token: string): Attribute | undefined {
   if (!token) return undefined;
 

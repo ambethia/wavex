@@ -1,4 +1,24 @@
+/**
+ * Browser runtime for WAVEx apps: routing, resource lifecycle, the Convex
+ * bridge, mutation/action state, head management, error boundaries, and
+ * analytics.
+ *
+ * The split of responsibilities is deliberate: WAVEx owns resources, routing,
+ * actions, head, and analytics, while the renderer backend (see
+ * `@wavex/runtime/lit`) owns low-level DOM patching and keyed list identity.
+ * Apps are client-side by default — prerendered HTML is an output
+ * optimization, and Convex realtime subscriptions start after boot.
+ *
+ * The Convex bridge wraps the official Convex browser client behind the
+ * {@link ResourceClient} and {@link ActionClient} interfaces: `$$module:fn`
+ * query bindings become live route-scoped subscriptions (torn down on
+ * navigation), and mutations/actions dispatch through the client with
+ * explicit pending/error lifecycle state ({@link ActionState}) for templates.
+ *
+ * @module @wavex/runtime
+ */
 import { analyticsEventNameForTarget } from "./analytics.js";
+/** The current route as seen by templates: `route.path`, `route.params`, `route.query`. */
 export interface RouteContext {
   path: string;
   params: Record<string, string>;
@@ -6,8 +26,10 @@ export interface RouteContext {
   url?: URL;
 }
 
+/** Lifecycle of a live query resource; drives `+loading` / `+error` / `+empty` template states. */
 export type ResourceLifecycleStatus = "loading" | "ready" | "error";
 
+/** Current state of one subscribed Convex query resource. */
 export interface ResourceState<T = unknown> {
   status: ResourceLifecycleStatus;
   value?: T;
@@ -15,8 +37,10 @@ export interface ResourceState<T = unknown> {
   updatedAt?: number;
 }
 
+/** Lifecycle of a mutation/action dispatch; drives `+pending` / `+idle` / `+mutation-error` states. */
 export type ActionLifecycleStatus = "idle" | "pending" | "error";
 
+/** Current state of one semantic action target (mutation or Convex action). */
 export interface ActionState<T = unknown> {
   status: ActionLifecycleStatus;
   pending: boolean;
@@ -25,6 +49,12 @@ export interface ActionState<T = unknown> {
   updatedAt?: number;
 }
 
+/**
+ * Everything a compiled render function can see: the route, component attrs,
+ * local state, live resource values and their lifecycle states, action
+ * states, projected slot content, and the semantic action dispatcher.
+ * Compiled `.wx` modules read from this; the runtime owns writing to it.
+ */
 export interface RenderContext {
   route?: RouteContext;
   /** Component attributes (and the route error for +error.wx pages). */
@@ -33,13 +63,33 @@ export interface RenderContext {
   resources?: Record<string, unknown>;
   resourceStates?: Record<string, ResourceState>;
   actionStates?: Record<string, ActionState>;
+  /** Client navigation lifecycle — `navigation.pending` while a route loads. */
+  navigation?: NavigationState;
   /** Slot content projected into layouts and local components (semantic slot composition). */
   slots?: Record<string, unknown>;
   dispatch?: (event: WavexActionEvent) => void | Promise<void>;
 }
 
+/**
+ * The client router's navigation lifecycle, exposed declaratively in template
+ * context. Render an nprogress-style indicator with `+if navigation.pending`;
+ * the router also mirrors this onto `<html data-wx-navigating>` for CSS-only
+ * indicators.
+ */
+export interface NavigationState {
+  pending: boolean;
+  /** The destination route while a navigation is pending. */
+  to?: RouteContext;
+}
+
 export type ResourceArgsFactory<TArgs = unknown> = (context: RenderContext) => TArgs;
 
+/**
+ * A Convex query resource as emitted by the compiler for a `$$module:fn`
+ * binding. Args may be a static value or a factory reading the render
+ * context (e.g. `route.params`), which makes the subscription re-resolve on
+ * navigation.
+ */
 export interface ResourceDefinition<TArgs = unknown> {
   name: string;
   modulePath: string;
@@ -66,6 +116,12 @@ export interface ResourceSubscriptionHandlers<T = unknown> {
 
 export type ResourceTeardown = void | (() => void) | { dispose?: () => void; unsubscribe?: () => void; getCurrentValue?: () => unknown };
 
+/**
+ * The subscription seam between the runtime and a realtime backend. The real
+ * implementation wraps the official Convex browser client
+ * ({@link createConvexResourceClient}); tests use fake clients — runtime
+ * behavior is deliberately testable without a live deployment.
+ */
 export interface ResourceClient {
   subscribe<T = unknown>(
     definition: ResolvedResourceDefinition,
@@ -73,6 +129,7 @@ export interface ResourceClient {
   ): ResourceTeardown;
 }
 
+/** Manages the live subscriptions for a mounted page; `update` diffs definitions, `dispose` tears all down. */
 export interface ResourceController {
   update(nextDefinitions?: readonly ResourceDefinition[]): void;
   dispose(): void;
@@ -83,6 +140,7 @@ export interface ResourceControllerOptions {
   onChange?: () => void;
 }
 
+/** A `$$module:fn` mutation/action target parsed from a semantic event attribute. */
 export interface ActionDefinition<TArgs = unknown> {
   target: string;
   modulePath: string;
@@ -101,10 +159,16 @@ export interface ResolvedActionDefinition<TArgs = unknown> {
   args: TArgs;
 }
 
+/** Dispatch seam for mutations/actions; wraps the Convex client in production ({@link createConvexActionClient}). */
 export interface ActionClient {
   invoke(definition: ResolvedActionDefinition): Promise<unknown>;
 }
 
+/**
+ * Resolves whether a `$$` target is a Convex mutation or action. The Vite
+ * plugin supplies one backed by the function-kind manifest discovered from
+ * `convex/` sources, so templates never declare the kind.
+ */
 export type ActionKindResolver = (definition: ActionDefinition, event: WavexActionEvent) => "mutation" | "action" | undefined;
 
 export interface SemanticActionDispatcherOptions {
@@ -118,6 +182,7 @@ export interface SemanticActionDispatcherOptions {
   analytics?: import("./analytics.js").AnalyticsClient;
 }
 
+/** Structural slice of the official Convex browser client the runtime depends on (subscriptions). */
 export interface ConvexBrowserClientLike {
   onUpdate(
     query: unknown,
@@ -127,6 +192,7 @@ export interface ConvexBrowserClientLike {
   ): ResourceTeardown;
 }
 
+/** Structural slice of the Convex client used for mutations and actions. */
 export interface ConvexActionClientLike {
   mutation(mutation: unknown, args: Record<string, unknown>): Promise<unknown>;
   action(action: unknown, args: Record<string, unknown>): Promise<unknown>;
@@ -142,6 +208,7 @@ export interface ConvexActionClientOptions {
   resolveFunction?: (definition: ResolvedActionDefinition) => unknown;
 }
 
+/** A semantic event captured by delegation: `:click:save` produces `{ type: "click", target: "save" }`. */
 export interface WavexActionEvent {
   type: string;
   target: string;
@@ -150,12 +217,14 @@ export interface WavexActionEvent {
   context: RenderContext;
 }
 
+/** One managed head node from a `+head` directive (title, meta, or link). */
 export interface HeadEntry {
   tag: "title" | "meta" | "link";
   text?: string;
   attributes?: Record<string, string>;
 }
 
+/** The shape of a compiled `.wx` module's render export; `Result` is the renderer backend's template type. */
 export type RenderFunction<Result = unknown> = (context?: RenderContext) => Result;
 
 interface ActiveResource {
@@ -164,6 +233,7 @@ interface ActiveResource {
   teardown: ResourceTeardown;
 }
 
+/** Build a {@link RouteContext} from a URL (defaults to the current location); params are filled in by the router. */
 export function createRouteContext(input: string | URL = globalThis.location?.href ?? "http://localhost/"): RouteContext {
   const url = input instanceof URL ? input : new URL(input, "http://localhost");
   return {
@@ -174,6 +244,7 @@ export function createRouteContext(input: string | URL = globalThis.location?.hr
   };
 }
 
+/** Normalize a partial context into a fully-populated {@link RenderContext} with empty defaults. */
 export function createRenderContext(context: RenderContext = {}): RenderContext {
   return {
     route: context.route ?? createRouteContext(),
@@ -182,10 +253,19 @@ export function createRenderContext(context: RenderContext = {}): RenderContext 
     resources: context.resources ?? {},
     resourceStates: context.resourceStates ?? {},
     actionStates: context.actionStates ?? {},
+    navigation: context.navigation ?? { pending: false },
     dispatch: context.dispatch
   };
 }
 
+/**
+ * Subscribe the context's resources through a {@link ResourceClient} and keep
+ * `context.resources` / `context.resourceStates` current. Subscriptions are
+ * keyed by function address and resolved args: `update()` diffs the wanted
+ * set against active subscriptions, so navigation tears down only what
+ * actually changed (route-scoped subscriptions), and `onChange` schedules a
+ * rerender on every value/state transition.
+ */
 export function createResourceController(
   context: RenderContext,
   definitions: readonly ResourceDefinition[] = [],
@@ -266,6 +346,11 @@ export function createResourceController(
   };
 }
 
+/**
+ * Adapt the official Convex browser client to the {@link ResourceClient}
+ * seam. Function addresses resolve through the generated `api` object when
+ * provided (typed references), falling back to string paths.
+ */
 export function createConvexResourceClient(
   client: ConvexBrowserClientLike,
   options: ConvexResourceClientOptions = {}
@@ -280,6 +365,7 @@ export function createConvexResourceClient(
   };
 }
 
+/** Adapt the Convex client to the {@link ActionClient} seam; dispatches by inferred kind (mutation vs action). */
 export function createConvexActionClient(
   client: ConvexActionClientLike,
   options: ConvexActionClientOptions = {}
@@ -293,6 +379,13 @@ export function createConvexActionClient(
   };
 }
 
+/**
+ * Build the dispatcher behind `context.dispatch`. `$$module:fn` targets go
+ * through the action client with full lifecycle handling — pending state,
+ * form `preventDefault`/reset on success, error state, and an automatic
+ * analytics capture (`:track:` overrides the event name). Non-Convex targets
+ * fall through to `options.dispatch` (app-defined handlers).
+ */
 export function createSemanticActionDispatcher(
   context: RenderContext,
   options: SemanticActionDispatcherOptions = {}
@@ -338,6 +431,12 @@ export function createSemanticActionDispatcher(
   };
 }
 
+/**
+ * Listen for click/submit/change at the root (capture phase) and route
+ * `data-wx-*` action attributes — the compiled form of `:event:target` — to
+ * `context.dispatch`. Delegation means compiled templates carry no inline
+ * listeners. Returns an uninstall function.
+ */
 export function installSemanticEventDelegation(root: ParentNode & EventTarget, context: RenderContext): () => void {
   const listener = (event: Event) => {
     const target = event.target instanceof Element ? event.target : undefined;
@@ -364,6 +463,12 @@ export function installSemanticEventDelegation(root: ParentNode & EventTarget, c
   };
 }
 
+/**
+ * Reconcile `document.title` and `data-wx-head`-managed meta/link nodes with
+ * the given entries. Only nodes the runtime created are touched, so static
+ * head content from `index.html` (and prerendered head output, which emits
+ * the same shape) survives client navigation.
+ */
 export function applyHead(entries: readonly HeadEntry[], documentRef: Document = document): void {
   const managed = new Set<Element>(documentRef.head.querySelectorAll("[data-wx-head]"));
 

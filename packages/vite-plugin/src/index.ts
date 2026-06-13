@@ -1,3 +1,19 @@
+/**
+ * Vite+ integration for WAVEx apps: compiles `.wx` modules on demand, serves
+ * the generated route table and bootstrap module, and drives HMR.
+ *
+ * Vite+ is the primary dev/build substrate by design — it provides the module
+ * graph, HMR, package integration, and production bundling so WAVEx only owns
+ * what is WAVEx-specific: the file-convention route table
+ * (`virtual:wavex/routes`), the bootstrap entry (`/@wavex/bootstrap`, which
+ * renders the app directly under `<body>` with no framework mount div), and
+ * `.wx` hot updates that preserve Convex client state across template edits.
+ *
+ * The `@wavex/vite-plugin/client` subpath ships ambient module declarations
+ * for `*.wx` imports; apps reference it from their tsconfig `types`.
+ *
+ * @module @wavex/vite-plugin
+ */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
@@ -6,8 +22,15 @@ import { detectCapabilities, discoverConvexFunctionKinds, type ProjectCapabiliti
 import type { Plugin, ViteDevServer } from "vite";
 import { transformWithOxc } from "vite";
 
+/** Options for {@link wavex}. */
 export interface WavexVitePluginOptions {
+  /** Override the Web Awesome component set; by default it is detected from the installed package. */
   webAwesomeComponents?: readonly string[];
+  /**
+   * Wrap client navigations in `document.startViewTransition` (default true).
+   * Skipped automatically when unsupported or under `prefers-reduced-motion`.
+   */
+  viewTransitions?: boolean;
 }
 
 const VIRTUAL_ROUTES_ID = "virtual:wavex/routes";
@@ -16,6 +39,13 @@ const VIRTUAL_BOOTSTRAP_ID = "virtual:wavex/bootstrap";
 const BOOTSTRAP_PUBLIC_ID = "/@wavex/bootstrap";
 const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
 
+/**
+ * The WAVEx Vite plugin. Compiles `.wx` files to Lit render modules on
+ * demand, serves `virtual:wavex/routes` (the file-convention route table with
+ * lazy per-route loaders, layouts, and error pages) and the
+ * `/@wavex/bootstrap` entry, dedupes Lit, and sends targeted `wavex:update`
+ * HMR events for template edits so Convex client state survives `.wx` edits.
+ */
 export function wavex(options: WavexVitePluginOptions = {}): Plugin {
   let projectRoot = process.cwd();
   let capabilities: ProjectCapabilities | undefined;
@@ -95,7 +125,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
           ""
         ].join("\n");
       }
-      if (id === RESOLVED_VIRTUAL_BOOTSTRAP_ID) return generateBootstrapModule(config, projectRoot);
+      if (id === RESOLVED_VIRTUAL_BOOTSTRAP_ID) return generateBootstrapModule(config, projectRoot, options);
       return undefined;
     },
     async transform(code, id) {
@@ -193,7 +223,7 @@ function actionKindMap(root: string): Record<string, "mutation" | "action"> {
   return kinds;
 }
 
-function generateBootstrapModule(config: ResolvedDirs, root: string): string {
+function generateBootstrapModule(config: ResolvedDirs, root: string, options: WavexVitePluginOptions = {}): string {
   const styleImport = existsSync(config.styleFile) ? `import ${JSON.stringify(publicImportPath(root, config.styleFile))};` : "";
   const apiImport = existsSync(config.convexApiFile)
     ? `import { api as convexApi } from ${JSON.stringify(publicImportPath(root, config.convexApiFile))};`
@@ -233,6 +263,7 @@ function generateBootstrapModule(config: ResolvedDirs, root: string): string {
     `const router = createClientRouter({`,
     `  routes,`,
     `  host: app,`,
+    `  viewTransitions: ${JSON.stringify(options.viewTransitions ?? true)},`,
     `  onNavigate: (route) => analytics?.capture("$pageview", { $current_url: location.href, path: route.path }),`,
     `});`,
     `globalThis.__wavexHotReplacePage = (file, module) => router.hotReplacePage(file, module);`,

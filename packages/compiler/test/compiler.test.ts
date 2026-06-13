@@ -118,6 +118,15 @@ describe("compileWavexModule", () => {
     expect(compiled.code).not.toContain(`"as":`);
   });
 
+  it("exposes navigation as a bare template local", () => {
+    const compiled = compileWavexModule(`~~~\n+if navigation.pending\n  @progress-bar indeterminate\n`, {
+      id: "src/pages/+layout.wx"
+    });
+
+    expect(compiled.code).toContain("const navigation = context.navigation ?? { pending: false };");
+    expect(compiled.code).toContain("${navigation.pending ? html`");
+  });
+
   it("honors as: renames for resource bindings", () => {
     const compiled = compileWavexModule(`~~~\n$$talks:list as:upNext args:{ when: "next" }\n  +for talk in upNext\n    p {{ talk.title }}\n`, {
       id: "src/pages/live.wx"

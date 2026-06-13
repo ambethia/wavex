@@ -1,5 +1,12 @@
 import { matchRoutePath, parseQueryString, type RouteDefinition } from "@wavex/core";
-import type { HeadEntry, RenderContext, RenderFunction, ResourceDefinition, RouteContext } from "./index.js";
+import type {
+  HeadEntry,
+  NavigationState,
+  RenderContext,
+  RenderFunction,
+  ResourceDefinition,
+  RouteContext
+} from "./index.js";
 
 export interface RoutePageModule<Result = unknown> {
   default?: RenderFunction<Result>;
@@ -63,6 +70,8 @@ export interface RouterPageHost {
     head?: (context?: RenderContext) => HeadEntry[];
   }): void;
   update(nextContext?: { route?: RouteContext }): void;
+  /** Navigation lifecycle for declarative progress UI (optional for custom hosts). */
+  setNavigation?(navigation: NavigationState): void;
 }
 
 export interface ClientRouterOptions {
@@ -70,6 +79,12 @@ export interface ClientRouterOptions {
   host: RouterPageHost;
   /** Render function used when no route matches the current path. */
   notFound?: RenderFunction;
+  /**
+   * Wrap navigation commits in `document.startViewTransition` (default true).
+   * Automatically skipped when unsupported, under `prefers-reduced-motion`,
+   * and on the initial load; HMR swaps never transition.
+   */
+  viewTransitions?: boolean;
   window?: Window;
   onNavigate?: (route: RouteContext) => void;
 }
@@ -91,11 +106,68 @@ interface ActivePage {
 
 const defaultNotFound: RenderFunction = () => undefined;
 
+/**
+ * Progressive client router: intercepts internal link clicks (native `a href`
+ * stays native), drives the History API, lazy-loads the matched route's
+ * module and layouts, and atomically swaps the page into the host via
+ * `setPage` — which re-scopes Convex subscriptions to the new route. Stale
+ * navigations are cancelled by token, and `popstate` is handled for
+ * back/forward.
+ */
 export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const win = options.window ?? window;
   const notFound = options.notFound ?? defaultNotFound;
+  const viewTransitionsEnabled = options.viewTransitions ?? true;
   let navigationToken = 0;
   let current: ActivePage | undefined;
+
+  const setNavigation = (navigation: NavigationState) => {
+    options.host.setNavigation?.(navigation);
+    const documentElement = win.document?.documentElement;
+    if (!documentElement) return;
+    if (navigation.pending) documentElement.setAttribute("data-wx-navigating", "");
+    else documentElement.removeAttribute("data-wx-navigating");
+  };
+
+  /**
+   * Commit a page swap, wrapped in a View Transition when appropriate.
+   * pending->false clears inside the update callback, atomically with the
+   * swap: clearing earlier flickers the old snapshot, clearing after
+   * `finished` bakes the progress UI into the new snapshot.
+   */
+  const commitWithTransition = async (token: number, pop: boolean, commit: () => void): Promise<void> => {
+    const documentRef = win.document as Document & {
+      startViewTransition?: (
+        update: (() => void) | { update: () => void; types?: string[] }
+      ) => { updateCallbackDone: Promise<void> };
+    };
+    const reducedMotion = win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+    const useTransition =
+      viewTransitionsEnabled && current !== undefined && typeof documentRef.startViewTransition === "function" && !reducedMotion;
+
+    const guardedCommit = () => {
+      if (token !== navigationToken) return; // superseded during the frame gap
+      setNavigation({ pending: false });
+      commit();
+    };
+
+    if (!useTransition) {
+      guardedCommit();
+      return;
+    }
+
+    let transition: { updateCallbackDone: Promise<void> };
+    try {
+      // Object signature carries direction types for :active-view-transition-type().
+      transition = documentRef.startViewTransition!({
+        update: guardedCommit,
+        types: ["wavex-navigation", pop ? "backward" : "forward"]
+      });
+    } catch {
+      transition = documentRef.startViewTransition!(guardedCommit);
+    }
+    await transition.updateCallbackDone.catch(() => undefined);
+  };
 
   const applyCurrent = () => {
     if (!current?.page) return;
@@ -131,21 +203,24 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     }
 
     const clientRoute = match.route as ClientRoute;
+    setNavigation({ pending: true, to: route });
     try {
       const layoutDefs = clientRoute.layouts ?? [];
       const [module, ...layoutModules] = await Promise.all([
         clientRoute.load(),
         ...layoutDefs.map((layout) => layout.load())
       ]);
-      if (token !== navigationToken) return; // superseded by a newer navigation
+      if (token !== navigationToken) return; // superseded; the newer navigation owns pending state
 
-      current = {
-        route,
-        file: clientRoute.file,
-        page: module,
-        layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
-      };
-      applyCurrent();
+      await commitWithTransition(token, navOptions.pop ?? false, () => {
+        current = {
+          route,
+          file: clientRoute.file,
+          page: module,
+          layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
+        };
+        applyCurrent();
+      });
     } catch (error) {
       if (token !== navigationToken) return;
       await renderErrorRoute(clientRoute, route, error);
@@ -156,10 +231,23 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   /** Deterministic error UI: render the deepest +error.wx for the route, bare (no layouts). */
   const renderErrorRoute = async (clientRoute: ClientRoute, route: RouteContext, error: unknown) => {
     const errorDef = clientRoute.errors?.at(-1);
-    if (!errorDef) throw error;
-    const errorModule = await errorDef.load();
+    if (!errorDef) {
+      setNavigation({ pending: false });
+      throw error;
+    }
+    let errorModule: RoutePageModule;
+    try {
+      errorModule = await errorDef.load();
+    } catch (loadError) {
+      setNavigation({ pending: false });
+      throw loadError;
+    }
     const errorRender = errorModule.default ?? errorModule.render;
-    if (!errorRender) throw error;
+    if (!errorRender) {
+      setNavigation({ pending: false });
+      throw error;
+    }
+    setNavigation({ pending: false });
     current = { route, file: errorDef.file, page: errorModule, layouts: [] };
     options.host.setPage({
       render: (context = {}) => errorRender({ ...context, attrs: { ...context.attrs, error } }),
