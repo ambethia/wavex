@@ -32,7 +32,7 @@
                 | Summary unavailable: {{ String(problem) }}
             div [stack gap-s]
               div [cluster gap-s align-items-center]
-                @button size:s appearance:outlined :click:$$ai/summarize:run data-slug:{{ talk.slug }}
+                @button size:s appearance:outlined :click:$$ai/summarize:run({ slug: talk.slug })
                   +pending
                     @spinner
                     | Summarizing…

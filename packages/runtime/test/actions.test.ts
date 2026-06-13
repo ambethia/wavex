@@ -94,6 +94,27 @@ describe("semantic action dispatcher", () => {
     ]);
   });
 
+  it("passes compiler-lowered inline action args through the element args property", async () => {
+    const calls: ResolvedActionDefinition[] = [];
+    const event = fakeActionEvent({
+      target: "$$ai:summarize",
+      element: {
+        args: { id: "task-1" },
+        getAttributeNames: () => ["data-wx-click"],
+        getAttribute: (name) => (name === "data-wx-click" ? "$$ai:summarize" : null)
+      }
+    });
+    const dispatch = createSemanticActionDispatcher(event.context, {
+      actionClient: { invoke: async (definition) => calls.push(definition) }
+    });
+
+    await dispatch(event);
+
+    expect(calls).toMatchObject([
+      { target: "$$ai:summarize", modulePath: "ai", functionName: "summarize", args: { id: "task-1" } }
+    ]);
+  });
+
   it("captures analytics for semantic actions with :track: override", async () => {
     const captured: Array<{ event: string; properties?: Record<string, unknown> }> = [];
     const client: ActionClient = { invoke: async () => undefined };
@@ -156,6 +177,17 @@ describe("semantic action dispatcher", () => {
     await dispatch(event);
 
     expect(customTargets).toEqual(["reset"]);
+  });
+
+  it("rejects malformed Convex targets instead of treating them as custom actions", async () => {
+    const customTargets: string[] = [];
+    const event = fakeActionEvent({ target: "$$ai:summarize({ id: task._id })" });
+    const dispatch = createSemanticActionDispatcher(event.context, {
+      dispatch: (action) => customTargets.push(action.target)
+    });
+
+    await expect(dispatch(event)).rejects.toThrow("Invalid WAVEx Convex action target");
+    expect(customTargets).toEqual([]);
   });
 
   it("normalizes colon-delimited nested Convex targets", async () => {

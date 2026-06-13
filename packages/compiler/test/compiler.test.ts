@@ -105,6 +105,20 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`?.error) : nothing}`);
   });
 
+  it("lowers inline Convex action args from semantic events to the runtime args property", () => {
+    const compiled = compileWavexModule(
+      `~~~\n@button :click:$$ai:summarize({ id: task._id })\n  +pending\n    @spinner\n    | Summarizing…\n  +idle\n    | Summarize\n`,
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain('data-wx-click="$$ai:summarize"');
+    expect(compiled.code).toContain(" .args=${{ id: task._id }}");
+    expect(compiled.code).toContain(`context.actionStates?.["$$ai:summarize"]?.status === "pending" ? html`);
+    expect(compiled.code).not.toContain('data-wx-click="$$ai:summarize({ id: task._id })"');
+    expect(compiled.code).not.toContain('context.actionStates?.["$$ai:summarize({ id: task._id })"]');
+  });
+
   it("compiles attribute args on $$ calls (the wavex-native form)", () => {
     const compiled = compileWavexModule(
       `~~~\n$$talks:get slug:route.params.slug\n$$talks:list as:systemsTalks track:"systems" featured\n$$tasks:search args:{ ...base } query:state.q\n`,

@@ -585,7 +585,11 @@ function parseConvexActionTarget(target: string): ActionDefinition | undefined {
   const splitIndex = withoutSigils.lastIndexOf(":");
   const modulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex).replace(/:/g, "/");
   const functionName = splitIndex === -1 ? "" : withoutSigils.slice(splitIndex + 1);
-  if (!/^[A-Za-z0-9_./-]+$/.test(modulePath) || !/^[A-Za-z_$][\w$]*$/.test(functionName)) return undefined;
+  if (!/^[A-Za-z0-9_./-]+$/.test(modulePath) || !/^[A-Za-z_$][\w$]*$/.test(functionName)) {
+    throw new Error(
+      `Invalid WAVEx Convex action target ${JSON.stringify(target)}. Expected $$module:function; inline args must be lowered to the element args property by the compiler.`
+    );
+  }
   return { target, modulePath, functionName, raw: target };
 }
 

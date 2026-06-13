@@ -370,7 +370,7 @@ function scopeForChildren(attributes: readonly Attribute[], scope: CompileScope)
     (attribute) => attribute.kind === "semantic-event" && attribute.event !== "track" && attribute.target.startsWith("$$")
   );
   if (!semanticTarget || semanticTarget.kind !== "semantic-event") return scope;
-  return { ...scope, action: semanticTarget.target };
+  return { ...scope, action: semanticEventRuntimeTarget(semanticTarget.target).target };
 }
 
 const ACTION_STATE_DIRECTIVES = new Set(["pending", "idle", "mutation-error"]);
@@ -496,6 +496,33 @@ function compileConvexCall(node: ConvexCallNode, options: InternalCompileOptions
   return compileNodes(node.children, options, { resource: node.bindingName });
 }
 
+function compileSemanticEventAttribute(attribute: Extract<Attribute, { kind: "semantic-event" }>): string[] {
+  const runtimeTarget = semanticEventRuntimeTarget(attribute.target);
+  const emitted = [` data-wx-${attribute.event}=\"${escapeStaticAttribute(runtimeTarget.target)}\"`];
+  if (runtimeTarget.argsExpression) emitted.push(` .args=\${${runtimeTarget.argsExpression}}`);
+  return emitted;
+}
+
+function semanticEventRuntimeTarget(target: string): { target: string; argsExpression?: string } {
+  if (!target.startsWith("$$")) return { target };
+  const openParenIndex = target.indexOf("(");
+  if (openParenIndex === -1 || !target.endsWith(")")) return { target };
+
+  const actionTarget = target.slice(0, openParenIndex);
+  if (!isConvexActionTarget(actionTarget)) return { target };
+
+  const argsExpression = target.slice(openParenIndex + 1, -1).trim();
+  return argsExpression ? { target: actionTarget, argsExpression } : { target: actionTarget };
+}
+
+function isConvexActionTarget(target: string): boolean {
+  const withoutSigils = target.replace(/^\$\$/, "");
+  const splitIndex = withoutSigils.lastIndexOf(":");
+  const modulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex).replace(/:/g, "/");
+  const functionName = splitIndex === -1 ? "" : withoutSigils.slice(splitIndex + 1);
+  return /^[A-Za-z0-9_./-]+$/.test(modulePath) && /^[A-Za-z_$][\w$]*$/.test(functionName);
+}
+
 function compileAttributes(attributes: readonly Attribute[], utilities: readonly string[]): string {
   const emitted: string[] = [];
   const staticClasses: string[] = expandUtilityClassList(utilities);
@@ -523,7 +550,7 @@ function compileAttributes(attributes: readonly Attribute[], utilities: readonly
         emitted.push(compileExpressionAttribute(attribute.name, attribute.name));
         break;
       case "semantic-event":
-        emitted.push(` data-wx-${attribute.event}=\"${escapeStaticAttribute(attribute.target)}\"`);
+        emitted.push(...compileSemanticEventAttribute(attribute));
         break;
       case "raw-event":
         emitted.push(` @${attribute.event}=\${${attribute.handler}}`);
