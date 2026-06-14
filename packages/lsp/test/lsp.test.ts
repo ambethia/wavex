@@ -184,7 +184,7 @@ describe("virtual code mappings", () => {
 
   it("anchors repeated attribute and inline expressions to parser sub-ranges", async () => {
     const { WavexVirtualCode } = await import("../src/index.js");
-    const text = "~~~\n+if talk\n  @talk-card title:talk.title talk:\n  p talk {{ talk }}\n";
+    const text = "~~~\n+if talk\n  @talk-card title:talk.title talk:\n  p talk   {{ talk }}\n";
     const snapshot = {
       getText: (start: number, end: number) => text.slice(start, end),
       getLength: () => text.length,

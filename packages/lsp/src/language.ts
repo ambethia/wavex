@@ -4,7 +4,7 @@ import type { CodeMapping, LanguagePlugin, VirtualCode } from "@volar/language-c
 import { forEachEmbeddedCode } from "@volar/language-core";
 // Side-effect import: augments LanguagePlugin with the `typescript` integration hook.
 import "@volar/typescript";
-import { extractAttrsTypeKeys, parseWavex, type TemplateNode, type WavexFile } from "@wavex/core";
+import { extractAttrsTypeKeys, parseWavex, type SourceRange, type TemplateNode, type WavexFile } from "@wavex/core";
 import type * as ts from "typescript";
 import type { URI } from "vscode-uri";
 
@@ -167,7 +167,7 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
   // 3. Template expressions type-check inside their template scopes (+for
   //    items, +error bindings), mapped back to source.
   append("export function __wxTemplateExpressions() {\n");
-  emitNodes(ast.nodes, { append, appendMapped });
+  emitNodes(source, ast.nodes, { append, appendMapped });
   append("}\n");
   append("export {};\n");
 
@@ -193,7 +193,7 @@ const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
  * +mutation-error / +boundary error bindings (unknown), and handler references
  * from raw and custom semantic events (so prelude functions count as used).
  */
-function emitNodes(nodes: readonly TemplateNode[], emitter: Emitter): void {
+function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emitter): void {
   const seenOffsets = new Set<number>();
 
   const emitExpression = (text: string | undefined, searchBase: number, searchText: string) => {
@@ -212,6 +212,7 @@ function emitNodes(nodes: readonly TemplateNode[], emitter: Emitter): void {
 
   const errorBinding = (expression: string | undefined): string =>
     IDENTIFIER.test(expression?.trim() ?? "") ? expression!.trim() : "err";
+  const sourceForRange = (range: SourceRange | undefined) => (range ? source.slice(range.start.offset, range.end.offset) : undefined);
 
   const visit = (node: TemplateNode) => {
     const raw = node.raw;
@@ -219,53 +220,73 @@ function emitNodes(nodes: readonly TemplateNode[], emitter: Emitter): void {
     // {{ interpolations }} in parsed text and attribute value ranges. These
     // anchors come from parser-owned sub-line ranges instead of searching the
     // whole raw line, so repeated snippets map to the token that produced them.
-    const emitInterpolations = (rangeText: string | undefined, rangeStart: number | undefined) => {
-      if (rangeText === undefined || rangeStart === undefined) return;
+    const emitInterpolations = (range: SourceRange | undefined) => {
+      const rangeText = sourceForRange(range);
+      if (rangeText === undefined || range === undefined) return;
       for (const match of rangeText.matchAll(/{{([\s\S]*?)}}/g)) {
-        emitExpression(match[1], rangeStart + (match.index ?? 0), rangeText.slice(match.index ?? 0));
+        emitExpression(match[1], range.start.offset + (match.index ?? 0), rangeText.slice(match.index ?? 0));
       }
     };
 
-    if (node.kind === "element" || node.kind === "component") emitInterpolations(node.inlineText, node.inlineTextRange?.start.offset);
+    if (node.kind === "element" || node.kind === "component") emitInterpolations(node.inlineTextRange);
 
     if (node.kind === "expression") {
-      if (node.expressionRange) emitExpression(node.expression, node.expressionRange.start.offset, node.expression);
-      else emitExpression(node.expression, node.range.start.offset, raw);
+      if (node.expressionRange) {
+        const expressionText = sourceForRange(node.expressionRange) ?? node.expression;
+        emitExpression(expressionText, node.expressionRange.start.offset, expressionText);
+      } else emitExpression(node.expression, node.range.start.offset, raw);
     }
 
     if (node.kind === "element" || node.kind === "component" || node.kind === "convex-call") {
       for (const attribute of node.attributes) {
-        emitInterpolations(attribute.raw, attribute.range?.start.offset);
+        emitInterpolations(attribute.range);
         // Bare expression attributes (checked:todo.completed) outside mustaches.
         if (attribute.kind === "expression" && !attribute.raw?.includes("{{")) {
-          if (attribute.expressionRange) emitExpression(attribute.expression, attribute.expressionRange.start.offset, attribute.expression);
+          if (attribute.expressionRange) {
+            const expressionText = sourceForRange(attribute.expressionRange) ?? attribute.expression;
+            emitExpression(expressionText, attribute.expressionRange.start.offset, expressionText);
+          }
         }
         // Same-name shorthand (task:) references the in-scope value.
         if (attribute.kind === "same-name" && IDENTIFIER.test(attribute.name)) {
-          if (attribute.expressionRange) emitExpression(attribute.name, attribute.expressionRange.start.offset, attribute.name);
+          if (attribute.expressionRange) {
+            const expressionText = sourceForRange(attribute.expressionRange) ?? attribute.name;
+            emitExpression(expressionText, attribute.expressionRange.start.offset, expressionText);
+          }
         }
         // Raw-event handlers (on:wa-show:faqOpened) compile to identifier
         // references, so they count as prelude usage. Semantic-event targets
         // (:click:openMenu, :track:todos_cleared) are dispatched by name at
         // runtime and are NOT module identifiers.
         if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
-          if (attribute.expressionRange) emitExpression(attribute.handler, attribute.expressionRange.start.offset, attribute.handler);
+          if (attribute.expressionRange) {
+            const expressionText = sourceForRange(attribute.expressionRange) ?? attribute.handler;
+            emitExpression(expressionText, attribute.expressionRange.start.offset, expressionText);
+          }
         }
       }
     }
 
     if (node.kind === "directive") {
       if (node.name === "if" && node.expression && node.expressionRange) {
-        emitExpression(node.expression, node.expressionRange.start.offset, node.expression);
+        const expressionText = sourceForRange(node.expressionRange) ?? node.expression;
+        emitExpression(expressionText, node.expressionRange.start.offset, expressionText);
       }
 
       if (node.name === "for" && node.for) {
         const { itemName, collectionExpression, keyExpression } = node.for;
         emitter.append("  ;((");
-        if (node.for.collectionExpressionRange) emitter.appendMapped(collectionExpression, node.for.collectionExpressionRange.start.offset);
-        else emitter.append(collectionExpression);
+        if (node.for.collectionExpressionRange) {
+          emitter.appendMapped(
+            sourceForRange(node.for.collectionExpressionRange) ?? collectionExpression,
+            node.for.collectionExpressionRange.start.offset
+          );
+        } else emitter.append(collectionExpression);
         emitter.append(`) ?? []).forEach((${itemName}, index) => {\n  void index;\n`);
-        if (keyExpression && node.for.keyExpressionRange) emitExpression(keyExpression, node.for.keyExpressionRange.start.offset, keyExpression);
+        if (keyExpression && node.for.keyExpressionRange) {
+          const keyExpressionText = sourceForRange(node.for.keyExpressionRange) ?? keyExpression;
+          emitExpression(keyExpressionText, node.for.keyExpressionRange.start.offset, keyExpressionText);
+        }
         for (const child of node.children) visit(child);
         emitter.append("  });\n");
         return;
