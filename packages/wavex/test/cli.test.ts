@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { compileWavexModule } from "@wavex/compiler";
+import type { DirectiveNode, TemplateNode } from "@wavex/core";
 import { runCli, viteArgsForWavexCommand } from "../src/cli-core.js";
 import { injectPrerender } from "../src/prerender.js";
 
@@ -61,11 +62,19 @@ function localComponentsFor(appRoot: string): string[] {
   );
 }
 
+function findDirective(nodes: readonly TemplateNode[], name: string): DirectiveNode | undefined {
+  for (const node of nodes) {
+    if (node.kind === "directive" && node.name === name) return node;
+    const child = findDirective(node.children, name);
+    if (child) return child;
+  }
+  return undefined;
+}
+
 describe("Swell validation app", () => {
   it("exercises the newest router, prerender, Convex, suspense, Web Awesome, and component-path features", () => {
     const appRoot = fileURLToPath(new URL("../../../apps/swell", import.meta.url));
     const files = readWxFiles(join(appRoot, "src"));
-    const source = [...files.values()].join("\n");
     const localComponents = localComponentsFor(appRoot);
     const styles = readFileSync(join(appRoot, "src/style.css"), "utf8");
     const manifest = JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8")) as { scripts?: Record<string, string> };
@@ -86,8 +95,13 @@ describe("Swell validation app", () => {
     expect(live.code).toContain('name: "talks"');
     expect(live.code).toContain('name: "systemsTalks"');
     expect(live.code).toContain('return { "track": "systems" };');
-    expect(source).toContain("reveal:progressive");
-    expect(source).toContain("refresh:background");
+    const suspense = findDirective(live.ast.nodes, "suspense");
+    expect(suspense?.attributes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "literal", name: "reveal", value: "progressive" }),
+        expect.objectContaining({ kind: "literal", name: "refresh", value: "background" }),
+      ])
+    );
 
     const home = compileWavexModule(files.get(join(appRoot, "src/pages/index.wx"))!, { localComponents });
     expect(home.code).toContain("<wa-card>");
