@@ -1,0 +1,3 @@
+~~~
+$$talks:list-bad
+  p Invalid address should remain a parser diagnostic

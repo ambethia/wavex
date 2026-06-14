@@ -11,6 +11,7 @@ const talkFixture = resolve(fixturesDir, "talk.wx");
 const badUtilityFixture = resolve(fixturesDir, "bad-utility.wx");
 const typedConvexFixture = resolve(fixturesDir, "typed-convex/src/pages/resources.wx");
 const missingConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/missing-resource.wx");
+const invalidConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/invalid-resource.wx");
 const typedConvexServerShim = resolve(fixturesDir, "typed-convex/convex-server.d.ts");
 
 function createChecker(files: string[]) {
@@ -75,6 +76,15 @@ describe("@wavex/lsp", () => {
     expect(missingResourceError!.source).not.toBe("wavex");
     expect(missingResourceError!.range.start.line).toBe(1);
     expect(missingResourceError!.range.start.character).toBe(2);
+  });
+
+  it("keeps parser diagnostics for invalid Convex resources when typed Convex imports are available", async () => {
+    const checker = createChecker([invalidConvexResourceFixture, typedConvexServerShim]);
+    const diagnostics = await checker.check(invalidConvexResourceFixture);
+
+    const syntaxError = diagnostics.find((diagnostic) => diagnostic.code === "WX020");
+    expect(syntaxError).toBeDefined();
+    expect(syntaxError!.source).toBe("wavex");
   });
 
   it("offers component, directive, and Convex completions", async () => {

@@ -162,7 +162,7 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
   for (const resource of ast.resources) {
     if (!/^[A-Za-z_$][\w$]*$/.test(resource.name) || declaredResources.has(resource.name)) continue;
     declaredResources.add(resource.name);
-    if (apiImport) {
+    if (apiImport && isValidConvexRawAddress(resource.address.raw)) {
       append(`declare const ${resource.name}: __WxReturn<typeof __wxApi`);
       appendMappedConvexApiPath(source, resource, { append, appendMapped });
       append(`> | undefined;\n`);
@@ -193,6 +193,14 @@ interface Emitter {
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+
+function isValidConvexRawAddress(rawHead: string): boolean {
+  const withoutSigils = rawHead.replace(/^\$\$?/, "");
+  const splitIndex = withoutSigils.lastIndexOf(":");
+  const modulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex).replace(/:/g, "/");
+  const functionName = splitIndex === -1 ? "" : withoutSigils.slice(splitIndex + 1);
+  return /^[A-Za-z0-9_./-]+$/.test(modulePath) && IDENTIFIER.test(functionName);
+}
 
 function appendMappedConvexApiPath(source: string, resource: ResourceBinding, emitter: Emitter): void {
   const rawAddress = resource.address.raw;
