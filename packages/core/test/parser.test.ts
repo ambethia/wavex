@@ -94,6 +94,28 @@ describe("parseWavex", () => {
     expect(parsed.nodes[0]).toMatchObject({ utilities: ["stack", "gap-xl", "align-items-center"] });
   });
 
+  it("records sub-line ranges for attributes, inline text, directive expressions, and expression lines", () => {
+    const source = `~~~\n+if status === "ready"\n  @talk-card talk: title:talk.title :click:openTalk Open {{ talk.title }}\n  = formatTitle(talk.title)\n`;
+    const parsed = parseWavex(source);
+    const directive = parsed.nodes[0];
+    const card = directive?.children[0];
+    const expression = directive?.children[1];
+
+    expect(directive).toMatchObject({ kind: "directive", expression: 'status === "ready"' });
+    expect(source.slice(directive!.expressionRange!.start.offset, directive!.expressionRange!.end.offset)).toBe('status === "ready"');
+
+    expect(card).toMatchObject({ kind: "component", inlineText: "Open {{ talk.title }}" });
+    expect(source.slice(card!.inlineTextRange!.start.offset, card!.inlineTextRange!.end.offset)).toBe("Open {{ talk.title }}");
+    const titleAttribute = card!.attributes.find((attribute) => attribute.name === "title")!;
+    expect(source.slice(titleAttribute.range!.start.offset, titleAttribute.range!.end.offset)).toBe("title:talk.title");
+    expect(source.slice(titleAttribute.expressionRange!.start.offset, titleAttribute.expressionRange!.end.offset)).toBe("talk.title");
+    const sameNameAttribute = card!.attributes.find((attribute) => attribute.name === "talk")!;
+    expect(source.slice(sameNameAttribute.expressionRange!.start.offset, sameNameAttribute.expressionRange!.end.offset)).toBe("talk");
+
+    expect(expression).toMatchObject({ kind: "expression", expression: "formatTitle(talk.title)" });
+    expect(source.slice(expression!.expressionRange!.start.offset, expression!.expressionRange!.end.offset)).toBe("formatTitle(talk.title)");
+  });
+
   it("records UTF-16 source ranges across CRLF newlines, tabs, and unicode text", () => {
     const source = 'type Marker = "é"\r\n\r\n~~~\r\nmain [stack]\r\n  p Café 🧪\r\n\t@button Go\r\n';
     const parsed = parseWavex(source);

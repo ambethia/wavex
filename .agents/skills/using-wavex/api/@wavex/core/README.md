@@ -18,7 +18,7 @@ guides under `packages/core/docs/`.
 
 ### BaseAttribute
 
-Defined in: [packages/core/src/ast.ts:165](packages/core/src/ast.ts#L165)
+Defined in: [packages/core/src/ast.ts:173](packages/core/src/ast.ts#L173)
 
 #### Extended by
 
@@ -30,6 +30,14 @@ Defined in: [packages/core/src/ast.ts:165](packages/core/src/ast.ts#L165)
 - [`RawEventAttribute`](#raweventattribute)
 
 #### Properties
+
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ##### kind
 
@@ -43,7 +51,7 @@ kind:
   | "raw-event";
 ```
 
-Defined in: [packages/core/src/ast.ts:166](packages/core/src/ast.ts#L166)
+Defined in: [packages/core/src/ast.ts:174](packages/core/src/ast.ts#L174)
 
 ##### name
 
@@ -51,7 +59,23 @@ Defined in: [packages/core/src/ast.ts:166](packages/core/src/ast.ts#L166)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
+Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
+
+##### nameRange?
+
+```ts
+optional nameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+
+##### range?
+
+```ts
+optional range?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
 
 ##### raw
 
@@ -59,7 +83,15 @@ Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
+
+##### valueRange?
+
+```ts
+optional valueRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ***
 
@@ -115,7 +147,7 @@ Defined in: [packages/core/src/ast.ts:48](packages/core/src/ast.ts#L48)
 
 ### BooleanAttribute
 
-Defined in: [packages/core/src/ast.ts:171](packages/core/src/ast.ts#L171)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 #### Extends
 
@@ -123,13 +155,25 @@ Defined in: [packages/core/src/ast.ts:171](packages/core/src/ast.ts#L171)
 
 #### Properties
 
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`expressionRange`](#expressionrange)
+
 ##### kind
 
 ```ts
 kind: "boolean";
 ```
 
-Defined in: [packages/core/src/ast.ts:172](packages/core/src/ast.ts#L172)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ###### Overrides
 
@@ -141,11 +185,35 @@ Defined in: [packages/core/src/ast.ts:172](packages/core/src/ast.ts#L172)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
+Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`name`](#name)
+
+##### nameRange?
+
+```ts
+optional nameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`nameRange`](#namerange)
+
+##### range?
+
+```ts
+optional range?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`range`](#range)
 
 ##### raw
 
@@ -153,17 +221,29 @@ Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`raw`](#raw)
 
+##### valueRange?
+
+```ts
+optional valueRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`valueRange`](#valuerange)
+
 ***
 
 ### ComponentNode
 
-Defined in: [packages/core/src/ast.ts:59](packages/core/src/ast.ts#L59)
+Defined in: [packages/core/src/ast.ts:60](packages/core/src/ast.ts#L60)
 
 #### Extends
 
@@ -177,7 +257,7 @@ Defined in: [packages/core/src/ast.ts:59](packages/core/src/ast.ts#L59)
 attributes: Attribute[];
 ```
 
-Defined in: [packages/core/src/ast.ts:62](packages/core/src/ast.ts#L62)
+Defined in: [packages/core/src/ast.ts:63](packages/core/src/ast.ts#L63)
 
 ##### children
 
@@ -197,7 +277,15 @@ Defined in: [packages/core/src/ast.ts:47](packages/core/src/ast.ts#L47)
 optional inlineText?: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:64](packages/core/src/ast.ts#L64)
+Defined in: [packages/core/src/ast.ts:65](packages/core/src/ast.ts#L65)
+
+##### inlineTextRange?
+
+```ts
+optional inlineTextRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:66](packages/core/src/ast.ts#L66)
 
 ##### kind
 
@@ -205,7 +293,7 @@ Defined in: [packages/core/src/ast.ts:64](packages/core/src/ast.ts#L64)
 kind: "component";
 ```
 
-Defined in: [packages/core/src/ast.ts:60](packages/core/src/ast.ts#L60)
+Defined in: [packages/core/src/ast.ts:61](packages/core/src/ast.ts#L61)
 
 ###### Overrides
 
@@ -221,7 +309,7 @@ Defined in: [packages/core/src/ast.ts:46](packages/core/src/ast.ts#L46)
 
 ###### Inherited from
 
-[`BaseNode`](#basenode).[`range`](#range)
+[`BaseNode`](#basenode).[`range`](#range-1)
 
 ##### raw
 
@@ -241,7 +329,7 @@ Defined in: [packages/core/src/ast.ts:48](packages/core/src/ast.ts#L48)
 reference: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:61](packages/core/src/ast.ts#L61)
+Defined in: [packages/core/src/ast.ts:62](packages/core/src/ast.ts#L62)
 
 ##### utilities
 
@@ -249,7 +337,7 @@ Defined in: [packages/core/src/ast.ts:61](packages/core/src/ast.ts#L61)
 utilities: string[];
 ```
 
-Defined in: [packages/core/src/ast.ts:63](packages/core/src/ast.ts#L63)
+Defined in: [packages/core/src/ast.ts:64](packages/core/src/ast.ts#L64)
 
 ***
 
@@ -284,7 +372,7 @@ Defined in: [packages/core/src/model.ts:49](packages/core/src/model.ts#L49)
 
 ### ConvexCallNode
 
-Defined in: [packages/core/src/ast.ts:129](packages/core/src/ast.ts#L129)
+Defined in: [packages/core/src/ast.ts:137](packages/core/src/ast.ts#L137)
 
 #### Extends
 
@@ -298,7 +386,7 @@ Defined in: [packages/core/src/ast.ts:129](packages/core/src/ast.ts#L129)
 address: ConvexFunctionAddress;
 ```
 
-Defined in: [packages/core/src/ast.ts:131](packages/core/src/ast.ts#L131)
+Defined in: [packages/core/src/ast.ts:139](packages/core/src/ast.ts#L139)
 
 ##### attributes
 
@@ -306,7 +394,7 @@ Defined in: [packages/core/src/ast.ts:131](packages/core/src/ast.ts#L131)
 attributes: Attribute[];
 ```
 
-Defined in: [packages/core/src/ast.ts:132](packages/core/src/ast.ts#L132)
+Defined in: [packages/core/src/ast.ts:140](packages/core/src/ast.ts#L140)
 
 ##### bindingName
 
@@ -314,7 +402,7 @@ Defined in: [packages/core/src/ast.ts:132](packages/core/src/ast.ts#L132)
 bindingName: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:133](packages/core/src/ast.ts#L133)
+Defined in: [packages/core/src/ast.ts:141](packages/core/src/ast.ts#L141)
 
 ##### children
 
@@ -334,7 +422,7 @@ Defined in: [packages/core/src/ast.ts:47](packages/core/src/ast.ts#L47)
 kind: "convex-call";
 ```
 
-Defined in: [packages/core/src/ast.ts:130](packages/core/src/ast.ts#L130)
+Defined in: [packages/core/src/ast.ts:138](packages/core/src/ast.ts#L138)
 
 ###### Overrides
 
@@ -350,7 +438,7 @@ Defined in: [packages/core/src/ast.ts:46](packages/core/src/ast.ts#L46)
 
 ###### Inherited from
 
-[`BaseNode`](#basenode).[`range`](#range)
+[`BaseNode`](#basenode).[`range`](#range-1)
 
 ##### raw
 
@@ -368,7 +456,7 @@ Defined in: [packages/core/src/ast.ts:48](packages/core/src/ast.ts#L48)
 
 ### ConvexFunctionAddress
 
-Defined in: [packages/core/src/ast.ts:117](packages/core/src/ast.ts#L117)
+Defined in: [packages/core/src/ast.ts:125](packages/core/src/ast.ts#L125)
 
 A `module:function` Convex address from `$`/`$$` source syntax. This is
 WAVEx source syntax, not the runtime ABI — addresses resolve through
@@ -384,7 +472,7 @@ string paths. Nested modules normalize to Convex's path form, e.g.
 functionName: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:119](packages/core/src/ast.ts#L119)
+Defined in: [packages/core/src/ast.ts:127](packages/core/src/ast.ts#L127)
 
 ##### modulePath
 
@@ -392,7 +480,7 @@ Defined in: [packages/core/src/ast.ts:119](packages/core/src/ast.ts#L119)
 modulePath: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:118](packages/core/src/ast.ts#L118)
+Defined in: [packages/core/src/ast.ts:126](packages/core/src/ast.ts#L126)
 
 ##### raw
 
@@ -400,13 +488,13 @@ Defined in: [packages/core/src/ast.ts:118](packages/core/src/ast.ts#L118)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:120](packages/core/src/ast.ts#L120)
+Defined in: [packages/core/src/ast.ts:128](packages/core/src/ast.ts#L128)
 
 ***
 
 ### ConvexReferenceNode
 
-Defined in: [packages/core/src/ast.ts:123](packages/core/src/ast.ts#L123)
+Defined in: [packages/core/src/ast.ts:131](packages/core/src/ast.ts#L131)
 
 #### Extends
 
@@ -420,7 +508,7 @@ Defined in: [packages/core/src/ast.ts:123](packages/core/src/ast.ts#L123)
 address: ConvexFunctionAddress;
 ```
 
-Defined in: [packages/core/src/ast.ts:125](packages/core/src/ast.ts#L125)
+Defined in: [packages/core/src/ast.ts:133](packages/core/src/ast.ts#L133)
 
 ##### attributes
 
@@ -428,7 +516,7 @@ Defined in: [packages/core/src/ast.ts:125](packages/core/src/ast.ts#L125)
 attributes: Attribute[];
 ```
 
-Defined in: [packages/core/src/ast.ts:126](packages/core/src/ast.ts#L126)
+Defined in: [packages/core/src/ast.ts:134](packages/core/src/ast.ts#L134)
 
 ##### children
 
@@ -448,7 +536,7 @@ Defined in: [packages/core/src/ast.ts:47](packages/core/src/ast.ts#L47)
 kind: "convex-reference";
 ```
 
-Defined in: [packages/core/src/ast.ts:124](packages/core/src/ast.ts#L124)
+Defined in: [packages/core/src/ast.ts:132](packages/core/src/ast.ts#L132)
 
 ###### Overrides
 
@@ -464,7 +552,7 @@ Defined in: [packages/core/src/ast.ts:46](packages/core/src/ast.ts#L46)
 
 ###### Inherited from
 
-[`BaseNode`](#basenode).[`range`](#range)
+[`BaseNode`](#basenode).[`range`](#range-1)
 
 ##### raw
 
@@ -534,7 +622,7 @@ Defined in: [packages/core/src/model.ts:36](packages/core/src/model.ts#L36)
 
 ### DirectiveNode
 
-Defined in: [packages/core/src/ast.ts:86](packages/core/src/ast.ts#L86)
+Defined in: [packages/core/src/ast.ts:88](packages/core/src/ast.ts#L88)
 
 #### Extends
 
@@ -548,7 +636,7 @@ Defined in: [packages/core/src/ast.ts:86](packages/core/src/ast.ts#L86)
 attributes: Attribute[];
 ```
 
-Defined in: [packages/core/src/ast.ts:90](packages/core/src/ast.ts#L90)
+Defined in: [packages/core/src/ast.ts:93](packages/core/src/ast.ts#L93)
 
 ##### children
 
@@ -568,7 +656,15 @@ Defined in: [packages/core/src/ast.ts:47](packages/core/src/ast.ts#L47)
 optional expression?: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:89](packages/core/src/ast.ts#L89)
+Defined in: [packages/core/src/ast.ts:91](packages/core/src/ast.ts#L91)
+
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:92](packages/core/src/ast.ts#L92)
 
 ##### for?
 
@@ -576,7 +672,7 @@ Defined in: [packages/core/src/ast.ts:89](packages/core/src/ast.ts#L89)
 optional for?: ForDirective;
 ```
 
-Defined in: [packages/core/src/ast.ts:91](packages/core/src/ast.ts#L91)
+Defined in: [packages/core/src/ast.ts:94](packages/core/src/ast.ts#L94)
 
 ##### kind
 
@@ -584,7 +680,7 @@ Defined in: [packages/core/src/ast.ts:91](packages/core/src/ast.ts#L91)
 kind: "directive";
 ```
 
-Defined in: [packages/core/src/ast.ts:87](packages/core/src/ast.ts#L87)
+Defined in: [packages/core/src/ast.ts:89](packages/core/src/ast.ts#L89)
 
 ###### Overrides
 
@@ -596,7 +692,7 @@ Defined in: [packages/core/src/ast.ts:87](packages/core/src/ast.ts#L87)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:88](packages/core/src/ast.ts#L88)
+Defined in: [packages/core/src/ast.ts:90](packages/core/src/ast.ts#L90)
 
 ##### range
 
@@ -608,7 +704,7 @@ Defined in: [packages/core/src/ast.ts:46](packages/core/src/ast.ts#L46)
 
 ###### Inherited from
 
-[`BaseNode`](#basenode).[`range`](#range)
+[`BaseNode`](#basenode).[`range`](#range-1)
 
 ##### raw
 
@@ -662,6 +758,14 @@ optional inlineText?: string;
 
 Defined in: [packages/core/src/ast.ts:56](packages/core/src/ast.ts#L56)
 
+##### inlineTextRange?
+
+```ts
+optional inlineTextRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:57](packages/core/src/ast.ts#L57)
+
 ##### kind
 
 ```ts
@@ -684,7 +788,7 @@ Defined in: [packages/core/src/ast.ts:46](packages/core/src/ast.ts#L46)
 
 ###### Inherited from
 
-[`BaseNode`](#basenode).[`range`](#range)
+[`BaseNode`](#basenode).[`range`](#range-1)
 
 ##### raw
 
@@ -718,7 +822,7 @@ Defined in: [packages/core/src/ast.ts:55](packages/core/src/ast.ts#L55)
 
 ### ExpressionAttribute
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:193](packages/core/src/ast.ts#L193)
 
 #### Extends
 
@@ -732,7 +836,19 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 expression: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:195](packages/core/src/ast.ts#L195)
+
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`expressionRange`](#expressionrange)
 
 ##### kind
 
@@ -740,7 +856,7 @@ Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 kind: "expression";
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:194](packages/core/src/ast.ts#L194)
 
 ###### Overrides
 
@@ -752,11 +868,35 @@ Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
+Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`name`](#name)
+
+##### nameRange?
+
+```ts
+optional nameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`nameRange`](#namerange)
+
+##### range?
+
+```ts
+optional range?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`range`](#range)
 
 ##### raw
 
@@ -764,17 +904,29 @@ Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`raw`](#raw)
 
+##### valueRange?
+
+```ts
+optional valueRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`valueRange`](#valuerange)
+
 ***
 
 ### ExpressionNode
 
-Defined in: [packages/core/src/ast.ts:105](packages/core/src/ast.ts#L105)
+Defined in: [packages/core/src/ast.ts:112](packages/core/src/ast.ts#L112)
 
 #### Extends
 
@@ -800,7 +952,15 @@ Defined in: [packages/core/src/ast.ts:47](packages/core/src/ast.ts#L47)
 expression: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:107](packages/core/src/ast.ts#L107)
+Defined in: [packages/core/src/ast.ts:114](packages/core/src/ast.ts#L114)
+
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:115](packages/core/src/ast.ts#L115)
 
 ##### kind
 
@@ -808,7 +968,7 @@ Defined in: [packages/core/src/ast.ts:107](packages/core/src/ast.ts#L107)
 kind: "expression";
 ```
 
-Defined in: [packages/core/src/ast.ts:106](packages/core/src/ast.ts#L106)
+Defined in: [packages/core/src/ast.ts:113](packages/core/src/ast.ts#L113)
 
 ###### Overrides
 
@@ -824,7 +984,7 @@ Defined in: [packages/core/src/ast.ts:46](packages/core/src/ast.ts#L46)
 
 ###### Inherited from
 
-[`BaseNode`](#basenode).[`range`](#range)
+[`BaseNode`](#basenode).[`range`](#range-1)
 
 ##### raw
 
@@ -842,7 +1002,7 @@ Defined in: [packages/core/src/ast.ts:48](packages/core/src/ast.ts#L48)
 
 ### ForDirective
 
-Defined in: [packages/core/src/ast.ts:94](packages/core/src/ast.ts#L94)
+Defined in: [packages/core/src/ast.ts:97](packages/core/src/ast.ts#L97)
 
 #### Properties
 
@@ -852,7 +1012,15 @@ Defined in: [packages/core/src/ast.ts:94](packages/core/src/ast.ts#L94)
 collectionExpression: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:96](packages/core/src/ast.ts#L96)
+Defined in: [packages/core/src/ast.ts:100](packages/core/src/ast.ts#L100)
+
+##### collectionExpressionRange?
+
+```ts
+optional collectionExpressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:101](packages/core/src/ast.ts#L101)
 
 ##### itemName
 
@@ -860,7 +1028,15 @@ Defined in: [packages/core/src/ast.ts:96](packages/core/src/ast.ts#L96)
 itemName: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:95](packages/core/src/ast.ts#L95)
+Defined in: [packages/core/src/ast.ts:98](packages/core/src/ast.ts#L98)
+
+##### itemNameRange?
+
+```ts
+optional itemNameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:99](packages/core/src/ast.ts#L99)
 
 ##### keyExpression?
 
@@ -868,13 +1044,21 @@ Defined in: [packages/core/src/ast.ts:95](packages/core/src/ast.ts#L95)
 optional keyExpression?: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:97](packages/core/src/ast.ts#L97)
+Defined in: [packages/core/src/ast.ts:102](packages/core/src/ast.ts#L102)
+
+##### keyExpressionRange?
+
+```ts
+optional keyExpressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:103](packages/core/src/ast.ts#L103)
 
 ***
 
 ### LiteralAttribute
 
-Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
+Defined in: [packages/core/src/ast.ts:187](packages/core/src/ast.ts#L187)
 
 #### Extends
 
@@ -882,13 +1066,25 @@ Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
 
 #### Properties
 
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`expressionRange`](#expressionrange)
+
 ##### kind
 
 ```ts
 kind: "literal";
 ```
 
-Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
+Defined in: [packages/core/src/ast.ts:188](packages/core/src/ast.ts#L188)
 
 ###### Overrides
 
@@ -900,11 +1096,23 @@ Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
+Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`name`](#name)
+
+##### nameRange?
+
+```ts
+optional nameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`nameRange`](#namerange)
 
 ##### quoted
 
@@ -912,7 +1120,19 @@ Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
 quoted: boolean;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:190](packages/core/src/ast.ts#L190)
+
+##### range?
+
+```ts
+optional range?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`range`](#range)
 
 ##### raw
 
@@ -920,7 +1140,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 
 ###### Inherited from
 
@@ -932,7 +1152,19 @@ Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
 value: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+Defined in: [packages/core/src/ast.ts:189](packages/core/src/ast.ts#L189)
+
+##### valueRange?
+
+```ts
+optional valueRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`valueRange`](#valuerange)
 
 ***
 
@@ -956,7 +1188,7 @@ Defined in: [packages/core/src/parser.ts:20](packages/core/src/parser.ts#L20)
 
 ### RawEventAttribute
 
-Defined in: [packages/core/src/ast.ts:196](packages/core/src/ast.ts#L196)
+Defined in: [packages/core/src/ast.ts:208](packages/core/src/ast.ts#L208)
 
 #### Extends
 
@@ -970,7 +1202,19 @@ Defined in: [packages/core/src/ast.ts:196](packages/core/src/ast.ts#L196)
 event: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:198](packages/core/src/ast.ts#L198)
+Defined in: [packages/core/src/ast.ts:210](packages/core/src/ast.ts#L210)
+
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`expressionRange`](#expressionrange)
 
 ##### handler
 
@@ -978,7 +1222,7 @@ Defined in: [packages/core/src/ast.ts:198](packages/core/src/ast.ts#L198)
 handler: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:199](packages/core/src/ast.ts#L199)
+Defined in: [packages/core/src/ast.ts:211](packages/core/src/ast.ts#L211)
 
 ##### kind
 
@@ -986,7 +1230,7 @@ Defined in: [packages/core/src/ast.ts:199](packages/core/src/ast.ts#L199)
 kind: "raw-event";
 ```
 
-Defined in: [packages/core/src/ast.ts:197](packages/core/src/ast.ts#L197)
+Defined in: [packages/core/src/ast.ts:209](packages/core/src/ast.ts#L209)
 
 ###### Overrides
 
@@ -998,11 +1242,35 @@ Defined in: [packages/core/src/ast.ts:197](packages/core/src/ast.ts#L197)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
+Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`name`](#name)
+
+##### nameRange?
+
+```ts
+optional nameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`nameRange`](#namerange)
+
+##### range?
+
+```ts
+optional range?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`range`](#range)
 
 ##### raw
 
@@ -1010,17 +1278,29 @@ Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`raw`](#raw)
 
+##### valueRange?
+
+```ts
+optional valueRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`valueRange`](#valuerange)
+
 ***
 
 ### ResourceBinding
 
-Defined in: [packages/core/src/ast.ts:143](packages/core/src/ast.ts#L143)
+Defined in: [packages/core/src/ast.ts:151](packages/core/src/ast.ts#L151)
 
 A live Convex query resource inferred from a bare `$$module:function` line.
 Only public queries may appear as bare bindings — mutations and actions
@@ -1036,7 +1316,7 @@ overridden with `as:name`.
 address: ConvexFunctionAddress;
 ```
 
-Defined in: [packages/core/src/ast.ts:145](packages/core/src/ast.ts#L145)
+Defined in: [packages/core/src/ast.ts:153](packages/core/src/ast.ts#L153)
 
 ##### attributes
 
@@ -1044,7 +1324,7 @@ Defined in: [packages/core/src/ast.ts:145](packages/core/src/ast.ts#L145)
 attributes: Attribute[];
 ```
 
-Defined in: [packages/core/src/ast.ts:146](packages/core/src/ast.ts#L146)
+Defined in: [packages/core/src/ast.ts:154](packages/core/src/ast.ts#L154)
 
 ##### name
 
@@ -1052,7 +1332,7 @@ Defined in: [packages/core/src/ast.ts:146](packages/core/src/ast.ts#L146)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:144](packages/core/src/ast.ts#L144)
+Defined in: [packages/core/src/ast.ts:152](packages/core/src/ast.ts#L152)
 
 ##### range
 
@@ -1060,7 +1340,7 @@ Defined in: [packages/core/src/ast.ts:144](packages/core/src/ast.ts#L144)
 range: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:147](packages/core/src/ast.ts#L147)
+Defined in: [packages/core/src/ast.ts:155](packages/core/src/ast.ts#L155)
 
 ***
 
@@ -1136,7 +1416,7 @@ Defined in: [packages/core/src/model.ts:155](packages/core/src/model.ts#L155)
 
 ### SameNameAttribute
 
-Defined in: [packages/core/src/ast.ts:186](packages/core/src/ast.ts#L186)
+Defined in: [packages/core/src/ast.ts:198](packages/core/src/ast.ts#L198)
 
 #### Extends
 
@@ -1144,13 +1424,25 @@ Defined in: [packages/core/src/ast.ts:186](packages/core/src/ast.ts#L186)
 
 #### Properties
 
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`expressionRange`](#expressionrange)
+
 ##### kind
 
 ```ts
 kind: "same-name";
 ```
 
-Defined in: [packages/core/src/ast.ts:187](packages/core/src/ast.ts#L187)
+Defined in: [packages/core/src/ast.ts:199](packages/core/src/ast.ts#L199)
 
 ###### Overrides
 
@@ -1162,11 +1454,35 @@ Defined in: [packages/core/src/ast.ts:187](packages/core/src/ast.ts#L187)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
+Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`name`](#name)
+
+##### nameRange?
+
+```ts
+optional nameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`nameRange`](#namerange)
+
+##### range?
+
+```ts
+optional range?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`range`](#range)
 
 ##### raw
 
@@ -1174,17 +1490,29 @@ Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`raw`](#raw)
 
+##### valueRange?
+
+```ts
+optional valueRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`valueRange`](#valuerange)
+
 ***
 
 ### SemanticEventAttribute
 
-Defined in: [packages/core/src/ast.ts:190](packages/core/src/ast.ts#L190)
+Defined in: [packages/core/src/ast.ts:202](packages/core/src/ast.ts#L202)
 
 #### Extends
 
@@ -1198,7 +1526,19 @@ Defined in: [packages/core/src/ast.ts:190](packages/core/src/ast.ts#L190)
 event: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:192](packages/core/src/ast.ts#L192)
+Defined in: [packages/core/src/ast.ts:204](packages/core/src/ast.ts#L204)
+
+##### expressionRange?
+
+```ts
+optional expressionRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`expressionRange`](#expressionrange)
 
 ##### kind
 
@@ -1206,7 +1546,7 @@ Defined in: [packages/core/src/ast.ts:192](packages/core/src/ast.ts#L192)
 kind: "semantic-event";
 ```
 
-Defined in: [packages/core/src/ast.ts:191](packages/core/src/ast.ts#L191)
+Defined in: [packages/core/src/ast.ts:203](packages/core/src/ast.ts#L203)
 
 ###### Overrides
 
@@ -1218,11 +1558,35 @@ Defined in: [packages/core/src/ast.ts:191](packages/core/src/ast.ts#L191)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
+Defined in: [packages/core/src/ast.ts:175](packages/core/src/ast.ts#L175)
 
 ###### Inherited from
 
 [`BaseAttribute`](#baseattribute).[`name`](#name)
+
+##### nameRange?
+
+```ts
+optional nameRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`nameRange`](#namerange)
+
+##### range?
+
+```ts
+optional range?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`range`](#range)
 
 ##### raw
 
@@ -1230,7 +1594,7 @@ Defined in: [packages/core/src/ast.ts:167](packages/core/src/ast.ts#L167)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 
 ###### Inherited from
 
@@ -1242,7 +1606,19 @@ Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
 target: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:193](packages/core/src/ast.ts#L193)
+Defined in: [packages/core/src/ast.ts:205](packages/core/src/ast.ts#L205)
+
+##### valueRange?
+
+```ts
+optional valueRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+
+###### Inherited from
+
+[`BaseAttribute`](#baseattribute).[`valueRange`](#valuerange)
 
 ***
 
@@ -1306,7 +1682,7 @@ Defined in: [packages/core/src/ast.ts:11](packages/core/src/ast.ts#L11)
 
 ### TextNode
 
-Defined in: [packages/core/src/ast.ts:100](packages/core/src/ast.ts#L100)
+Defined in: [packages/core/src/ast.ts:106](packages/core/src/ast.ts#L106)
 
 #### Extends
 
@@ -1332,7 +1708,7 @@ Defined in: [packages/core/src/ast.ts:47](packages/core/src/ast.ts#L47)
 kind: "text";
 ```
 
-Defined in: [packages/core/src/ast.ts:101](packages/core/src/ast.ts#L101)
+Defined in: [packages/core/src/ast.ts:107](packages/core/src/ast.ts#L107)
 
 ###### Overrides
 
@@ -1348,7 +1724,7 @@ Defined in: [packages/core/src/ast.ts:46](packages/core/src/ast.ts#L46)
 
 ###### Inherited from
 
-[`BaseNode`](#basenode).[`range`](#range)
+[`BaseNode`](#basenode).[`range`](#range-1)
 
 ##### raw
 
@@ -1368,7 +1744,15 @@ Defined in: [packages/core/src/ast.ts:48](packages/core/src/ast.ts#L48)
 text: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:102](packages/core/src/ast.ts#L102)
+Defined in: [packages/core/src/ast.ts:108](packages/core/src/ast.ts#L108)
+
+##### textRange?
+
+```ts
+optional textRange?: SourceRange;
+```
+
+Defined in: [packages/core/src/ast.ts:109](packages/core/src/ast.ts#L109)
 
 ***
 
@@ -1497,7 +1881,7 @@ type Attribute =
   | RawEventAttribute;
 ```
 
-Defined in: [packages/core/src/ast.ts:157](packages/core/src/ast.ts#L157)
+Defined in: [packages/core/src/ast.ts:165](packages/core/src/ast.ts#L165)
 
 One parsed attribute token. The colon grammar is the language's backbone:
 bare names are booleans, `name:value` is a literal, `name:{{ expr }}` is an
@@ -1525,7 +1909,7 @@ type DirectiveName =
   | string;
 ```
 
-Defined in: [packages/core/src/ast.ts:72](packages/core/src/ast.ts#L72)
+Defined in: [packages/core/src/ast.ts:74](packages/core/src/ast.ts#L74)
 
 `+` directive names. Directives are WAVEx control primitives that compile
 away or lower to runtime behavior — they are not components and do not
@@ -1864,10 +2248,10 @@ Defined in: [packages/core/src/model.ts:90](packages/core/src/model.ts#L90)
 ### parseAttributeToken()
 
 ```ts
-function parseAttributeToken(token): Attribute | undefined;
+function parseAttributeToken(token, range?): Attribute | undefined;
 ```
 
-Defined in: [packages/core/src/parser.ts:378](packages/core/src/parser.ts#L378)
+Defined in: [packages/core/src/parser.ts:420](packages/core/src/parser.ts#L420)
 
 Parse one attribute token into its [Attribute](#attribute) form: boolean
 (`required`), literal (`variant:brand`), expression
@@ -1879,6 +2263,10 @@ Parse one attribute token into its [Attribute](#attribute) form: boolean
 ##### token
 
 `string`
+
+##### range?
+
+[`SourceRange`](#sourcerange)
 
 #### Returns
 
@@ -1914,7 +2302,7 @@ Parse a search string into a flat record; the first occurrence of a repeated key
 function parseWavex(source, _options?): WavexFile;
 ```
 
-Defined in: [packages/core/src/parser.ts:61](packages/core/src/parser.ts#L61)
+Defined in: [packages/core/src/parser.ts:68](packages/core/src/parser.ts#L68)
 
 Parse a complete `.wx` source file into a [WavexFile](#wavexfile).
 

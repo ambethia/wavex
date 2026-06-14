@@ -30,6 +30,13 @@ interface LineRecord {
 interface ParsedHead {
   attributes: Attribute[];
   inlineText?: string;
+  inlineTextRange?: SourceRange;
+}
+
+interface TokenRecord {
+  raw: string;
+  start: number;
+  end: number;
 }
 
 const BOOLEAN_ATTRIBUTE_NAMES = new Set([
@@ -187,11 +194,28 @@ function parseLine(
   if (trimmed === "") return undefined;
 
   if (trimmed.startsWith("|")) {
-    return { kind: "text", text: trimmed.slice(1).trimStart(), children: [], raw: content, range };
+    const textStart = 1 + leadingWhitespaceLength(trimmed.slice(1));
+    return {
+      kind: "text",
+      text: trimmed.slice(1).trimStart(),
+      textRange: makeSubRange(range, textStart, trimmed.length),
+      children: [],
+      raw: content,
+      range
+    };
   }
 
   if (trimmed.startsWith("=")) {
-    return { kind: "expression", expression: trimmed.slice(1).trim(), children: [], raw: content, range };
+    const expressionStart = 1 + leadingWhitespaceLength(trimmed.slice(1));
+    const expressionEnd = trimEndIndex(trimmed);
+    return {
+      kind: "expression",
+      expression: trimmed.slice(1).trim(),
+      expressionRange: makeSubRange(range, expressionStart, expressionEnd),
+      children: [],
+      raw: content,
+      range
+    };
   }
 
   if (trimmed.startsWith("$$")) return parseConvexCall(trimmed, content, range, diagnostics, resources);
@@ -203,14 +227,16 @@ function parseLine(
 
 function parseElement(trimmed: string, raw: string, range: SourceRange): ElementNode {
   const { withoutUtilities, utilities } = extractUtilityGroups(trimmed);
-  const [tag = "div", ...tokens] = tokenize(withoutUtilities);
-  const parsed = parseAttributesAndInlineText(tokens);
+  const [tagToken, ...tokens] = tokenizeWithRanges(withoutUtilities);
+  const tag = tagToken?.raw ?? "div";
+  const parsed = parseAttributesAndInlineText(tokens, range);
   return {
     kind: "element",
     tag,
     attributes: parsed.attributes,
     utilities,
     inlineText: parsed.inlineText,
+    inlineTextRange: parsed.inlineTextRange,
     children: [],
     raw,
     range
@@ -219,14 +245,16 @@ function parseElement(trimmed: string, raw: string, range: SourceRange): Element
 
 function parseComponent(trimmed: string, raw: string, range: SourceRange): ComponentNode {
   const { withoutUtilities, utilities } = extractUtilityGroups(trimmed);
-  const [reference = "@missing", ...tokens] = tokenize(withoutUtilities);
-  const parsed = parseAttributesAndInlineText(tokens);
+  const [referenceToken, ...tokens] = tokenizeWithRanges(withoutUtilities);
+  const reference = referenceToken?.raw ?? "@missing";
+  const parsed = parseAttributesAndInlineText(tokens, range);
   return {
     kind: "component",
     reference: reference.slice(1),
     attributes: parsed.attributes,
     utilities,
     inlineText: parsed.inlineText,
+    inlineTextRange: parsed.inlineTextRange,
     children: [],
     raw,
     range
@@ -235,33 +263,37 @@ function parseComponent(trimmed: string, raw: string, range: SourceRange): Compo
 
 function parseDirective(trimmed: string, raw: string, range: SourceRange): DirectiveNode {
   const { withoutUtilities } = extractUtilityGroups(trimmed);
-  const [head = "+unknown", ...tokens] = tokenize(withoutUtilities);
+  const [headToken, ...tokens] = tokenizeWithRanges(withoutUtilities);
+  const head = headToken?.raw ?? "+unknown";
   const name = head.slice(1);
   const attributes: Attribute[] = [];
   let expression: string | undefined;
+  let expressionRange: SourceRange | undefined;
   let forDirective: ForDirective | undefined;
 
   if (name === "for") {
-    const parsedFor = parseForDirective(tokens);
+    const parsedFor = parseForDirective(tokens, range);
     forDirective = parsedFor.forDirective;
     attributes.push(...parsedFor.attributes);
-    expression = tokens.join(" ");
+    expression = tokens.map((token) => token.raw).join(" ") || undefined;
+    expressionRange = rangeForTokenSpan(range, tokens);
   } else if (name === "head" || name === "boundary") {
-    attributes.push(...tokens.map(parseAttributeToken).filter(isAttribute));
+    attributes.push(...tokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute));
   } else if (name === "suspense") {
-    const parsed = parseAttributesAndInlineText(tokens);
+    const parsed = parseAttributesAndInlineText(tokens, range);
     attributes.push(...parsed.attributes);
     expression = parsed.inlineText;
-  } else if (name === "loading" || name === "empty" || name === "pending" || name === "idle") {
-    expression = tokens.join(" ") || undefined;
+    expressionRange = parsed.inlineTextRange;
   } else {
-    expression = tokens.join(" ") || undefined;
+    expression = tokens.map((token) => token.raw).join(" ") || undefined;
+    expressionRange = rangeForTokenSpan(range, tokens);
   }
 
   return {
     kind: "directive",
     name,
     expression,
+    expressionRange,
     attributes,
     for: forDirective,
     children: [],
@@ -270,21 +302,26 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange): Direc
   };
 }
 
-function parseForDirective(tokens: string[]): { forDirective?: ForDirective; attributes: Attribute[] } {
-  const keyTokenIndex = tokens.findIndex((token) => token.startsWith("key:"));
+function parseForDirective(tokens: TokenRecord[], range: SourceRange): { forDirective?: ForDirective; attributes: Attribute[] } {
+  const keyTokenIndex = tokens.findIndex((token) => token.raw.startsWith("key:"));
   const loopTokens = keyTokenIndex === -1 ? tokens : tokens.slice(0, keyTokenIndex);
   const attrTokens = keyTokenIndex === -1 ? [] : tokens.slice(keyTokenIndex);
-  const loopText = loopTokens.join(" ");
-  const match = /^([A-Za-z_$][\w$]*)\s+in\s+(.+)$/.exec(loopText);
-  const attributes = attrTokens.map(parseAttributeToken).filter(isAttribute);
+  const attributes = attrTokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute);
   const keyAttribute = attributes.find((attribute) => attribute.name === "key");
+  const inTokenIndex = loopTokens.findIndex((token) => token.raw === "in");
+  const itemToken = loopTokens[0];
+  const collectionTokens = inTokenIndex === -1 ? [] : loopTokens.slice(inTokenIndex + 1);
 
-  if (!match) return { attributes };
+  if (!itemToken || inTokenIndex !== 1 || collectionTokens.length === 0 || !/^[A-Za-z_$][\w$]*$/.test(itemToken.raw)) return { attributes };
+  const collectionExpression = collectionTokens.map((token) => token.raw).join(" ");
   return {
     forDirective: {
-      itemName: match[1]!,
-      collectionExpression: match[2]!.trim(),
-      keyExpression: attributeExpressionValue(keyAttribute)
+      itemName: itemToken.raw,
+      itemNameRange: makeSubRange(range, itemToken.start, itemToken.end),
+      collectionExpression,
+      collectionExpressionRange: rangeForTokenSpan(range, collectionTokens),
+      keyExpression: attributeExpressionValue(keyAttribute),
+      keyExpressionRange: keyAttribute?.expressionRange ?? keyAttribute?.valueRange
     },
     attributes
   };
@@ -296,12 +333,13 @@ function parseConvexReference(
   range: SourceRange,
   diagnostics: Diagnostic[]
 ): ConvexReferenceNode {
-  const [head = "$missing:missing", ...tokens] = tokenize(trimmed);
+  const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
+  const head = headToken?.raw ?? "$missing:missing";
   const address = parseConvexAddress(head, range, diagnostics);
   return {
     kind: "convex-reference",
     address,
-    attributes: tokens.map(parseAttributeToken).filter(isAttribute),
+    attributes: tokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute),
     children: [],
     raw,
     range
@@ -315,9 +353,10 @@ function parseConvexCall(
   diagnostics: Diagnostic[],
   resources: ResourceBinding[]
 ): ConvexCallNode {
-  const [head = "$$missing:missing", ...tokens] = tokenize(trimmed);
+  const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
+  const head = headToken?.raw ?? "$$missing:missing";
   const address = parseConvexAddress(head, range, diagnostics);
-  const attributes = tokens.map(parseAttributeToken).filter(isAttribute);
+  const attributes = tokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute);
   const asAttribute = attributes.find((attribute) => attribute.name === "as");
   const bindingName = attributeLiteralValue(asAttribute) ?? inferResourceBindingName(address.modulePath, address.functionName);
   const node: ConvexCallNode = {
@@ -352,21 +391,24 @@ function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Di
   return { modulePath, functionName, raw: rawHead };
 }
 
-function parseAttributesAndInlineText(tokens: string[]): ParsedHead {
+function parseAttributesAndInlineText(tokens: TokenRecord[], range: SourceRange): ParsedHead {
   const attributes: Attribute[] = [];
   let inlineText: string | undefined;
+  let inlineTextRange: SourceRange | undefined;
 
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
-    if (!isAttributeLike(token)) {
-      inlineText = tokens.slice(index).join(" ");
+    if (!isAttributeLike(token.raw)) {
+      const inlineTokens = tokens.slice(index);
+      inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
+      inlineTextRange = rangeForTokenSpan(range, inlineTokens);
       break;
     }
-    const attribute = parseAttributeToken(token);
+    const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end));
     if (attribute) attributes.push(attribute);
   }
 
-  return { attributes, inlineText };
+  return { attributes, inlineText, inlineTextRange };
 }
 
 /**
@@ -375,14 +417,28 @@ function parseAttributesAndInlineText(tokens: string[]): ParsedHead {
  * (`checked:{{ task.done }}`), same-name shorthand (`task:`), semantic event
  * (`:click:save`), or raw DOM event (`on:wa-show:opened`).
  */
-export function parseAttributeToken(token: string): Attribute | undefined {
+export function parseAttributeToken(token: string, range?: SourceRange): Attribute | undefined {
   if (!token) return undefined;
+
+  const nameRange = (start: number, end: number) => (range ? makeSubRange(range, start, end) : undefined);
+  const valueRange = (start: number, end: number) => (range ? makeSubRange(range, start, end) : undefined);
+  const base = { raw: token, range };
 
   if (token.startsWith("on:")) {
     const [, event, ...handlerParts] = token.split(":");
     const handler = handlerParts.join(":");
     if (event && handler) {
-      return { kind: "raw-event", name: `on:${event}`, event, handler, raw: token };
+      const handlerStart = token.length - handler.length;
+      return {
+        kind: "raw-event",
+        name: `on:${event}`,
+        event,
+        handler,
+        ...base,
+        nameRange: nameRange(0, `on:${event}`.length),
+        valueRange: valueRange(handlerStart, token.length),
+        expressionRange: valueRange(handlerStart, token.length)
+      };
     }
   }
 
@@ -392,26 +448,76 @@ export function parseAttributeToken(token: string): Attribute | undefined {
     if (split !== -1) {
       const event = body.slice(0, split);
       const target = body.slice(split + 1);
-      return { kind: "semantic-event", name: `:${event}`, event, target, raw: token };
+      const targetStart = split + 2;
+      return {
+        kind: "semantic-event",
+        name: `:${event}`,
+        event,
+        target,
+        ...base,
+        nameRange: nameRange(0, split + 1),
+        valueRange: valueRange(targetStart, token.length)
+      };
     }
   }
 
   const colonIndex = token.indexOf(":");
-  if (colonIndex === -1) return { kind: "boolean", name: token, raw: token };
+  if (colonIndex === -1) return { kind: "boolean", name: token, ...base, nameRange: range };
 
   const name = token.slice(0, colonIndex);
   const value = token.slice(colonIndex + 1);
+  const valueStart = colonIndex + 1;
   if (!name) return undefined;
-  if (value === "") return { kind: "same-name", name, raw: token };
+  if (value === "") return { kind: "same-name", name, ...base, nameRange: nameRange(0, colonIndex), expressionRange: nameRange(0, colonIndex) };
 
   const expression = unwrapMustacheExpression(value);
-  if (expression !== undefined) return { kind: "expression", name, expression, raw: token };
+  if (expression !== undefined) {
+    const expressionStartInValue = value.indexOf(expression);
+    const expressionStart = valueStart + (expressionStartInValue === -1 ? 0 : expressionStartInValue);
+    return {
+      kind: "expression",
+      name,
+      expression,
+      ...base,
+      nameRange: nameRange(0, colonIndex),
+      valueRange: valueRange(valueStart, token.length),
+      expressionRange: valueRange(expressionStart, expressionStart + expression.length)
+    };
+  }
 
   const quoted = unwrapQuotedString(value);
-  if (quoted !== undefined) return { kind: "literal", name, value: quoted, quoted: true, raw: token };
+  if (quoted !== undefined) {
+    return {
+      kind: "literal",
+      name,
+      value: quoted,
+      quoted: true,
+      ...base,
+      nameRange: nameRange(0, colonIndex),
+      valueRange: valueRange(valueStart, token.length)
+    };
+  }
 
-  if (looksLikeExpression(value)) return { kind: "expression", name, expression: value, raw: token };
-  return { kind: "literal", name, value, quoted: false, raw: token };
+  if (looksLikeExpression(value)) {
+    return {
+      kind: "expression",
+      name,
+      expression: value,
+      ...base,
+      nameRange: nameRange(0, colonIndex),
+      valueRange: valueRange(valueStart, token.length),
+      expressionRange: valueRange(valueStart, token.length)
+    };
+  }
+  return {
+    kind: "literal",
+    name,
+    value,
+    quoted: false,
+    ...base,
+    nameRange: nameRange(0, colonIndex),
+    valueRange: valueRange(valueStart, token.length)
+  };
 }
 
 function isAttributeLike(token: string): boolean {
@@ -501,8 +607,8 @@ function extractUtilityGroups(input: string): { withoutUtilities: string; utilit
       const close = input.indexOf("]", index + 1);
       if (close !== -1) {
         utilities.push(...input.slice(index + 1, close).trim().split(/\s+/).filter(Boolean));
+        withoutUtilities += " ".repeat(close - index + 1);
         index = close;
-        if (withoutUtilities && !withoutUtilities.endsWith(" ")) withoutUtilities += " ";
         continue;
       }
     }
@@ -510,32 +616,36 @@ function extractUtilityGroups(input: string): { withoutUtilities: string; utilit
     withoutUtilities += char;
   }
 
-  return { withoutUtilities: withoutUtilities.replace(/\s+/g, " ").trim(), utilities };
+  return { withoutUtilities, utilities };
 }
 
-function tokenize(input: string): string[] {
-  const tokens: string[] = [];
+function tokenizeWithRanges(input: string): TokenRecord[] {
+  const tokens: TokenRecord[] = [];
   let current = "";
+  let currentStart: number | undefined;
   let quote: string | undefined;
   let curlyDepth = 0;
   let bracketDepth = 0;
   let parenDepth = 0;
 
-  const push = () => {
-    if (current !== "") {
-      tokens.push(current);
-      current = "";
-    }
+  const append = (char: string, index: number) => {
+    currentStart ??= index;
+    current += char;
+  };
+  const push = (end: number) => {
+    if (current !== "" && currentStart !== undefined) tokens.push({ raw: current, start: currentStart, end });
+    current = "";
+    currentStart = undefined;
   };
 
   for (let index = 0; index < input.length; index += 1) {
     const char = input[index]!;
 
     if (quote) {
-      current += char;
+      append(char, index);
       if (char === "\\") {
         index += 1;
-        current += input[index] ?? "";
+        append(input[index] ?? "", index);
       } else if (char === quote) {
         quote = undefined;
       }
@@ -544,7 +654,7 @@ function tokenize(input: string): string[] {
 
     if (char === '"' || char === "'") {
       quote = char;
-      current += char;
+      append(char, index);
       continue;
     }
 
@@ -556,14 +666,14 @@ function tokenize(input: string): string[] {
     else if (char === ")" && parenDepth > 0) parenDepth -= 1;
 
     if (/\s/.test(char) && curlyDepth === 0 && bracketDepth === 0 && parenDepth === 0) {
-      push();
+      push(index);
       continue;
     }
 
-    current += char;
+    append(char, index);
   }
 
-  push();
+  push(input.length);
   return tokens;
 }
 
@@ -593,4 +703,33 @@ function makeRange(line: LineRecord, leadingWhitespaceLength: number, lineLength
     offset: line.sourceOffset + lineLength
   };
   return { start, end };
+}
+
+function makeSubRange(parent: SourceRange, relativeStart: number, relativeEnd: number): SourceRange {
+  return {
+    start: {
+      line: parent.start.line,
+      column: parent.start.column + relativeStart,
+      offset: parent.start.offset + relativeStart
+    },
+    end: {
+      line: parent.start.line,
+      column: parent.start.column + relativeEnd,
+      offset: parent.start.offset + relativeEnd
+    }
+  };
+}
+
+function rangeForTokenSpan(parent: SourceRange, tokens: readonly TokenRecord[]): SourceRange | undefined {
+  const first = tokens[0];
+  const last = tokens.at(-1);
+  return first && last ? makeSubRange(parent, first.start, last.end) : undefined;
+}
+
+function leadingWhitespaceLength(value: string): number {
+  return /^\s*/.exec(value)?.[0].length ?? 0;
+}
+
+function trimEndIndex(value: string): number {
+  return value.length - (/\s*$/.exec(value)?.[0].length ?? 0);
 }

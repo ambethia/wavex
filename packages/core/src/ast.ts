@@ -54,6 +54,7 @@ export interface ElementNode extends BaseNode {
   attributes: Attribute[];
   utilities: string[];
   inlineText?: string;
+  inlineTextRange?: SourceRange;
 }
 
 export interface ComponentNode extends BaseNode {
@@ -62,6 +63,7 @@ export interface ComponentNode extends BaseNode {
   attributes: Attribute[];
   utilities: string[];
   inlineText?: string;
+  inlineTextRange?: SourceRange;
 }
 
 /**
@@ -87,24 +89,30 @@ export interface DirectiveNode extends BaseNode {
   kind: "directive";
   name: DirectiveName;
   expression?: string;
+  expressionRange?: SourceRange;
   attributes: Attribute[];
   for?: ForDirective;
 }
 
 export interface ForDirective {
   itemName: string;
+  itemNameRange?: SourceRange;
   collectionExpression: string;
+  collectionExpressionRange?: SourceRange;
   keyExpression?: string;
+  keyExpressionRange?: SourceRange;
 }
 
 export interface TextNode extends BaseNode {
   kind: "text";
   text: string;
+  textRange?: SourceRange;
 }
 
 export interface ExpressionNode extends BaseNode {
   kind: "expression";
   expression: string;
+  expressionRange?: SourceRange;
 }
 
 /**
@@ -166,6 +174,10 @@ export interface BaseAttribute {
   kind: Attribute["kind"];
   name: string;
   raw: string;
+  range?: SourceRange;
+  nameRange?: SourceRange;
+  valueRange?: SourceRange;
+  expressionRange?: SourceRange;
 }
 
 export interface BooleanAttribute extends BaseAttribute {

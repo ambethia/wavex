@@ -182,6 +182,35 @@ describe("virtual code mappings", () => {
     expect(talkMappings.some((mapping) => mapping.sourceOffsets[0] === componentNameOffset)).toBe(false);
   });
 
+  it("anchors repeated attribute and inline expressions to parser sub-ranges", async () => {
+    const { WavexVirtualCode } = await import("../src/index.js");
+    const text = "~~~\n+if talk\n  @talk-card title:talk.title talk:\n  p talk {{ talk }}\n";
+    const snapshot = {
+      getText: (start: number, end: number) => text.slice(start, end),
+      getLength: () => text.length,
+      getChangeRange: () => undefined
+    };
+    const code = new WavexVirtualCode(snapshot as never);
+    const tsCode = code.embeddedCodes[0]!;
+    const generated = tsCode.snapshot.getText(0, tsCode.snapshot.getLength());
+    const talkMappings = tsCode.mappings.filter(
+      (mapping) => generated.slice(mapping.generatedOffsets[0]!, mapping.generatedOffsets[0]! + mapping.lengths[0]!) === "talk"
+    );
+    const offsets = talkMappings.map((mapping) => mapping.sourceOffsets[0]);
+
+    expect(offsets).toEqual(expect.arrayContaining([
+      text.indexOf("+if talk") + "+if ".length,
+      text.indexOf(" talk:") + 1,
+      text.indexOf("{{ talk }}") + "{{ ".length
+    ]));
+    const titleMapping = tsCode.mappings.find(
+      (mapping) => generated.slice(mapping.generatedOffsets[0]!, mapping.generatedOffsets[0]! + mapping.lengths[0]!) === "talk.title"
+    );
+    expect(titleMapping?.sourceOffsets[0]).toBe(text.indexOf("title:talk.title") + "title:".length);
+    expect(offsets).not.toContain(text.indexOf("@talk-card") + 1);
+    expect(offsets).not.toContain(text.indexOf("p talk") + 2);
+  });
+
   it("preserves CRLF prelude bytes in the mapped TypeScript virtual code", async () => {
     const { WavexVirtualCode } = await import("../src/index.js");
     const text = 'type Talk = { title: string }\r\nconst talk = {} as Talk;\r\n~~~\r\nmain\r\n  p {{ talk.title }}\r\n';

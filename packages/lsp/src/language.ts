@@ -214,57 +214,58 @@ function emitNodes(nodes: readonly TemplateNode[], emitter: Emitter): void {
     IDENTIFIER.test(expression?.trim() ?? "") ? expression!.trim() : "err";
 
   const visit = (node: TemplateNode) => {
-    const base = node.range.start.offset;
     const raw = node.raw;
 
-    // {{ interpolations }} anywhere on the line (inline text, attribute values).
-    for (const match of raw.matchAll(/{{([\s\S]*?)}}/g)) {
-      emitExpression(match[1], base + (match.index ?? 0), raw.slice(match.index ?? 0));
+    // {{ interpolations }} in parsed text and attribute value ranges. These
+    // anchors come from parser-owned sub-line ranges instead of searching the
+    // whole raw line, so repeated snippets map to the token that produced them.
+    const emitInterpolations = (rangeText: string | undefined, rangeStart: number | undefined) => {
+      if (rangeText === undefined || rangeStart === undefined) return;
+      for (const match of rangeText.matchAll(/{{([\s\S]*?)}}/g)) {
+        emitExpression(match[1], rangeStart + (match.index ?? 0), rangeText.slice(match.index ?? 0));
+      }
+    };
+
+    if (node.kind === "element" || node.kind === "component") emitInterpolations(node.inlineText, node.inlineTextRange?.start.offset);
+
+    if (node.kind === "expression") {
+      if (node.expressionRange) emitExpression(node.expression, node.expressionRange.start.offset, node.expression);
+      else emitExpression(node.expression, node.range.start.offset, raw);
     }
 
-    if (node.kind === "expression") emitExpression(node.expression, base, raw);
-
     if (node.kind === "element" || node.kind === "component" || node.kind === "convex-call") {
-      // Anchor attribute expressions to the attribute's own raw text so the
-      // mapping never lands on an earlier occurrence elsewhere on the line
-      // (e.g. the `talk` inside `@talk-card` for a `talk:` attribute).
-      const emitWithinAttribute = (expressionText: string, attributeRaw: string | undefined) => {
-        if (!attributeRaw) return;
-        const attributeIndex = raw.indexOf(attributeRaw);
-        if (attributeIndex === -1) return;
-        emitExpression(expressionText, base + attributeIndex, attributeRaw);
-      };
-
       for (const attribute of node.attributes) {
+        emitInterpolations(attribute.raw, attribute.range?.start.offset);
         // Bare expression attributes (checked:todo.completed) outside mustaches.
         if (attribute.kind === "expression" && !attribute.raw?.includes("{{")) {
-          emitWithinAttribute(attribute.expression, attribute.raw);
+          if (attribute.expressionRange) emitExpression(attribute.expression, attribute.expressionRange.start.offset, attribute.expression);
         }
         // Same-name shorthand (task:) references the in-scope value.
         if (attribute.kind === "same-name" && IDENTIFIER.test(attribute.name)) {
-          emitWithinAttribute(attribute.name, attribute.raw);
+          if (attribute.expressionRange) emitExpression(attribute.name, attribute.expressionRange.start.offset, attribute.name);
         }
         // Raw-event handlers (on:wa-show:faqOpened) compile to identifier
         // references, so they count as prelude usage. Semantic-event targets
         // (:click:openMenu, :track:todos_cleared) are dispatched by name at
         // runtime and are NOT module identifiers.
         if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
-          emitWithinAttribute(attribute.handler, attribute.raw);
+          if (attribute.expressionRange) emitExpression(attribute.handler, attribute.expressionRange.start.offset, attribute.handler);
         }
       }
     }
 
     if (node.kind === "directive") {
-      if (node.name === "if") emitExpression(node.expression, base, raw);
+      if (node.name === "if" && node.expression && node.expressionRange) {
+        emitExpression(node.expression, node.expressionRange.start.offset, node.expression);
+      }
 
       if (node.name === "for" && node.for) {
         const { itemName, collectionExpression, keyExpression } = node.for;
         emitter.append("  ;((");
-        const collectionIndex = raw.indexOf(collectionExpression);
-        if (collectionIndex !== -1) emitter.appendMapped(collectionExpression, base + collectionIndex);
+        if (node.for.collectionExpressionRange) emitter.appendMapped(collectionExpression, node.for.collectionExpressionRange.start.offset);
         else emitter.append(collectionExpression);
         emitter.append(`) ?? []).forEach((${itemName}, index) => {\n  void index;\n`);
-        if (keyExpression) emitExpression(keyExpression, base, raw);
+        if (keyExpression && node.for.keyExpressionRange) emitExpression(keyExpression, node.for.keyExpressionRange.start.offset, keyExpression);
         for (const child of node.children) visit(child);
         emitter.append("  });\n");
         return;
