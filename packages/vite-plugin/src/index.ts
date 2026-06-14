@@ -192,12 +192,22 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         convexFunctionKinds: projectConvexFunctionKinds()
       });
 
-      const error = compiled.ast.diagnostics.find((diagnostic) => diagnostic.severity === "error");
-      if (error) {
+      const warnings = compiled.ast.diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
+      for (const warning of warnings) {
+        this.warn({
+          id: file,
+          message: formatDiagnostic(warning),
+          loc: { line: warning.line, column: warning.column - 1 }
+        });
+      }
+
+      const errors = compiled.ast.diagnostics.filter((diagnostic) => diagnostic.severity === "error");
+      if (errors.length > 0) {
+        const [firstError] = errors;
         this.error({
           id: file,
-          message: formatDiagnostic(error),
-          loc: { line: error.line, column: error.column - 1 }
+          message: errors.map(formatDiagnostic).join("\n"),
+          loc: { line: firstError!.line, column: firstError!.column - 1 }
         });
       }
 

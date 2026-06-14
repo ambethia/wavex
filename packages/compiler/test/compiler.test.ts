@@ -257,6 +257,44 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`const upNext = context.resources?.["upNext"]`);
   });
 
+  it("diagnoses duplicate resource binding names instead of silently clobbering", () => {
+    const compiled = compileWavexModule(`~~~\n$$talks:list as:talks\n$$sessions:list as:talks\n`, {
+      id: "src/pages/live.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX200", severity: "error", line: 3, column: 1 }]);
+    expect(compiled.ast.diagnostics[0]!.message).toContain("Duplicate resource binding name \"talks\"");
+  });
+
+  it("exposes actionStates inside resource getArgs", () => {
+    const compiled = compileWavexModule(`~~~\n$$tasks:list status:actionStates["$$tasks:create"]?.status\n`, {
+      id: "src/pages/index.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("const actionStates = context.actionStates ?? {};");
+    expect(compiled.code).toContain('return { "status": actionStates["$$tasks:create"]?.status };');
+  });
+
+  it("diagnoses event attributes on local components instead of silently discarding them", () => {
+    const compiled = compileWavexModule(`~~~\n@task-card :click:$$tasks:toggle task:\n`, {
+      id: "src/pages/index.wx",
+      localComponents: ["task-card"]
+    });
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX201", severity: "error", line: 2, column: 12 }]);
+    expect(compiled.code).not.toContain("data-wx-click");
+  });
+
+  it("diagnoses malformed +for and omits its children instead of rendering them unconditionally", () => {
+    const compiled = compileWavexModule(`~~~\n+for task of tasks\n  p {{ task.text }}\n`, {
+      id: "src/pages/index.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX010", severity: "error", line: 2, column: 1 }]);
+    expect(compiled.code).not.toContain("task.text");
+  });
+
   it("compiles +suspense reveal:together as an all-resources-ready gate", () => {
     const compiled = compileWavexModule(
       `~~~\n+suspense reveal:together\n  $$speakers:get args:{ slug: route.params.slug }\n  $$talks:list\n  p {{ speaker.name }} / {{ (talks ?? []).length }}\n`,

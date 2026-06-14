@@ -282,6 +282,25 @@ describe("parseWavex", () => {
     ]);
   });
 
+  it("diagnoses malformed element/component attribute tokens before inline text", () => {
+    const parsed = parseWavex(`~~~\n@button bad.name:value Save\np Total: {{ n }}\n`);
+
+    expect(parsed.nodes[0]).toMatchObject({ kind: "component", inlineText: "bad.name:value Save" });
+    expect(parsed.nodes[1]).toMatchObject({ kind: "element", inlineText: "Total: {{ n }}" });
+    expect(parsed.diagnostics).toMatchObject([{ code: "WX008", severity: "error", line: 2, column: 9 }]);
+    expect(parsed.diagnostics).toHaveLength(1);
+  });
+
+  it("diagnoses unknown directives and malformed +for headers", () => {
+    const parsed = parseWavex(`~~~\n+maybe nope\n  p Ignored directive\n+for task of tasks\n  p {{ task.text }}\n`);
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX009", severity: "error", line: 2, column: 1 },
+      { code: "WX010", severity: "error", line: 4, column: 1 }
+    ]);
+    expect(parsed.nodes[1]).toMatchObject({ kind: "directive", name: "for", for: undefined });
+  });
+
   it("diagnoses utility groups in attribute-only heads without also treating them as attributes", () => {
     const parsed = parseWavex(`~~~\n+head [stack gap-xl]\n$$tasks:list [stack]\n+for item in items key:item [stack]\n+head [stack gap-xl\n$$tasks:list [stack gap-xl\n+for item in items key:item [stack gap-xl\n`);
 

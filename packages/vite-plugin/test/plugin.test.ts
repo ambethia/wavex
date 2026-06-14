@@ -153,6 +153,7 @@ describe("wavex Vite transform", () => {
     const plugin = configuredPlugin(root);
     const context = {
       addWatchFile: vi.fn(),
+      warn: vi.fn(),
       error(error: { message: string }) {
         throw new Error(error.message);
       }
@@ -166,6 +167,21 @@ describe("wavex Vite transform", () => {
     expect(code).toContain('import * as __wxc_card from "/src/components/card.wx";');
     expect(code).toContain("import.meta.hot.accept");
     expect(code).toContain("__wavexHotReplacePage");
+  });
+
+  it("surfaces every transform diagnostic in the thrown Vite error", async () => {
+    const root = fixtureRoot("wavex-vite-transform-errors-");
+    const pageFile = writeFixture(root, "src/pages/index.wx", "~~~\n+maybe nope\n+for task of tasks\n");
+    const plugin = configuredPlugin(root);
+    const context = {
+      addWatchFile: vi.fn(),
+      warn: vi.fn(),
+      error(error: { message: string }) {
+        throw new Error(error.message);
+      }
+    };
+
+    await expect(plugin.transform.call(context, "~~~\n+maybe nope\n+for task of tasks\n", pageFile)).rejects.toThrow(/WX009[\s\S]*WX010/);
   });
 });
 

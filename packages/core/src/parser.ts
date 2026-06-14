@@ -85,6 +85,20 @@ const BOOLEAN_ATTRIBUTE_NAMES = new Set<string>([
   ...WAVEX_BOOLEAN_ATTRIBUTE_NAMES
 ]);
 
+const DIRECTIVE_NAMES = new Set([
+  "boundary",
+  "empty",
+  "error",
+  "for",
+  "head",
+  "idle",
+  "if",
+  "loading",
+  "mutation-error",
+  "pending",
+  "suspense"
+]);
+
 /**
  * Parse a complete `.wx` source file into a {@link WavexFile}.
  *
@@ -278,6 +292,15 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange, diagno
   const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
   const head = headToken?.raw ?? "+unknown";
   const name = head.slice(1);
+  if (!DIRECTIVE_NAMES.has(name)) {
+    diagnostics.push({
+      code: "WX009",
+      severity: "error",
+      line: range.start.line,
+      column: range.start.column,
+      message: `Unknown directive +${name}. Supported directives are: ${[...DIRECTIVE_NAMES].sort().map((directive) => `+${directive}`).join(", ")}.`
+    });
+  }
   const attributes: Attribute[] = [];
   let expression: string | undefined;
   let expressionRange: SourceRange | undefined;
@@ -290,6 +313,15 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange, diagno
     attributes.push(...parsedFor.attributes);
     expression = tokens.map((token) => token.raw).join(" ") || undefined;
     expressionRange = rangeForTokenSpan(range, tokens);
+    if (!forDirective) {
+      diagnostics.push({
+        code: "WX010",
+        severity: "error",
+        line: range.start.line,
+        column: range.start.column,
+        message: "+for must use the form '+for item in collection' with an identifier loop variable."
+      });
+    }
   } else if (name === "head" || name === "boundary") {
     attributes.push(...parseAttributeTokens(tokens, range, diagnostics, nonHeadUtilityMessage));
   } else if (name === "suspense") {
@@ -446,6 +478,7 @@ function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: Sou
     if (!isAttributeLike(token.raw)) {
       const inlineTokens = tokens.slice(index);
       diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics, "Utility groups must appear in the element or component head before inline text.");
+      diagnoseMalformedAttributeLikeToken(token, range, diagnostics);
       inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
       inlineTextRange = rangeForTokenSpan(range, inlineTokens);
       break;
@@ -554,6 +587,13 @@ function diagnoseInvalidAttributeToken(token: TokenRecord, range: SourceRange, d
     column: range.start.column + token.start,
     message: `Invalid attribute token "${token.raw}". Attribute names must start with a lowercase letter and use letters, numbers, underscores, or dashes.`
   });
+}
+
+function diagnoseMalformedAttributeLikeToken(token: TokenRecord, range: SourceRange, diagnostics: Diagnostic[]): void {
+  const colonIndex = token.raw.indexOf(":");
+  if (colonIndex === -1) return;
+  const possibleName = token.raw.slice(0, colonIndex);
+  if (/^[a-z]/.test(possibleName) && !ATTRIBUTE_NAME_PATTERN.test(possibleName)) diagnoseInvalidAttributeToken(token, range, diagnostics);
 }
 
 function diagnoseNonHeadUtilityGroups(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], message: string): void {

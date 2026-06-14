@@ -35,6 +35,7 @@ export interface CompileWavexResult {
 }
 
 interface InternalCompileOptions extends CompileWavexOptions {
+  diagnostics: WavexFile["diagnostics"];
   usedLocalComponents?: Set<string>;
   usedWebAwesomeComponents?: Set<string>;
 }
@@ -62,6 +63,7 @@ const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "i
 export function compileWavexModule(source: string, options: CompileWavexOptions = {}): CompileWavexResult {
   const ast = parseWavex(source, { fileName: options.id });
   ast.diagnostics.push(...validateConvexReferences(ast, { functionKinds: options.convexFunctionKinds }));
+  diagnoseDuplicateResourceBindings(ast, options.convexFunctionKinds);
   const renderNodes = ast.nodes.filter((node) => !(node.kind === "directive" && node.name === "head"));
   const headNodes = ast.nodes.filter((node): node is DirectiveNode => node.kind === "directive" && node.name === "head");
   const resourceNames = [
@@ -71,7 +73,7 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   const localComponents = options.localComponents ?? [];
   const usedLocalComponents = new Set<string>();
   const usedWebAwesomeComponents = new Set<string>();
-  const compileOptions: InternalCompileOptions = { ...options, usedLocalComponents, usedWebAwesomeComponents };
+  const compileOptions: InternalCompileOptions = { ...options, diagnostics: ast.diagnostics, usedLocalComponents, usedWebAwesomeComponents };
   const resourceDeclarations = resourceNames
     .map((name) => `  const ${name} = context.resources?.[${JSON.stringify(name)}];`)
     .join("\n");
@@ -128,6 +130,28 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   ].join("\n");
 
   return { ast, code, usedWebAwesomeComponents: [...usedWebAwesomeComponents].sort() };
+}
+
+function diagnoseDuplicateResourceBindings(
+  ast: WavexFile,
+  convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined
+): void {
+  const firstByName = new Map<string, ResourceBinding>();
+  for (const resource of ast.resources) {
+    if (!isQueryResource(resource, convexFunctionKinds)) continue;
+    const first = firstByName.get(resource.name);
+    if (!first) {
+      firstByName.set(resource.name, resource);
+      continue;
+    }
+    ast.diagnostics.push({
+      code: "WX200",
+      severity: "error",
+      line: resource.range.start.line,
+      column: resource.range.start.column,
+      message: `Duplicate resource binding name "${resource.name}". Rename one $$ call with a unique as: value to avoid clobbering the first binding from line ${first.range.start.line}.`
+    });
+  }
 }
 
 function compileResourceDefinitions(
@@ -202,9 +226,10 @@ function compileResourceArgsGetter(attributes: readonly Attribute[], resourceNam
     `      const attrs = context.attrs ?? {};`,
     `      const state = context.state ?? {};`,
     `      const navigation = context.navigation ?? { pending: false };`,
+    `      const actionStates = context.actionStates ?? {};`,
     `      const contextResources = context.resources ?? {};`,
     declarations,
-    `      void route; void attrs; void state; void navigation; void contextResources;`,
+    `      void route; void attrs; void state; void navigation; void actionStates; void contextResources;`,
     `      return ${expression};`,
     `    },`
   ]
@@ -339,7 +364,16 @@ function compileLocalComponentInvocation(
   const moduleName = localComponentModuleName(reference);
   const attrArgs: string[] = [];
   for (const attribute of node.attributes) {
-    if (attribute.kind === "semantic-event" || attribute.kind === "raw-event") continue;
+    if (attribute.kind === "semantic-event" || attribute.kind === "raw-event") {
+      options.diagnostics.push({
+        code: "WX201",
+        severity: "error",
+        line: attribute.range?.start.line ?? node.range.start.line,
+        column: attribute.range?.start.column ?? node.range.start.column,
+        message: `Event attribute ${JSON.stringify(attribute.raw)} cannot be applied to local component @${node.reference}; put the event on an element inside the component.`
+      });
+      continue;
+    }
     const key = JSON.stringify(attribute.name);
     if (attribute.kind === "boolean") attrArgs.push(`${key}: true`);
     else if (attribute.kind === "literal") attrArgs.push(`${key}: ${JSON.stringify(attribute.value)}`);
@@ -455,7 +489,8 @@ function compileDirective(node: DirectiveNode, options: InternalCompileOptions, 
     const expression = node.expression?.trim() || "false";
     return `\${${expression} ? html\`${compileNodes(node.children, options, scope)}\` : nothing}`;
   }
-  if (node.name === "for" && node.for) {
+  if (node.name === "for") {
+    if (!node.for) return "";
     const { itemName, collectionExpression, keyExpression } = node.for;
     const key = keyExpression || `(${itemName} as any)?._id ?? (${itemName} as any)?.id ?? (${itemName} as any)?.key ?? index`;
     return `\${repeat(${collectionExpression} ?? [], (${itemName}, index) => ${key}, (${itemName}, index) => html\`${compileNodes(
