@@ -178,6 +178,45 @@ describe("wavex prerender", () => {
     expect(html).not.toContain("Layout");
   });
 
+  it("replaces conflicting shell head entries with managed prerendered entries", () => {
+    const shell = [
+      "<!doctype html><html><head><title>App</title>",
+      '<meta name="description" content="Default description">',
+      '<meta property="og:title" content="Default title">',
+      '<link rel="canonical" href="https://example.test/default">',
+      '<meta data-name="description" content="not a head key">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      "</head><body></body></html>"
+    ].join("");
+
+    const html = injectPrerender(shell, "", [
+      { tag: "meta", attributes: { name: "description", content: "Page description" } },
+      { tag: "meta", attributes: { property: "og:title", content: "Page title" } },
+      { tag: "link", attributes: { rel: "canonical", href: "https://example.test/page" } }
+    ]);
+
+    expect(html.match(/<meta name="description"/g)).toHaveLength(1);
+    expect(html).toContain('<meta name="description" content="Page description" data-wx-head>');
+    expect(html.match(/property="og:title"/g)).toHaveLength(1);
+    expect(html).toContain('<meta property="og:title" content="Page title" data-wx-head>');
+    expect(html.match(/rel="canonical"/g)).toHaveLength(1);
+    expect(html).toContain('<link rel="canonical" href="https://example.test/page" data-wx-head>');
+    expect(html).toContain('<meta data-name="description" content="not a head key">');
+    expect(html).toContain('<meta name="viewport" content="width=device-width, initial-scale=1">');
+    expect(html).not.toContain("Default description");
+    expect(html).not.toContain("Default title");
+    expect(html).not.toContain("https://example.test/default");
+  });
+
+  it("throws instead of silently skipping prerender injection for malformed shells", () => {
+    expect(() => injectPrerender("<!doctype html><html><head></head></html>", "", [])).toThrow(/missing a <body> tag/);
+    expect(() =>
+      injectPrerender("<!doctype html><html><head><body></body></html>", "", [
+        { tag: "meta", attributes: { name: "description", content: "Page" } }
+      ])
+    ).toThrow(/missing a closing <\/head> tag/);
+  });
+
   it("inserts prerendered HTML and head entries without replacement-token expansion", () => {
     const shell = "<!doctype html><html><head><title>App</title></head><body></body></html>";
 

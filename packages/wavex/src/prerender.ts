@@ -86,16 +86,14 @@ export async function prerender(rootInput: string): Promise<void> {
 
 export function injectPrerender(shell: string, body: string, head: HeadEntryLike[]): string {
   const reconciledHead = reconcileHeadEntries(head);
-  let html = stripPrerenderArtifacts(shell).replace(
-    /(<body[^>]*>)/i,
-    (_match, bodyOpen: string) => `${bodyOpen}<div data-wx-prerender>${body}</div>`
-  );
+  let html = insertPrerenderBody(stripPrerenderArtifacts(shell), body);
+  html = removeConflictingShellHeadTags(html, reconciledHead.entries);
 
   if (reconciledHead.title) {
     const titleTag = `<title data-wx-head>${escapeHtml(reconciledHead.title.text ?? "")}</title>`;
     html = /<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)
       ? html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, () => titleTag)
-      : html.replace(/<\/head>/i, () => `${titleTag}</head>`);
+      : insertBeforeHeadClose(html, titleTag);
   }
 
   const metaTags = reconciledHead.entries
@@ -106,7 +104,7 @@ export function injectPrerender(shell: string, body: string, head: HeadEntryLike
       return `<${entry.tag} ${attributes} data-wx-head>`;
     })
     .join("");
-  if (metaTags) html = html.replace(/<\/head>/i, () => `${metaTags}</head>`);
+  if (metaTags) html = insertBeforeHeadClose(html, metaTags);
 
   return html;
 }
@@ -152,6 +150,54 @@ function headEntryKey(entry: HeadEntryLike): string | undefined {
     if (rel) return `link:rel:${rel}`;
   }
   return undefined;
+}
+
+function insertPrerenderBody(html: string, body: string): string {
+  const injected = html.replace(
+    /(<body\b[^>]*>)/i,
+    (_match, bodyOpen: string) => `${bodyOpen}<div data-wx-prerender>${body}</div>`
+  );
+  if (injected === html) throw new Error("wavex prerender: shell is missing a <body> tag.");
+  return injected;
+}
+
+function insertBeforeHeadClose(html: string, markup: string): string {
+  const inserted = html.replace(/<\/head>/i, () => `${markup}</head>`);
+  if (inserted === html) throw new Error("wavex prerender: shell is missing a closing </head> tag.");
+  return inserted;
+}
+
+function removeConflictingShellHeadTags(html: string, entries: HeadEntryLike[]): string {
+  const managedKeys = new Set(entries.map((entry) => headEntryKey(entry)).filter((key): key is string => key !== undefined));
+  if (managedKeys.size === 0) return html;
+
+  return html.replace(/<(meta|link)\b[^>]*>/gi, (tag, rawTagName: string) => {
+    const key = htmlHeadTagKey(rawTagName.toLowerCase(), tag);
+    return key && managedKeys.has(key) ? "" : tag;
+  });
+}
+
+function htmlHeadTagKey(tagName: string, source: string): string | undefined {
+  if (tagName === "meta") {
+    const name = readHtmlAttribute(source, "name");
+    const property = readHtmlAttribute(source, "property");
+    if (name) return `meta:name:${name}`;
+    if (property) return `meta:property:${property}`;
+  }
+  if (tagName === "link") {
+    const rel = readHtmlAttribute(source, "rel");
+    if (rel) return `link:rel:${rel}`;
+  }
+  return undefined;
+}
+
+function readHtmlAttribute(source: string, name: string): string | undefined {
+  const match = new RegExp(`(?:^|[\\s/])${escapeRegExp(name)}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\\x60]+))`, "i").exec(source);
+  return match?.[1] ?? match?.[2] ?? match?.[3];
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function stripPrerenderArtifacts(html: string): string {
