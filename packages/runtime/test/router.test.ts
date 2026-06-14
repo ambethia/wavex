@@ -393,6 +393,29 @@ describe("client router view transitions", () => {
     }
   });
 
+  it("propagates errors thrown during a transitioned commit", async () => {
+    const env = fakeEnvironment({ startViewTransition: true });
+    const host = {
+      ...env.host,
+      setPage: (page: { route: { path: string } }) => {
+        if (page.route.path === "/b") throw new Error("commit failed");
+        env.host.setPage(page);
+      }
+    };
+    const router = createClientRouter({
+      routes: [
+        routeOf("a.wx", "/a", async () => ({ default: () => "a" })),
+        routeOf("b.wx", "/b", async () => ({ default: () => "b" }))
+      ],
+      host,
+      window: env.win
+    });
+
+    await router.navigate("/a");
+    await expect(router.navigate("/b")).rejects.toThrow("commit failed");
+    expect(router.current?.route.path).toBe("/a");
+  });
+
   it("never transitions HMR hot replacement", async () => {
     const env = fakeEnvironment({ startViewTransition: true });
     const router = createClientRouter({

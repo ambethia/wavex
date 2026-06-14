@@ -167,24 +167,33 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
         },
         types: ["wavex-navigation", pop ? "backward" : "forward"]
       });
-    } catch {
+    } catch (error) {
+      // Older Chromium builds only accept the function signature. Do not
+      // misclassify arbitrary transition/commit failures as API-shape fallback.
+      if (!(error instanceof TypeError)) throw error;
       transition = documentRef.startViewTransition!(() => {
         committed = guardedCommit();
       });
     }
-    await transition.updateCallbackDone.catch(() => undefined);
+    await transition.updateCallbackDone;
     return committed;
+  };
+
+  const commitPage = (next: ActivePage) => {
+    if (!next.page) return;
+    const composed = composeLayoutRender(next.layouts?.map((layout) => layout.module) ?? [], next.page);
+    options.host.setPage({
+      render: composed.render,
+      resources: composed.resources,
+      route: next.route,
+      head: composed.headEntries
+    });
+    current = next;
   };
 
   const applyCurrent = () => {
     if (!current?.page) return;
-    const composed = composeLayoutRender(current.layouts?.map((layout) => layout.module) ?? [], current.page);
-    options.host.setPage({
-      render: composed.render,
-      resources: composed.resources,
-      route: current.route,
-      head: composed.headEntries
-    });
+    commitPage(current);
   };
 
   const navigate = async (to: string, navOptions: { replace?: boolean; pop?: boolean } = {}) => {
@@ -221,13 +230,12 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       if (token !== navigationToken) return; // superseded; the newer navigation owns pending state
 
       const committed = await commitWithTransition(token, navOptions.pop ?? false, () => {
-        current = {
+        commitPage({
           route,
           file: clientRoute.file,
           page: module,
           layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
-        };
-        applyCurrent();
+        });
       });
       if (!committed) return;
     } catch (error) {
@@ -260,13 +268,13 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       throw error;
     }
     setNavigation({ pending: false });
-    current = { route, file: errorDef.file, page: errorModule, layouts: [] };
     options.host.setPage({
       render: (context = {}) => errorRender({ ...context, attrs: { ...context.attrs, error } }),
       resources: [],
       route,
       head: (context) => errorModule.headEntries?.(context) ?? []
     });
+    current = { route, file: errorDef.file, page: errorModule, layouts: [] };
     return true;
   };
 
@@ -304,14 +312,14 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       if (!current) return;
       const normalized = file.replace(/^\/+/, "");
       if (current.file?.replace(/^\/+/, "") === normalized) {
-        current.page = module;
-        applyCurrent();
+        commitPage({ ...current, page: module });
         return;
       }
-      const layout = current.layouts?.find((entry) => entry.file.replace(/^\/+/, "") === normalized);
-      if (layout) {
-        layout.module = module;
-        applyCurrent();
+      const layoutIndex = current.layouts?.findIndex((entry) => entry.file.replace(/^\/+/, "") === normalized) ?? -1;
+      if (layoutIndex >= 0) {
+        const layouts = [...(current.layouts ?? [])];
+        layouts[layoutIndex] = { ...layouts[layoutIndex]!, module };
+        commitPage({ ...current, layouts });
       }
     },
     get current() {
