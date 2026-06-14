@@ -4,8 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const vitePlusCoreSpecifier = "npm:@voidzero-dev/vite-plus-core@0.1.24";
-const vitePlusTestSpecifier = "npm:@voidzero-dev/vite-plus-test@0.1.24";
+const nodeVersion = "24.9.0";
+const vitePlusVersion = "0.1.24";
+const vitePlusCoreSpecifier = `npm:@voidzero-dev/vite-plus-core@${vitePlusVersion}`;
+const vitePlusTestSpecifier = `npm:@voidzero-dev/vite-plus-test@${vitePlusVersion}`;
 
 function readJson(path: string): Record<string, any> {
   return JSON.parse(readFileSync(resolve(repoRoot, path), "utf8"));
@@ -35,15 +37,19 @@ describe("dependency hygiene", () => {
     });
     expect(rootPackage.devDependencies.vite).toBe(vitePlusCoreSpecifier);
     expect(rootPackage.devDependencies.vitest).toBe(vitePlusTestSpecifier);
-    expect(rootPackage.devDependencies["vite-plus"]).toBe("0.1.24");
+    expect(rootPackage.devDependencies["vite-plus"]).toBe(vitePlusVersion);
     expect(rootPackage.pnpm.peerDependencyRules.allowedVersions).toMatchObject({
-      vite: "0.1.24",
-      vitest: "0.1.24"
+      vite: vitePlusVersion,
+      vitest: vitePlusVersion
     });
+    const miseTools = readText("mise.toml");
+    expect(miseTools).toMatch(new RegExp(`node\\s*=\\s*"${nodeVersion}"`));
+    expect(miseTools).toMatch(new RegExp(`viteplus\\s*=\\s*"${vitePlusVersion}"`));
+    expect(miseTools).not.toMatch(/=\s*"latest"/);
 
     const vitePeer = pluginPackage.peerDependencies.vite;
     expect(vitePeer).toContain(">=5.0.0");
-    expect(vitePeer).toContain("^0.1.24");
+    expect(vitePeer).toContain(`^${vitePlusVersion}`);
     expect(vitePeer).not.toBe(">=5.0.0");
   });
 
