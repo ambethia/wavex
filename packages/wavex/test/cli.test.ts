@@ -40,18 +40,19 @@ function captureConsole() {
 }
 
 describe("wavex check", () => {
-  it("uses the checked app root for local component and Web Awesome capability diagnostics", async () => {
-    const root = fixtureRoot("wavex-cli-check-");
+  it("resolves the app root when checking a nested src directory", async () => {
+    const workspace = fixtureRoot("wavex-cli-check-");
+    const appRoot = join(workspace, "apps", "swell");
     writeFixture(
-      root,
+      appRoot,
       "node_modules/@awesome.me/webawesome/dist/custom-elements.json",
       JSON.stringify({ modules: [{ declarations: [{ tagName: "wa-button" }] }] })
     );
-    writeFixture(root, "src/components/site-nav.wx", "~~~\nnav Site\n");
-    writeFixture(root, "src/pages/index.wx", "~~~\n@site-nav\n@button Click\n");
+    writeFixture(appRoot, "src/components/site-nav.wx", "~~~\nnav Site\n");
+    writeFixture(appRoot, "src/pages/index.wx", "~~~\n@site-nav\n@button Click\n");
     const { logs, errors } = captureConsole();
 
-    await runCli(["check", join(root, "src")]);
+    await runCli(["check", join(appRoot, "src")]);
 
     expect(errors).toEqual([]);
     expect(process.exitCode).toBeUndefined();
