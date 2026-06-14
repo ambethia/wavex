@@ -250,28 +250,31 @@ function parseComponent(trimmed: string, raw: string, range: SourceRange, diagno
 
 function parseDirective(trimmed: string, raw: string, range: SourceRange, diagnostics: Diagnostic[]): DirectiveNode {
   const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
-  diagnoseNonHeadUtilityGroups(tokens, range, diagnostics, "Directive expressions cannot contain utility groups; bracket utility groups are only valid in element or component heads.");
   const head = headToken?.raw ?? "+unknown";
   const name = head.slice(1);
   const attributes: Attribute[] = [];
   let expression: string | undefined;
   let expressionRange: SourceRange | undefined;
   let forDirective: ForDirective | undefined;
+  const nonHeadUtilityMessage = "Directive expressions cannot contain utility groups; bracket utility groups are only valid in element or component heads.";
 
   if (name === "for") {
+    diagnoseNonHeadUtilityGroups(tokens, range, diagnostics, nonHeadUtilityMessage);
     const parsedFor = parseForDirective(tokens, range, diagnostics);
     forDirective = parsedFor.forDirective;
     attributes.push(...parsedFor.attributes);
     expression = tokens.map((token) => token.raw).join(" ") || undefined;
     expressionRange = rangeForTokenSpan(range, tokens);
   } else if (name === "head" || name === "boundary") {
+    diagnoseNonHeadUtilityGroups(tokens, range, diagnostics, nonHeadUtilityMessage);
     attributes.push(...parseAttributeTokens(tokens, range, diagnostics));
   } else if (name === "suspense") {
-    const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics);
+    const parsed = parseAttributesAndInlineText(tokens, range, diagnostics, nonHeadUtilityMessage);
     attributes.push(...parsed.attributes);
     expression = parsed.inlineText;
     expressionRange = parsed.inlineTextRange;
   } else {
+    diagnoseNonHeadUtilityGroups(tokens, range, diagnostics, nonHeadUtilityMessage);
     expression = tokens.map((token) => token.raw).join(" ") || undefined;
     expressionRange = rangeForTokenSpan(range, tokens);
   }
@@ -393,7 +396,7 @@ function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: Sou
 
     if (!isAttributeLike(token.raw)) {
       const inlineTokens = tokens.slice(index);
-      diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics);
+      diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics, "Utility groups must appear in the element or component head before inline text.");
       inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
       inlineTextRange = rangeForTokenSpan(range, inlineTokens);
       break;
@@ -405,6 +408,29 @@ function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: Sou
   }
 
   return { attributes, utilities, inlineText, inlineTextRange };
+}
+
+function parseAttributesAndInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage: string): ParsedHead {
+  const attributes: Attribute[] = [];
+  let inlineText: string | undefined;
+  let inlineTextRange: SourceRange | undefined;
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index]!;
+    if (!isAttributeLike(token.raw)) {
+      const inlineTokens = tokens.slice(index);
+      diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics, utilityGroupMessage);
+      inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
+      inlineTextRange = rangeForTokenSpan(range, inlineTokens);
+      break;
+    }
+
+    const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end));
+    if (attribute) attributes.push(attribute);
+    else diagnoseInvalidAttributeToken(token, range, diagnostics);
+  }
+
+  return { attributes, utilities: [], inlineText, inlineTextRange };
 }
 
 function isUtilityGroupToken(token: string): boolean {
@@ -427,7 +453,7 @@ function parseUtilityGroupToken(token: TokenRecord, range: SourceRange, diagnost
   return values;
 }
 
-function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): void {
+function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage: string): void {
   for (const token of tokens) {
     if (isUtilityGroupToken(token.raw)) {
       diagnostics.push({
@@ -435,7 +461,7 @@ function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceR
         severity: "error",
         line: range.start.line,
         column: range.start.column + token.start,
-        message: "Utility groups must appear in the element or component head before inline text."
+        message: utilityGroupMessage
       });
     } else if (isAttributeLike(token.raw)) {
       diagnostics.push({

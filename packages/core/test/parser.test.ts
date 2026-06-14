@@ -106,6 +106,15 @@ describe("parseWavex", () => {
     ]);
   });
 
+  it("does not silently drop utility groups from suspense directive text", () => {
+    const parsed = parseWavex("~~~\n+suspense [stack] Loading\n");
+
+    expect(parsed.nodes[0]).toMatchObject({ kind: "directive", name: "suspense", expression: "[stack] Loading" });
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX006", severity: "error", line: 2, column: 11 }
+    ]);
+  });
+
   it("treats mustache tokens with inner colons as inline text, not attributes", () => {
     const parsed = parseWavex('~~~\n+head\n  title {{ talk ? `${talk.title} | Swell` : "Talk | Swell" }}\n');
     const head = parsed.nodes.find((node) => node.kind === "directive");
