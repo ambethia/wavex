@@ -1,0 +1,11 @@
+type Attrs = {
+  label: string
+  value: string
+}
+
+~~~
+
+@wa/card
+  div [stack gap-2xs]
+    strong [heading-l] {{ value }}
+    span [caption-m] {{ label }}

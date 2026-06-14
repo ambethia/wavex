@@ -4,5 +4,7 @@ import "@awesome.me/webawesome/dist/components/page/page.js"
 
 @page
   @site-nav
+  +if navigation.pending
+    @progress-bar indeterminate class:nav-progress
   main [stack gap-l] class:page-main
     slot

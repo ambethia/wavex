@@ -71,6 +71,22 @@
   font-style: italic;
 }
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: var(--wa-transition-easing);
+}
+
+:active-view-transition-type(backward) ::view-transition-new(root) {
+  animation-name: wx-route-backward-in;
+}
+
+@keyframes wx-route-backward-in {
+  from {
+    transform: translateX(-1rem);
+  }
+}
+
 /* nprogress-style top bar while the router loads the next page. */
 .nav-progress {
   position: fixed;

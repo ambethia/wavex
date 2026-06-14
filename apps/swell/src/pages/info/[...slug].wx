@@ -10,7 +10,8 @@ header [stack gap-2xs]
 @card
   div [stack gap-s]
     h2 [heading-m] Venue
-    p The *Harborview Pavilion*, a ten-minute walk from the station. Doors open at `08:30` — badge pickup is in the _east lobby_.
+    p
+      | The *Harborview Pavilion*, a ten-minute walk from the station. Doors open at `08:30` — badge pickup is in the _east lobby_.
     p Lunch is on the lawn. Coffee is ~unlimited~.
 
 @card

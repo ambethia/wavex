@@ -40,7 +40,7 @@ interface TokenRecord {
   end: number;
 }
 
-const ATTRIBUTE_NAME_PATTERN = /^[a-z][a-z0-9_-]*$/;
+const ATTRIBUTE_NAME_PATTERN = /^[a-z][A-Za-z0-9_-]*$/;
 
 const HTML_BOOLEAN_ATTRIBUTE_NAMES = [
   "allowfullscreen",
@@ -551,7 +551,7 @@ function diagnoseInvalidAttributeToken(token: TokenRecord, range: SourceRange, d
     severity: "error",
     line: range.start.line,
     column: range.start.column + token.start,
-    message: `Invalid attribute token "${token.raw}". Attribute names must start with a lowercase letter and use lowercase letters, numbers, underscores, or dashes.`
+    message: `Invalid attribute token "${token.raw}". Attribute names must start with a lowercase letter and use letters, numbers, underscores, or dashes.`
   });
 }
 

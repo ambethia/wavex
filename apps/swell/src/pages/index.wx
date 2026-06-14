@@ -17,7 +17,10 @@ section [stack gap-s] class:hero
 section [stack gap-m]
   h2 [heading-l] Why Swell?
   div [grid gap-m] class:feature-grid
-    @card
+    @conference/hero-stat label:"live Q&A prompts" value:"300+"
+    @conference/hero-stat label:"speaker tracks" value:"2"
+    @conference/hero-stat label:"beach walk" value:"5 min"
+    @wa/card
       strong Realtime first
       p Every session explores apps that update live, no refresh button required.
     @card

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vp dev",
     "build": "tsc && vp build",
+    "prerender": "pnpm build && wavex prerender .",
     "preview": "vp preview",
     "check": "vp check",
     "test": "vp test run",

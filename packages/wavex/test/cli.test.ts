@@ -1,6 +1,7 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runCli, viteArgsForWavexCommand } from "../src/cli-core.js";
 import { injectPrerender } from "../src/prerender.js";
@@ -38,6 +39,38 @@ function captureConsole() {
   vi.spyOn(console, "error").mockImplementation((...args) => errors.push(args.join(" ")));
   return { logs, errors };
 }
+
+function readWxTree(root: string): string {
+  const chunks: string[] = [];
+  const visit = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile() && path.endsWith(".wx")) chunks.push(readFileSync(path, "utf8"));
+    }
+  };
+  visit(root);
+  return chunks.join("\n");
+}
+
+describe("Swell validation app", () => {
+  it("exercises the newest router, prerender, Convex, suspense, Web Awesome, and component-path features", () => {
+    const appRoot = fileURLToPath(new URL("../../../apps/swell", import.meta.url));
+    const source = readWxTree(join(appRoot, "src"));
+    const styles = readFileSync(join(appRoot, "src/style.css"), "utf8");
+    const manifest = JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8")) as { scripts?: Record<string, string> };
+
+    expect(source).toContain("navigation.pending");
+    expect(source).toContain("class:nav-progress");
+    expect(styles).toContain("::view-transition-new(root)");
+    expect(manifest.scripts?.prerender).toContain("wavex prerender .");
+    expect(source).toMatch(/^\$talks:list$/m);
+    expect(source).toContain("reveal:progressive");
+    expect(source).toContain("refresh:background");
+    expect(source).toContain("@wa/card");
+    expect(source).toContain("@conference/hero-stat");
+  });
+});
 
 describe("wavex check", () => {
   it("resolves the app root when checking a nested src directory", async () => {

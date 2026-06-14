@@ -3,27 +3,30 @@
 +head
   title Live | Swell Conf
 
+$talks:list
+
 header [stack gap-2xs]
   h1 [heading-2xl] Happening now
   p [caption-m] The same realtime program, sliced two ways.
 
 div [grid gap-m] class:live-grid
-  section [stack gap-s]
-    h2 [heading-m] Full program
-    $$talks:list
-      +loading
-        @spinner
-      div [stack gap-s]
-        +for talk in talks key:talk.slug
-          @talk-card talk:
+  +suspense reveal:progressive refresh:background
+    section [stack gap-s]
+      h2 [heading-m] Full program
+      $$talks:list
+        +loading
+          @spinner
+        div [stack gap-s]
+          +for talk in talks key:talk.slug
+            @talk-card talk:
 
-  section [stack gap-s]
-    h2 [heading-m] Systems track only
-    $$talks:list as:systemsTalks track:"systems"
-      +loading
-        @spinner
-      +empty
-        p [caption-m] Nothing on this track.
-      div [stack gap-s]
-        +for talk in systemsTalks key:talk.slug
-          @talk-card talk:
+    section [stack gap-s]
+      h2 [heading-m] Systems track only
+      $$talks:list as:systemsTalks track:"systems"
+        +loading
+          @spinner
+        +empty
+          p [caption-m] Nothing on this track.
+        div [stack gap-s]
+          +for talk in systemsTalks key:talk.slug
+            @talk-card talk:
