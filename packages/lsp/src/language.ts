@@ -220,8 +220,6 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
     IDENTIFIER.test(expression?.trim() ?? "") ? expression!.trim() : "err";
 
   const visit = (node: TemplateNode) => {
-    const raw = node.raw;
-
     // {{ interpolations }} in parsed text and attribute value ranges. These
     // anchors come from parser-owned sub-line ranges instead of searching the
     // whole raw line, so repeated snippets map to the token that produced them.
