@@ -154,6 +154,30 @@ describe("wavex prerender", () => {
     expect(html).not.toContain("<title>App</title>");
   });
 
+  it("uses the deepest head entries for prerendered title and keyed tags", () => {
+    const shell = "<!doctype html><html><head><title>App</title></head><body></body></html>";
+
+    const html = injectPrerender(shell, "", [
+      { tag: "title", text: "Layout" },
+      { tag: "meta", attributes: { name: "description", content: "Layout description" } },
+      { tag: "meta", attributes: { property: "og:title", content: "Layout title" } },
+      { tag: "link", attributes: { rel: "canonical", href: "https://example.test/layout" } },
+      { tag: "title", text: "Page" },
+      { tag: "meta", attributes: { name: "description", content: "Page description" } },
+      { tag: "meta", attributes: { property: "og:title", content: "Page title" } },
+      { tag: "link", attributes: { rel: "canonical", href: "https://example.test/page" } }
+    ]);
+
+    expect(html).toContain("<title data-wx-head>Page</title>");
+    expect(html.match(/name="description"/g)).toHaveLength(1);
+    expect(html).toContain('<meta name="description" content="Page description" data-wx-head>');
+    expect(html.match(/property="og:title"/g)).toHaveLength(1);
+    expect(html).toContain('<meta property="og:title" content="Page title" data-wx-head>');
+    expect(html.match(/rel="canonical"/g)).toHaveLength(1);
+    expect(html).toContain('<link rel="canonical" href="https://example.test/page" data-wx-head>');
+    expect(html).not.toContain("Layout");
+  });
+
   it("inserts prerendered HTML and head entries without replacement-token expansion", () => {
     const shell = "<!doctype html><html><head><title>App</title></head><body></body></html>";
 

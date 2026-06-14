@@ -85,21 +85,20 @@ export async function prerender(rootInput: string): Promise<void> {
 }
 
 export function injectPrerender(shell: string, body: string, head: HeadEntryLike[]): string {
+  const reconciledHead = reconcileHeadEntries(head);
   let html = stripPrerenderArtifacts(shell).replace(
     /(<body[^>]*>)/i,
     (_match, bodyOpen: string) => `${bodyOpen}<div data-wx-prerender>${body}</div>`
   );
 
-  const titleEntry = head.find((entry) => entry.tag === "title");
-  if (titleEntry) {
-    const titleTag = `<title data-wx-head>${escapeHtml(titleEntry.text ?? "")}</title>`;
+  if (reconciledHead.title) {
+    const titleTag = `<title data-wx-head>${escapeHtml(reconciledHead.title.text ?? "")}</title>`;
     html = /<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)
       ? html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, () => titleTag)
       : html.replace(/<\/head>/i, () => `${titleTag}</head>`);
   }
 
-  const metaTags = head
-    .filter((entry) => entry.tag !== "title")
+  const metaTags = reconciledHead.entries
     .map((entry) => {
       const attributes = Object.entries(entry.attributes ?? {})
         .map(([name, value]) => `${name}="${escapeHtml(value)}"`)
@@ -110,6 +109,49 @@ export function injectPrerender(shell: string, body: string, head: HeadEntryLike
   if (metaTags) html = html.replace(/<\/head>/i, () => `${metaTags}</head>`);
 
   return html;
+}
+
+function reconcileHeadEntries(head: HeadEntryLike[]): { title?: HeadEntryLike; entries: HeadEntryLike[] } {
+  const entries: HeadEntryLike[] = [];
+  const keyedIndexes = new Map<string, number>();
+  let title: HeadEntryLike | undefined;
+
+  for (const entry of head) {
+    if (entry.tag === "title") {
+      title = entry;
+      continue;
+    }
+
+    const key = headEntryKey(entry);
+    if (!key) {
+      entries.push(entry);
+      continue;
+    }
+
+    const existingIndex = keyedIndexes.get(key);
+    if (existingIndex === undefined) {
+      keyedIndexes.set(key, entries.length);
+      entries.push(entry);
+    } else {
+      entries[existingIndex] = entry;
+    }
+  }
+
+  return { title, entries };
+}
+
+function headEntryKey(entry: HeadEntryLike): string | undefined {
+  if (entry.tag === "meta") {
+    const name = entry.attributes?.["name"];
+    const property = entry.attributes?.["property"];
+    if (name) return `meta:name:${name}`;
+    if (property) return `meta:property:${property}`;
+  }
+  if (entry.tag === "link") {
+    const rel = entry.attributes?.["rel"];
+    if (rel) return `link:rel:${rel}`;
+  }
+  return undefined;
 }
 
 function stripPrerenderArtifacts(html: string): string {
