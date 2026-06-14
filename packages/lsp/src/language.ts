@@ -270,9 +270,10 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
         const { itemName, collectionExpression, keyExpression } = node.for;
         emitter.append("  ;((");
         if (node.for.collectionExpressionRange) {
+          const collectionRange = node.for.collectionExpressionRange;
           emitter.appendMapped(
-            sourceForRange(node.for.collectionExpressionRange) ?? collectionExpression,
-            node.for.collectionExpressionRange.start.offset
+            source.slice(collectionRange.start.offset, collectionRange.end.offset),
+            collectionRange.start.offset
           );
         } else emitter.append(collectionExpression);
         emitter.append(`) ?? []).forEach((${itemName}, index) => {\n  void index;\n`);
