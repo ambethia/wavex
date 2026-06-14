@@ -405,10 +405,11 @@ function parseConvexCall(
 function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Diagnostic[]): ConvexFunctionAddress {
   const withoutSigils = rawHead.replace(/^\$\$?/, "");
   const splitIndex = withoutSigils.lastIndexOf(":");
-  const modulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex).replace(/:/g, "/");
+  const rawModulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex);
+  const modulePath = rawModulePath.replace(/:/g, "/");
   const functionName = splitIndex === -1 ? "" : withoutSigils.slice(splitIndex + 1);
 
-  if (!/^[A-Za-z0-9_./-]+$/.test(modulePath) || !/^[A-Za-z_$][\w$]*$/.test(functionName)) {
+  if (!/^[A-Za-z0-9_.-]+(?:[/:][A-Za-z0-9_.-]+)*$/.test(rawModulePath) || !/^[A-Za-z_$][\w$]*$/.test(functionName)) {
     diagnostics.push({
       code: "WX020",
       severity: "error",

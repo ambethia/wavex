@@ -1,3 +1,5 @@
 ~~~
 $$talks:list-bad
   p Invalid address should remain a parser diagnostic
+$$talks//nested:list
+  p Empty path segments should not crash the LSP

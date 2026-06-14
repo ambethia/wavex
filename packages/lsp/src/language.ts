@@ -197,9 +197,9 @@ const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 function isValidConvexRawAddress(rawHead: string): boolean {
   const withoutSigils = rawHead.replace(/^\$\$?/, "");
   const splitIndex = withoutSigils.lastIndexOf(":");
-  const modulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex).replace(/:/g, "/");
+  const rawModulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex);
   const functionName = splitIndex === -1 ? "" : withoutSigils.slice(splitIndex + 1);
-  return /^[A-Za-z0-9_./-]+$/.test(modulePath) && IDENTIFIER.test(functionName);
+  return /^[A-Za-z0-9_.-]+(?:[/:][A-Za-z0-9_.-]+)*$/.test(rawModulePath) && IDENTIFIER.test(functionName);
 }
 
 function appendMappedConvexApiPath(source: string, resource: ResourceBinding, emitter: Emitter): void {

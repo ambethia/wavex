@@ -34,6 +34,15 @@ describe("parseWavex", () => {
     ]);
   });
 
+  it("diagnoses empty Convex module path segments", () => {
+    const parsed = parseWavex(`~~~\n$$foo//bar:list\n$$foo/:list\n`);
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX020", severity: "error", line: 2, column: 1 },
+      { code: "WX020", severity: "error", line: 3, column: 1 }
+    ]);
+  });
+
   it("parses attribute value forms", () => {
     expect(parseAttributeToken("required")).toMatchObject({ kind: "boolean", name: "required" });
     expect(parseAttributeToken("task:")).toMatchObject({ kind: "same-name", name: "task" });
