@@ -99,11 +99,12 @@ describe("parseWavex", () => {
   });
 
   it("diagnoses likely utility groups in directive expressions", () => {
-    const parsed = parseWavex("~~~\n+if [stack gap-xl]\n  p Yes\n+if [gap:xl]\n  p No\n");
+    const parsed = parseWavex("~~~\n+if [stack gap-xl]\n  p Yes\n+if [gap:xl]\n  p No\n+if [stack gap-xl\n  p Maybe\n");
 
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX006", severity: "error", line: 2, column: 5 },
-      { code: "WX006", severity: "error", line: 4, column: 5 }
+      { code: "WX006", severity: "error", line: 4, column: 5 },
+      { code: "WX005", severity: "error", line: 6, column: 5 }
     ]);
   });
 
@@ -173,14 +174,17 @@ describe("parseWavex", () => {
   });
 
   it("diagnoses utility groups in attribute-only heads without also treating them as attributes", () => {
-    const parsed = parseWavex(`~~~\n+head [stack gap-xl]\n$$tasks:list [stack]\n+for item in items key:item [stack]\n`);
+    const parsed = parseWavex(`~~~\n+head [stack gap-xl]\n$$tasks:list [stack]\n+for item in items key:item [stack]\n+head [stack gap-xl\n$$tasks:list [stack gap-xl\n+for item in items key:item [stack gap-xl\n`);
 
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX006", severity: "error", line: 2, column: 7 },
       { code: "WX006", severity: "error", line: 3, column: 14 },
-      { code: "WX006", severity: "error", line: 4, column: 29 }
+      { code: "WX006", severity: "error", line: 4, column: 29 },
+      { code: "WX005", severity: "error", line: 5, column: 7 },
+      { code: "WX005", severity: "error", line: 6, column: 14 },
+      { code: "WX005", severity: "error", line: 7, column: 29 }
     ]);
-    expect(parsed.diagnostics).toHaveLength(3);
+    expect(parsed.diagnostics).toHaveLength(6);
   });
 
   it("accepts dash-form utility tokens without diagnostics", () => {

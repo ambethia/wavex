@@ -409,13 +409,7 @@ function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: Sou
     }
 
     if (isLikelyUnclosedUtilityGroupToken(token.raw)) {
-      diagnostics.push({
-        code: "WX005",
-        severity: "error",
-        line: range.start.line,
-        column: range.start.column + token.start,
-        message: `Utility group "${token.raw}" is invalid: missing closing "]".`
-      });
+      diagnoseUnclosedUtilityGroupToken(token, range, diagnostics);
       const inlineTokens = tokens.slice(index);
       inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
       inlineTextRange = rangeForTokenSpan(range, inlineTokens);
@@ -492,13 +486,7 @@ function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceR
         message: utilityGroupMessage
       });
     } else if (isLikelyUnclosedUtilityGroupToken(token.raw)) {
-      diagnostics.push({
-        code: "WX005",
-        severity: "error",
-        line: range.start.line,
-        column: range.start.column + token.start,
-        message: `Utility group "${token.raw}" is invalid: missing closing "]".`
-      });
+      diagnoseUnclosedUtilityGroupToken(token, range, diagnostics);
     } else if (isAttributeLike(token.raw)) {
       diagnostics.push({
         code: "WX007",
@@ -523,8 +511,8 @@ function diagnoseInvalidAttributeToken(token: TokenRecord, range: SourceRange, d
 
 function diagnoseNonHeadUtilityGroups(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], message: string): void {
   for (const token of tokens) {
-    if (!isLikelyUtilityGroupToken(token.raw)) continue;
-    diagnoseUtilityGroupToken(token, range, diagnostics, message);
+    if (isLikelyUtilityGroupToken(token.raw)) diagnoseUtilityGroupToken(token, range, diagnostics, message);
+    else if (isLikelyUnclosedUtilityGroupToken(token.raw)) diagnoseUnclosedUtilityGroupToken(token, range, diagnostics);
   }
 }
 
@@ -535,6 +523,16 @@ function diagnoseUtilityGroupToken(token: TokenRecord, range: SourceRange, diagn
     line: range.start.line,
     column: range.start.column + token.start,
     message
+  });
+}
+
+function diagnoseUnclosedUtilityGroupToken(token: TokenRecord, range: SourceRange, diagnostics: Diagnostic[]): void {
+  diagnostics.push({
+    code: "WX005",
+    severity: "error",
+    line: range.start.line,
+    column: range.start.column + token.start,
+    message: `Utility group "${token.raw}" is invalid: missing closing "]".`
   });
 }
 
@@ -683,9 +681,15 @@ function isAttributeLike(token: string): boolean {
 function parseAttributeTokens(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage?: string): Attribute[] {
   const attributes: Attribute[] = [];
   for (const token of tokens) {
-    if (utilityGroupMessage && isUtilityGroupToken(token.raw)) {
-      diagnoseUtilityGroupToken(token, range, diagnostics, utilityGroupMessage);
-      continue;
+    if (utilityGroupMessage) {
+      if (isUtilityGroupToken(token.raw)) {
+        diagnoseUtilityGroupToken(token, range, diagnostics, utilityGroupMessage);
+        continue;
+      }
+      if (isLikelyUnclosedUtilityGroupToken(token.raw)) {
+        diagnoseUnclosedUtilityGroupToken(token, range, diagnostics);
+        continue;
+      }
     }
 
     const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end));
