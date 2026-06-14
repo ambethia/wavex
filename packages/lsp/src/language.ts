@@ -196,13 +196,14 @@ const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emitter): void {
   const seenOffsets = new Set<number>();
 
-  const emitExpression = (text: string | undefined, searchBase: number, searchText: string) => {
+  const sourceForRange = (range: SourceRange | undefined) => (range ? source.slice(range.start.offset, range.end.offset) : undefined);
+
+  const emitExpressionAt = (text: string | undefined, sourceOffset: number) => {
     if (!text) return;
+    const leadingWhitespace = /^\s*/.exec(text)?.[0].length ?? 0;
     const trimmed = text.trim();
     if (!trimmed) return;
-    const index = searchText.indexOf(trimmed);
-    if (index === -1) return;
-    const offset = searchBase + index;
+    const offset = sourceOffset + leadingWhitespace;
     if (seenOffsets.has(offset)) return;
     seenOffsets.add(offset);
     emitter.append("  void (");
@@ -210,9 +211,13 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
     emitter.append(");\n");
   };
 
+  const emitExpressionRange = (range: SourceRange | undefined, fallbackText: string | undefined) => {
+    if (!range) return;
+    emitExpressionAt(sourceForRange(range) ?? fallbackText, range.start.offset);
+  };
+
   const errorBinding = (expression: string | undefined): string =>
     IDENTIFIER.test(expression?.trim() ?? "") ? expression!.trim() : "err";
-  const sourceForRange = (range: SourceRange | undefined) => (range ? source.slice(range.start.offset, range.end.offset) : undefined);
 
   const visit = (node: TemplateNode) => {
     const raw = node.raw;
@@ -224,7 +229,7 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
       const rangeText = sourceForRange(range);
       if (rangeText === undefined || range === undefined) return;
       for (const match of rangeText.matchAll(/{{([\s\S]*?)}}/g)) {
-        emitExpression(match[1], range.start.offset + (match.index ?? 0), rangeText.slice(match.index ?? 0));
+        emitExpressionAt(match[1], range.start.offset + (match.index ?? 0) + 2);
       }
     };
 
@@ -232,10 +237,7 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
     if (node.kind === "text") emitInterpolations(node.textRange);
 
     if (node.kind === "expression") {
-      if (node.expressionRange) {
-        const expressionText = sourceForRange(node.expressionRange) ?? node.expression;
-        emitExpression(expressionText, node.expressionRange.start.offset, expressionText);
-      } else emitExpression(node.expression, node.range.start.offset, raw);
+      emitExpressionRange(node.expressionRange, node.expression);
     }
 
     if (node.kind === "element" || node.kind === "component" || node.kind === "convex-reference" || node.kind === "convex-call") {
@@ -243,35 +245,25 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
         emitInterpolations(attribute.range);
         // Bare expression attributes (checked:todo.completed) outside mustaches.
         if (attribute.kind === "expression" && !attribute.raw?.includes("{{")) {
-          if (attribute.expressionRange) {
-            const expressionText = sourceForRange(attribute.expressionRange) ?? attribute.expression;
-            emitExpression(expressionText, attribute.expressionRange.start.offset, expressionText);
-          }
+          emitExpressionRange(attribute.expressionRange, attribute.expression);
         }
         // Same-name shorthand (task:) references the in-scope value.
         if (attribute.kind === "same-name" && IDENTIFIER.test(attribute.name)) {
-          if (attribute.expressionRange) {
-            const expressionText = sourceForRange(attribute.expressionRange) ?? attribute.name;
-            emitExpression(expressionText, attribute.expressionRange.start.offset, expressionText);
-          }
+          emitExpressionRange(attribute.expressionRange, attribute.name);
         }
         // Raw-event handlers (on:wa-show:faqOpened) compile to identifier
         // references, so they count as prelude usage. Semantic-event targets
         // (:click:openMenu, :track:todos_cleared) are dispatched by name at
         // runtime and are NOT module identifiers.
         if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
-          if (attribute.expressionRange) {
-            const expressionText = sourceForRange(attribute.expressionRange) ?? attribute.handler;
-            emitExpression(expressionText, attribute.expressionRange.start.offset, expressionText);
-          }
+          emitExpressionRange(attribute.expressionRange, attribute.handler);
         }
       }
     }
 
     if (node.kind === "directive") {
       if (node.name === "if" && node.expression && node.expressionRange) {
-        const expressionText = sourceForRange(node.expressionRange) ?? node.expression;
-        emitExpression(expressionText, node.expressionRange.start.offset, expressionText);
+        emitExpressionRange(node.expressionRange, node.expression);
       }
 
       if (node.name === "for" && node.for) {
@@ -285,8 +277,7 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
         } else emitter.append(collectionExpression);
         emitter.append(`) ?? []).forEach((${itemName}, index) => {\n  void index;\n`);
         if (keyExpression && node.for.keyExpressionRange) {
-          const keyExpressionText = sourceForRange(node.for.keyExpressionRange) ?? keyExpression;
-          emitExpression(keyExpressionText, node.for.keyExpressionRange.start.offset, keyExpressionText);
+          emitExpressionRange(node.for.keyExpressionRange, keyExpression);
         }
         for (const child of node.children) visit(child);
         emitter.append("  });\n");

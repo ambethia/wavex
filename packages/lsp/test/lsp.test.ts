@@ -184,7 +184,7 @@ describe("virtual code mappings", () => {
 
   it("anchors repeated attribute and inline expressions to parser sub-ranges", async () => {
     const { WavexVirtualCode } = await import("../src/index.js");
-    const text = "~~~\n+if talk\n  @talk-card title:talk.title talk:\n  p talk   {{ talk }}\n  | repeated talk {{ talk }}\n  $talks:get input:{{ talk }}\n";
+    const text = "~~~\n+if talk\n  @talk-card title:talk.title data-talk:{{ talk }} talk:\n  p talk   {{ talk }}\n  | repeated talk {{ talk }}\n  $talks:get input:{{ talk }}\n";
     const snapshot = {
       getText: (start: number, end: number) => text.slice(start, end),
       getLength: () => text.length,
@@ -200,6 +200,7 @@ describe("virtual code mappings", () => {
 
     expect(offsets).toEqual(expect.arrayContaining([
       text.indexOf("+if talk") + "+if ".length,
+      text.indexOf("data-talk:{{ talk }}") + "data-talk:{{ ".length,
       text.indexOf(" talk:") + 1,
       text.indexOf("p talk   {{ talk }}") + "p talk   {{ ".length,
       text.indexOf("| repeated talk {{ talk }}") + "| repeated talk {{ ".length,
@@ -210,8 +211,34 @@ describe("virtual code mappings", () => {
     );
     expect(titleMapping?.sourceOffsets[0]).toBe(text.indexOf("title:talk.title") + "title:".length);
     expect(offsets).not.toContain(text.indexOf("@talk-card") + 1);
+    expect(offsets).not.toContain(text.indexOf("data-talk"));
+    expect(offsets).not.toContain(text.indexOf("data-talk") + "data-".length);
     expect(offsets).not.toContain(text.indexOf("p talk") + 2);
     expect(offsets).not.toContain(text.indexOf("repeated talk") + "repeated ".length);
+  });
+
+  it("keeps duplicate expression attributes and whitespace-sensitive directive ranges mapped", async () => {
+    const { WavexVirtualCode } = await import("../src/index.js");
+    const text = "~~~\n+if a  &&  b\n  @talk-card title:{{ talk.title }} label:{{ talk.title }}\n";
+    const snapshot = {
+      getText: (start: number, end: number) => text.slice(start, end),
+      getLength: () => text.length,
+      getChangeRange: () => undefined
+    };
+    const code = new WavexVirtualCode(snapshot as never);
+    const tsCode = code.embeddedCodes[0]!;
+    const generated = tsCode.snapshot.getText(0, tsCode.snapshot.getLength());
+    const mappedText = (mapping: { generatedOffsets: number[]; lengths: number[] }) =>
+      generated.slice(mapping.generatedOffsets[0]!, mapping.generatedOffsets[0]! + mapping.lengths[0]!);
+
+    const titleMappings = tsCode.mappings.filter((mapping) => mappedText(mapping) === "talk.title");
+    expect(titleMappings.map((mapping) => mapping.sourceOffsets[0])).toEqual([
+      text.indexOf("title:{{ talk.title }}") + "title:{{ ".length,
+      text.indexOf("label:{{ talk.title }}") + "label:{{ ".length
+    ]);
+
+    const ifMapping = tsCode.mappings.find((mapping) => mappedText(mapping) === "a  &&  b");
+    expect(ifMapping?.sourceOffsets[0]).toBe(text.indexOf("a  &&  b"));
   });
 
   it("preserves CRLF prelude bytes in the mapped TypeScript virtual code", async () => {
