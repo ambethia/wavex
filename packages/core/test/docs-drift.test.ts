@@ -28,12 +28,14 @@ describe("documentation drift guards", () => {
     const lspSource = readProjectFile("packages/lsp/src/index.ts");
     const coreReadme = readProjectFile("packages/core/README.md");
     const vscodeReadme = readProjectFile("editors/vscode/README.md");
-    const docs = [lspReadme, lspSource, coreReadme, vscodeReadme].join("\n");
+    const virtualCodeSource = readProjectFile("packages/lsp/src/language.ts");
+    const docs = [lspReadme, lspSource, coreReadme, vscodeReadme, virtualCodeSource].join("\n");
 
     expect(existsSync(join(repoRoot, grammarPath))).toBe(true);
     expect(vscodePackage.contributes?.grammars).toContainEqual(expect.objectContaining({ language: "wavex", path: "./syntaxes/wavex.tmLanguage.json" }));
     expect(docs).toContain("TextMate grammar");
-    expect(docs).not.toMatch(/semantic tokens/i);
+    expect(docs).toContain("the single parser");
+    expect(docs).not.toMatch(/semantic tokens|single grammar|only `.wx` grammar definition/i);
   });
 
   it("does not claim JSON CLI output or overstate static prerendering", () => {

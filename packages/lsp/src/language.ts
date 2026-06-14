@@ -56,7 +56,7 @@ interface MappedExpression {
 
 /**
  * The Volar virtual code for one `.wx` document: parses with the
- * `@wavex/core` parser (the single grammar), keeps the AST for non-TS
+ * `@wavex/core` parser (the single parser), keeps the AST for non-TS
  * features, and emits an embedded TypeScript document that maps the prelude
  * and every `{{ … }}` / attribute expression back to its `.wx` source range.
  */
