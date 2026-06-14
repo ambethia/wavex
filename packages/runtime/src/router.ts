@@ -194,11 +194,6 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     current = next;
   };
 
-  const applyCurrent = () => {
-    if (!current?.page) return;
-    commitPage(current);
-  };
-
   const navigate = async (to: string, navOptions: { replace?: boolean; pop?: boolean } = {}) => {
     if (disposed) return;
     const url = new URL(to, win.location.href);
@@ -224,29 +219,34 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     }
 
     const clientRoute = match.route as ClientRoute;
+    const layoutDefs = clientRoute.layouts ?? [];
+    let module: RoutePageModule;
+    let layoutModules: RoutePageModule[];
+
     setNavigation({ pending: true, to: route });
     try {
-      const layoutDefs = clientRoute.layouts ?? [];
-      const [module, ...layoutModules] = await Promise.all([
+      [module, ...layoutModules] = await Promise.all([
         clientRoute.load(),
         ...layoutDefs.map((layout) => layout.load())
       ]);
-      if (token !== navigationToken) return; // superseded; the newer navigation owns pending state
-
-      const committed = await commitWithTransition(token, navOptions.pop ?? false, () => {
-        commitPage({
-          route,
-          file: clientRoute.file,
-          page: module,
-          layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
-        });
-      });
-      if (!committed) return;
     } catch (error) {
       if (token !== navigationToken) return;
       const committed = await renderErrorRoute(token, clientRoute, route, error);
       if (!committed) return;
+      options.onNavigate?.(route);
+      return;
     }
+    if (token !== navigationToken) return; // superseded; the newer navigation owns pending state
+
+    const committed = await commitWithTransition(token, navOptions.pop ?? false, () => {
+      commitPage({
+        route,
+        file: clientRoute.file,
+        page: module,
+        layouts: layoutDefs.map((layout, index) => ({ file: layout.file, module: layoutModules[index]! }))
+      });
+    });
+    if (!committed) return;
     options.onNavigate?.(route);
   };
 

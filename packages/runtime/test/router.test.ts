@@ -462,6 +462,40 @@ describe("client router view transitions", () => {
     expect(router.current?.route.path).toBe("/a");
   });
 
+  it("does not treat transitioned commit failures as route load errors", async () => {
+    const env = fakeEnvironment({ startViewTransition: true });
+    let errorRouteLoads = 0;
+    const host = {
+      ...env.host,
+      setPage: (page: { route: { path: string } }) => {
+        if (page.route.path === "/b") throw new Error("commit failed");
+        env.host.setPage(page);
+      }
+    };
+    const router = createClientRouter({
+      routes: [
+        routeOf("a.wx", "/a", async () => ({ default: () => "a" })),
+        routeOf("b.wx", "/b", async () => ({ default: () => "b" }), [
+          {
+            file: "+error.wx",
+            load: async () => {
+              errorRouteLoads += 1;
+              return { default: () => "error" };
+            }
+          }
+        ])
+      ],
+      host,
+      window: env.win
+    });
+
+    await router.navigate("/a");
+    await expect(router.navigate("/b")).rejects.toThrow("commit failed");
+
+    expect(errorRouteLoads).toBe(0);
+    expect(router.current?.route.path).toBe("/a");
+  });
+
   it("does not retry synchronous TypeError commit failures as view-transition API fallback", async () => {
     const env = fakeEnvironment({ startViewTransition: true });
     const documentRef = env.win.document as Document & {
