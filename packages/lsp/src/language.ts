@@ -4,7 +4,14 @@ import type { CodeMapping, LanguagePlugin, VirtualCode } from "@volar/language-c
 import { forEachEmbeddedCode } from "@volar/language-core";
 // Side-effect import: augments LanguagePlugin with the `typescript` integration hook.
 import "@volar/typescript";
-import { extractAttrsTypeKeys, parseWavex, type SourceRange, type TemplateNode, type WavexFile } from "@wavex/core";
+import {
+  extractAttrsTypeKeys,
+  parseWavex,
+  type ResourceBinding,
+  type SourceRange,
+  type TemplateNode,
+  type WavexFile
+} from "@wavex/core";
 import type * as ts from "typescript";
 import type { URI } from "vscode-uri";
 
@@ -156,10 +163,9 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
     if (!/^[A-Za-z_$][\w$]*$/.test(resource.name) || declaredResources.has(resource.name)) continue;
     declaredResources.add(resource.name);
     if (apiImport) {
-      const apiPath = [...resource.address.modulePath.split("/"), resource.address.functionName]
-        .map((segment) => `[${JSON.stringify(segment)}]`)
-        .join("");
-      append(`declare const ${resource.name}: __WxReturn<typeof __wxApi${apiPath}> | undefined;\n`);
+      append(`declare const ${resource.name}: __WxReturn<typeof __wxApi`);
+      appendMappedConvexApiPath(source, resource, { append, appendMapped });
+      append(`> | undefined;\n`);
     } else {
       append(`declare const ${resource.name}: any;\n`);
     }
@@ -187,6 +193,50 @@ interface Emitter {
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+
+function appendMappedConvexApiPath(source: string, resource: ResourceBinding, emitter: Emitter): void {
+  const rawAddress = resource.address.raw;
+  const rawOffset = source.indexOf(rawAddress, resource.range.start.offset);
+  if (rawOffset === -1 || rawOffset >= resource.range.end.offset) {
+    throw new Error(`Unable to locate Convex resource address ${JSON.stringify(rawAddress)} in source range.`);
+  }
+
+  const withoutSigilsOffset = rawOffset + (rawAddress.startsWith("$$") ? 2 : 1);
+  const withoutSigils = rawAddress.slice(rawAddress.startsWith("$$") ? 2 : 1);
+  const splitIndex = withoutSigils.lastIndexOf(":");
+  const rawModulePath = withoutSigils.slice(0, splitIndex);
+  const expectedSegments = [...resource.address.modulePath.split("/"), resource.address.functionName];
+  const sourceSegments = [...rawModulePath.matchAll(/[^/:]+/g)].map((match) => ({
+    text: match[0],
+    offset: withoutSigilsOffset + (match.index ?? 0)
+  }));
+  sourceSegments.push({
+    text: withoutSigils.slice(splitIndex + 1),
+    offset: withoutSigilsOffset + splitIndex + 1
+  });
+
+  if (sourceSegments.length !== expectedSegments.length) {
+    throw new Error(`Convex resource address ${JSON.stringify(rawAddress)} did not match normalized API path.`);
+  }
+
+  for (const [index, expected] of expectedSegments.entries()) {
+    const sourceSegment = sourceSegments[index]!;
+    if (sourceSegment.text.replace(/:/g, "/") !== expected) {
+      throw new Error(`Convex resource segment ${JSON.stringify(sourceSegment.text)} did not match ${JSON.stringify(expected)}.`);
+    }
+
+    if (IDENTIFIER.test(expected)) {
+      emitter.append(".");
+      emitter.appendMapped(expected, sourceSegment.offset);
+    } else {
+      emitter.append("[");
+      emitter.append(JSON.stringify(expected).slice(0, 1));
+      emitter.appendMapped(expected, sourceSegment.offset);
+      emitter.append(JSON.stringify(expected).slice(-1));
+      emitter.append("]");
+    }
+  }
+}
 
 /**
  * Emit template expressions as checked statements, introducing the bindings

@@ -10,6 +10,7 @@ const fixturesDir = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures")
 const talkFixture = resolve(fixturesDir, "talk.wx");
 const badUtilityFixture = resolve(fixturesDir, "bad-utility.wx");
 const typedConvexFixture = resolve(fixturesDir, "typed-convex/src/pages/resources.wx");
+const missingConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/missing-resource.wx");
 const typedConvexServerShim = resolve(fixturesDir, "typed-convex/convex-server.d.ts");
 
 function createChecker(files: string[]) {
@@ -63,6 +64,17 @@ describe("@wavex/lsp", () => {
     expect(resourceTypeError!.source).not.toBe("wavex");
     expect(resourceTypeError!.range.start.line).toBe(3);
     expect(diagnostics.filter((diagnostic) => diagnostic !== resourceTypeError)).toEqual([]);
+  });
+
+  it("reports typoed Convex resource references instead of dropping unmapped scaffold diagnostics", async () => {
+    const checker = createChecker([missingConvexResourceFixture, typedConvexServerShim]);
+    const diagnostics = await checker.check(missingConvexResourceFixture);
+
+    const missingResourceError = diagnostics.find((diagnostic) => String(diagnostic.message).includes("talkz"));
+    expect(missingResourceError).toBeDefined();
+    expect(missingResourceError!.source).not.toBe("wavex");
+    expect(missingResourceError!.range.start.line).toBe(1);
+    expect(missingResourceError!.range.start.character).toBe(2);
   });
 
   it("offers component, directive, and Convex completions", async () => {
