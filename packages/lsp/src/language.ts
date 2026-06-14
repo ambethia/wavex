@@ -138,6 +138,7 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
     append("declare const attrs: Record<string, any>;\n");
   }
   append("declare const state: Record<string, any>;\n");
+  append("declare const resourceStates: Record<string, any>;\n");
   append("declare const actionStates: Record<string, any>;\n");
   append(
     "declare const navigation: { pending: boolean; to?: { path: string; params: Record<string, string>; query: Record<string, string> } };\n"

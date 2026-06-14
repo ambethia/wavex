@@ -13,5 +13,7 @@ main
     p FAQ body
   +for talk in talks key:talk.title
     p {{ talk.title }} runs {{ talk.minutes }} minutes
+  +if resourceStates.talks?.status === "error"
+    p Talks failed
   +error problem
     p {{ String(problem) }}
