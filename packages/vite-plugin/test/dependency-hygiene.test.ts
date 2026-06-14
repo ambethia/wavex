@@ -49,9 +49,9 @@ describe("dependency hygiene", () => {
     expect(miseTools).not.toMatch(/=\s*"latest"/);
 
     const vitePeer = pluginPackage.peerDependencies.vite;
-    expect(vitePeer).toContain(">=5.0.0");
+    expect(vitePeer).toContain(">=8.0.0");
     expect(vitePeer).toContain(`^${vitePlusVersion}`);
-    expect(vitePeer).not.toBe(">=5.0.0");
+    expect(vitePeer).not.toContain(">=5.0.0");
   });
 
   it("declares the runtime peer required by compiler-generated modules", () => {

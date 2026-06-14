@@ -22,7 +22,7 @@
     "@wavex/runtime": "workspace:*"
   },
   "peerDependencies": {
-    "vite": ">=5.0.0 || ^0.1.24"
+    "vite": ">=8.0.0 || ^0.1.24"
   },
   "files": [
     "dist",
