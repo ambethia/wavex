@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { compileWavexModule } from "@wavex/compiler";
 import { runCli, viteArgsForWavexCommand } from "../src/cli-core.js";
 import { injectPrerender } from "../src/prerender.js";
 
@@ -40,35 +41,57 @@ function captureConsole() {
   return { logs, errors };
 }
 
-function readWxTree(root: string): string {
-  const chunks: string[] = [];
+function readWxFiles(root: string): Map<string, string> {
+  const files = new Map<string, string>();
   const visit = (dir: string) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const path = join(dir, entry.name);
       if (entry.isDirectory()) visit(path);
-      else if (entry.isFile() && path.endsWith(".wx")) chunks.push(readFileSync(path, "utf8"));
+      else if (entry.isFile() && path.endsWith(".wx")) files.set(path, readFileSync(path, "utf8"));
     }
   };
   visit(root);
-  return chunks.join("\n");
+  return files;
+}
+
+function localComponentsFor(appRoot: string): string[] {
+  const componentsRoot = join(appRoot, "src/components");
+  return [...readWxFiles(componentsRoot).keys()].map((path) =>
+    path.slice(componentsRoot.length + 1, -".wx".length).replaceAll("\\", "/")
+  );
 }
 
 describe("Swell validation app", () => {
   it("exercises the newest router, prerender, Convex, suspense, Web Awesome, and component-path features", () => {
     const appRoot = fileURLToPath(new URL("../../../apps/swell", import.meta.url));
-    const source = readWxTree(join(appRoot, "src"));
+    const files = readWxFiles(join(appRoot, "src"));
+    const source = [...files.values()].join("\n");
+    const localComponents = localComponentsFor(appRoot);
     const styles = readFileSync(join(appRoot, "src/style.css"), "utf8");
     const manifest = JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8")) as { scripts?: Record<string, string> };
 
-    expect(source).toContain("navigation.pending");
-    expect(source).toContain("class:nav-progress");
+    for (const [path, wxSource] of files) {
+      expect(compileWavexModule(wxSource, { id: path, localComponents }).ast.diagnostics).toEqual([]);
+    }
+
+    const layout = compileWavexModule(files.get(join(appRoot, "src/pages/+layout.wx"))!, { localComponents });
+    expect(layout.code).toContain("navigation.pending");
+    expect(layout.code).toContain("<wa-progress-bar");
+    expect(layout.code).toContain("class=\"nav-progress\"");
     expect(styles).toContain("::view-transition-new(root)");
     expect(manifest.scripts?.prerender).toContain("wavex prerender .");
-    expect(source).toMatch(/^\$talks:list$/m);
+
+    const live = compileWavexModule(files.get(join(appRoot, "src/pages/live.wx"))!, { localComponents });
+    expect(live.ast.nodes.some((node) => node.kind === "convex-reference" && node.address.raw === "$talks:list")).toBe(true);
+    expect(live.code).toContain('name: "talks"');
+    expect(live.code).toContain('name: "systemsTalks"');
+    expect(live.code).toContain('return { "track": "systems" };');
     expect(source).toContain("reveal:progressive");
     expect(source).toContain("refresh:background");
-    expect(source).toContain("@wa/card");
-    expect(source).toContain("@conference/hero-stat");
+
+    const home = compileWavexModule(files.get(join(appRoot, "src/pages/index.wx"))!, { localComponents });
+    expect(home.code).toContain("<wa-card>");
+    expect(home.code).toContain("__wxc_conference_hero_stat");
   });
 });
 

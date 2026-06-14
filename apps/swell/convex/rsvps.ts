@@ -10,6 +10,10 @@ export const create = mutation({
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .unique();
     if (existing) throw new Error("This email is already registered.");
-    return await ctx.db.insert("rsvps", { name: args.name.trim(), email: args.email.trim(), tier: args.tier });
+    return await ctx.db.insert("rsvps", {
+      name: args.name.trim(),
+      email: args.email.trim(),
+      tier: args.tier,
+    });
   },
 });

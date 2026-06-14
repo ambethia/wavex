@@ -19,10 +19,30 @@ export const get = query({
 });
 
 const SPEAKERS = [
-  { slug: "mara-lin", name: "Mara Lin", company: "Driftwave", bio: "Mara builds realtime collaboration infrastructure and thinks websockets are still underrated." },
-  { slug: "theo-okafor", name: "Theo Okafor", company: "Lit Labs (community)", bio: "Theo maintains template-compiler tooling and has strong opinions about reconcilers." },
-  { slug: "suki-tanaka", name: "Suki Tanaka", company: "Indent.dev", bio: "Suki has shipped four indentation-based languages and regrets none of them." },
-  { slug: "dana-reyes", name: "Dana Reyes", company: "Convex", bio: "Dana works on reactive database subscriptions and consistency models." },
+  {
+    slug: "mara-lin",
+    name: "Mara Lin",
+    company: "Driftwave",
+    bio: "Mara builds realtime collaboration infrastructure and thinks websockets are still underrated.",
+  },
+  {
+    slug: "theo-okafor",
+    name: "Theo Okafor",
+    company: "Lit Labs (community)",
+    bio: "Theo maintains template-compiler tooling and has strong opinions about reconcilers.",
+  },
+  {
+    slug: "suki-tanaka",
+    name: "Suki Tanaka",
+    company: "Indent.dev",
+    bio: "Suki has shipped four indentation-based languages and regrets none of them.",
+  },
+  {
+    slug: "dana-reyes",
+    name: "Dana Reyes",
+    company: "Convex",
+    bio: "Dana works on reactive database subscriptions and consistency models.",
+  },
 ];
 
 export const seed = internalMutation({
