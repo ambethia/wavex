@@ -521,8 +521,8 @@ function isLikelyUtilityGroupToken(token: string): boolean {
   const values = token.slice(1, -1).trim().split(/\s+/).filter(Boolean);
   return (
     values.length > 0 &&
-    (values.length > 1 || values.some((value) => value.includes("-"))) &&
-    values.every((value) => /^[A-Za-z][A-Za-z0-9_-]*$/.test(value))
+    (values.length > 1 || values.some((value) => value.includes("-") || value.includes(":"))) &&
+    values.every((value) => /^[A-Za-z][A-Za-z0-9_:-]*$/.test(value))
   );
 }
 

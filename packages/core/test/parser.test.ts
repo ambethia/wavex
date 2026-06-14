@@ -99,10 +99,11 @@ describe("parseWavex", () => {
   });
 
   it("diagnoses likely utility groups in directive expressions", () => {
-    const parsed = parseWavex("~~~\n+if [stack gap-xl]\n  p Yes\n");
+    const parsed = parseWavex("~~~\n+if [stack gap-xl]\n  p Yes\n+if [gap:xl]\n  p No\n");
 
     expect(parsed.diagnostics).toMatchObject([
-      { code: "WX006", severity: "error", line: 2, column: 5 }
+      { code: "WX006", severity: "error", line: 2, column: 5 },
+      { code: "WX006", severity: "error", line: 4, column: 5 }
     ]);
   });
 
