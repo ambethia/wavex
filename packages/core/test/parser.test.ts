@@ -100,6 +100,28 @@ describe("parseWavex", () => {
     });
   });
 
+  it("parses colon-bearing prose as inline text instead of a same-name attribute", () => {
+    const parsed = parseWavex(`~~~\np Total: {{ n }}\n`);
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.nodes[0]).toMatchObject({
+      kind: "element",
+      tag: "p",
+      attributes: [],
+      inlineText: "Total: {{ n }}"
+    });
+  });
+
+  it("diagnoses head-only attributes and utilities after inline text", () => {
+    const parsed = parseWavex(`~~~\np Hello [stack] id:greeting\n`);
+
+    expect(parsed.nodes[0]).toMatchObject({ kind: "element", utilities: [], inlineText: "Hello [stack] id:greeting" });
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX006", severity: "error", line: 2, column: 9 },
+      { code: "WX007", severity: "error", line: 2, column: 17 }
+    ]);
+  });
+
   it("rejects colon-form utility tokens with WX005", () => {
     const parsed = parseWavex(`~~~\nmain [stack gap:xl]\n  p Hello\n`);
 

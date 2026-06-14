@@ -2252,7 +2252,7 @@ Defined in: [packages/core/src/model.ts:90](packages/core/src/model.ts#L90)
 function parseAttributeToken(token, range?): Attribute | undefined;
 ```
 
-Defined in: [packages/core/src/parser.ts:421](packages/core/src/parser.ts#L421)
+Defined in: [packages/core/src/parser.ts:482](packages/core/src/parser.ts#L482)
 
 Parse one attribute token into its [Attribute](#attribute) form: boolean
 (`required`), literal (`variant:brand`), expression-shaped value
@@ -2304,7 +2304,7 @@ Parse a search string into a flat record; the first occurrence of a repeated key
 function parseWavex(source, _options?): WavexFile;
 ```
 
-Defined in: [packages/core/src/parser.ts:68](packages/core/src/parser.ts#L68)
+Defined in: [packages/core/src/parser.ts:71](packages/core/src/parser.ts#L71)
 
 Parse a complete `.wx` source file into a [WavexFile](#wavexfile).
 

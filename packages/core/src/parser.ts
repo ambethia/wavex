@@ -29,6 +29,7 @@ interface LineRecord {
 
 interface ParsedHead {
   attributes: Attribute[];
+  utilities: string[];
   inlineText?: string;
   inlineTextRange?: SourceRange;
 }
@@ -38,6 +39,8 @@ interface TokenRecord {
   start: number;
   end: number;
 }
+
+const ATTRIBUTE_NAME_PATTERN = /^[a-z][a-z0-9_-]*$/;
 
 const BOOLEAN_ATTRIBUTE_NAMES = new Set([
   "async",
@@ -162,20 +165,6 @@ function parseTemplateLines(
     const node = parseLine(content, range, diagnostics, resources);
     if (!node) continue;
 
-    if ("utilities" in node) {
-      for (const token of (node as { utilities: string[] }).utilities) {
-        if (token.includes(":")) {
-          diagnostics.push({
-            code: "WX005",
-            severity: "error",
-            line: line.sourceLine,
-            column: indentSpaces + 1,
-            message: `Utility token "${token}" is invalid: utilities are literal wa-* suffixes in dash form (e.g. "gap-xl" -> wa-gap-xl); ":" is not allowed inside a utility group.`
-          });
-        }
-      }
-    }
-
     if (parent) parent.node.children.push(node);
     else roots.push(node);
     stack.push({ level, node });
@@ -220,21 +209,20 @@ function parseLine(
 
   if (trimmed.startsWith("$$")) return parseConvexCall(trimmed, content, range, diagnostics, resources);
   if (trimmed.startsWith("$")) return parseConvexReference(trimmed, content, range, diagnostics);
-  if (trimmed.startsWith("+")) return parseDirective(trimmed, content, range);
-  if (trimmed.startsWith("@")) return parseComponent(trimmed, content, range);
-  return parseElement(trimmed, content, range);
+  if (trimmed.startsWith("+")) return parseDirective(trimmed, content, range, diagnostics);
+  if (trimmed.startsWith("@")) return parseComponent(trimmed, content, range, diagnostics);
+  return parseElement(trimmed, content, range, diagnostics);
 }
 
-function parseElement(trimmed: string, raw: string, range: SourceRange): ElementNode {
-  const { withoutUtilities, utilities } = extractUtilityGroups(trimmed);
-  const [tagToken, ...tokens] = tokenizeWithRanges(withoutUtilities);
+function parseElement(trimmed: string, raw: string, range: SourceRange, diagnostics: Diagnostic[]): ElementNode {
+  const [tagToken, ...tokens] = tokenizeWithRanges(trimmed);
   const tag = tagToken?.raw ?? "div";
-  const parsed = parseAttributesAndInlineText(tokens, range);
+  const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics);
   return {
     kind: "element",
     tag,
     attributes: parsed.attributes,
-    utilities,
+    utilities: parsed.utilities,
     inlineText: parsed.inlineText,
     inlineTextRange: parsed.inlineTextRange,
     children: [],
@@ -243,16 +231,15 @@ function parseElement(trimmed: string, raw: string, range: SourceRange): Element
   };
 }
 
-function parseComponent(trimmed: string, raw: string, range: SourceRange): ComponentNode {
-  const { withoutUtilities, utilities } = extractUtilityGroups(trimmed);
-  const [referenceToken, ...tokens] = tokenizeWithRanges(withoutUtilities);
+function parseComponent(trimmed: string, raw: string, range: SourceRange, diagnostics: Diagnostic[]): ComponentNode {
+  const [referenceToken, ...tokens] = tokenizeWithRanges(trimmed);
   const reference = referenceToken?.raw ?? "@missing";
-  const parsed = parseAttributesAndInlineText(tokens, range);
+  const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics);
   return {
     kind: "component",
     reference: reference.slice(1),
     attributes: parsed.attributes,
-    utilities,
+    utilities: parsed.utilities,
     inlineText: parsed.inlineText,
     inlineTextRange: parsed.inlineTextRange,
     children: [],
@@ -261,9 +248,9 @@ function parseComponent(trimmed: string, raw: string, range: SourceRange): Compo
   };
 }
 
-function parseDirective(trimmed: string, raw: string, range: SourceRange): DirectiveNode {
-  const { withoutUtilities } = extractUtilityGroups(trimmed);
-  const [headToken, ...tokens] = tokenizeWithRanges(withoutUtilities);
+function parseDirective(trimmed: string, raw: string, range: SourceRange, diagnostics: Diagnostic[]): DirectiveNode {
+  const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
+  diagnoseNonHeadUtilityGroups(tokens, range, diagnostics, "Directive expressions cannot contain utility groups; bracket utility groups are only valid in element or component heads.");
   const head = headToken?.raw ?? "+unknown";
   const name = head.slice(1);
   const attributes: Attribute[] = [];
@@ -280,7 +267,7 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange): Direc
   } else if (name === "head" || name === "boundary") {
     attributes.push(...tokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute));
   } else if (name === "suspense") {
-    const parsed = parseAttributesAndInlineText(tokens, range);
+    const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics);
     attributes.push(...parsed.attributes);
     expression = parsed.inlineText;
     expressionRange = parsed.inlineTextRange;
@@ -391,24 +378,98 @@ function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Di
   return { modulePath, functionName, raw: rawHead };
 }
 
-function parseAttributesAndInlineText(tokens: TokenRecord[], range: SourceRange): ParsedHead {
+function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): ParsedHead {
   const attributes: Attribute[] = [];
+  const utilities: string[] = [];
   let inlineText: string | undefined;
   let inlineTextRange: SourceRange | undefined;
 
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
+    if (isUtilityGroupToken(token.raw)) {
+      utilities.push(...parseUtilityGroupToken(token, range, diagnostics));
+      continue;
+    }
+
     if (!isAttributeLike(token.raw)) {
       const inlineTokens = tokens.slice(index);
+      diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics);
       inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
       inlineTextRange = rangeForTokenSpan(range, inlineTokens);
       break;
     }
+
     const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end));
     if (attribute) attributes.push(attribute);
+    else diagnoseInvalidAttributeToken(token, range, diagnostics);
   }
 
-  return { attributes, inlineText, inlineTextRange };
+  return { attributes, utilities, inlineText, inlineTextRange };
+}
+
+function isUtilityGroupToken(token: string): boolean {
+  return token.startsWith("[") && token.endsWith("]");
+}
+
+function parseUtilityGroupToken(token: TokenRecord, range: SourceRange, diagnostics: Diagnostic[]): string[] {
+  const values = token.raw.slice(1, -1).trim().split(/\s+/).filter(Boolean);
+  for (const value of values) {
+    if (value.includes(":")) {
+      diagnostics.push({
+        code: "WX005",
+        severity: "error",
+        line: range.start.line,
+        column: range.start.column + token.start + 1 + token.raw.indexOf(value),
+        message: `Utility token "${value}" is invalid: utilities are literal wa-* suffixes in dash form (e.g. "gap-xl" -> wa-gap-xl); ":" is not allowed inside a utility group.`
+      });
+    }
+  }
+  return values;
+}
+
+function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): void {
+  for (const token of tokens) {
+    if (isUtilityGroupToken(token.raw)) {
+      diagnostics.push({
+        code: "WX006",
+        severity: "error",
+        line: range.start.line,
+        column: range.start.column + token.start,
+        message: "Utility groups must appear in the element or component head before inline text."
+      });
+    } else if (isAttributeLike(token.raw)) {
+      diagnostics.push({
+        code: "WX007",
+        severity: "error",
+        line: range.start.line,
+        column: range.start.column + token.start,
+        message: `Attribute token "${token.raw}" must appear before inline text; use an explicit text line (|) if this is prose.`
+      });
+    }
+  }
+}
+
+function diagnoseInvalidAttributeToken(token: TokenRecord, range: SourceRange, diagnostics: Diagnostic[]): void {
+  diagnostics.push({
+    code: "WX008",
+    severity: "error",
+    line: range.start.line,
+    column: range.start.column + token.start,
+    message: `Invalid attribute token "${token.raw}". Attribute names must start with a lowercase letter and use lowercase letters, numbers, underscores, or dashes.`
+  });
+}
+
+function diagnoseNonHeadUtilityGroups(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], message: string): void {
+  for (const token of tokens) {
+    if (!isUtilityGroupToken(token.raw)) continue;
+    diagnostics.push({
+      code: "WX006",
+      severity: "error",
+      line: range.start.line,
+      column: range.start.column + token.start,
+      message
+    });
+  }
 }
 
 /**
@@ -463,12 +524,15 @@ export function parseAttributeToken(token: string, range?: SourceRange): Attribu
   }
 
   const colonIndex = token.indexOf(":");
-  if (colonIndex === -1) return { kind: "boolean", name: token, ...base, nameRange: range };
+  if (colonIndex === -1) {
+    if (!ATTRIBUTE_NAME_PATTERN.test(token)) return undefined;
+    return { kind: "boolean", name: token, ...base, nameRange: range };
+  }
 
   const name = token.slice(0, colonIndex);
   const value = token.slice(colonIndex + 1);
   const valueStart = colonIndex + 1;
-  if (!name) return undefined;
+  if (!ATTRIBUTE_NAME_PATTERN.test(name)) return undefined;
   if (value === "") return { kind: "same-name", name, ...base, nameRange: nameRange(0, colonIndex), expressionRange: nameRange(0, colonIndex) };
 
   const expression = unwrapMustacheExpression(value);
@@ -526,7 +590,8 @@ function isAttributeLike(token: string): boolean {
   // {{ interpolation }} tokens are inline text, even when the expression contains ":".
   if (token.startsWith("{{")) return false;
   if (token.startsWith(":") || token.startsWith("on:")) return true;
-  if (token.includes(":")) return true;
+  const colonIndex = token.indexOf(":");
+  if (colonIndex !== -1) return ATTRIBUTE_NAME_PATTERN.test(token.slice(0, colonIndex));
   if (BOOLEAN_ATTRIBUTE_NAMES.has(token)) return true;
   return /^[a-z][a-z0-9_-]*-[a-z0-9_-]+$/.test(token);
 }
@@ -573,53 +638,6 @@ function looksLikeExpression(value: string): boolean {
   if (/^[a-z][a-z0-9+.-]*:\S+$/i.test(value)) return false;
   if (/^!\S+/.test(value)) return true;
   return /[.()[\]{}]|=>|[+*/%]|===?|!==?|[<>]=?|&&|\|\||\?\?|\?.+:/.test(value);
-}
-
-function extractUtilityGroups(input: string): { withoutUtilities: string; utilities: string[] } {
-  let withoutUtilities = "";
-  const utilities: string[] = [];
-  let quote: string | undefined;
-  let curlyDepth = 0;
-
-  for (let index = 0; index < input.length; index += 1) {
-    const char = input[index]!;
-    if (quote) {
-      withoutUtilities += char;
-      if (char === "\\") {
-        index += 1;
-        withoutUtilities += input[index] ?? "";
-      } else if (char === quote) {
-        quote = undefined;
-      }
-      continue;
-    }
-
-    if (char === '"' || char === "'") {
-      quote = char;
-      withoutUtilities += char;
-      continue;
-    }
-
-    if (char === "{") curlyDepth += 1;
-    if (char === "}" && curlyDepth > 0) curlyDepth -= 1;
-
-    // Utility groups are whitespace-delimited bracket groups. A "[" attached to
-    // the preceding token is member access (actionStates["..."], items[0]).
-    const startsToken = index === 0 || /\s/.test(input[index - 1]!);
-    if (char === "[" && curlyDepth === 0 && startsToken) {
-      const close = input.indexOf("]", index + 1);
-      if (close !== -1) {
-        utilities.push(...input.slice(index + 1, close).trim().split(/\s+/).filter(Boolean));
-        withoutUtilities += " ".repeat(close - index + 1);
-        index = close;
-        continue;
-      }
-    }
-
-    withoutUtilities += char;
-  }
-
-  return { withoutUtilities, utilities };
 }
 
 function tokenizeWithRanges(input: string): TokenRecord[] {
