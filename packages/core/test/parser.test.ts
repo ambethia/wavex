@@ -150,12 +150,14 @@ describe("parseWavex", () => {
   });
 
   it("rejects invalid utility groups with WX005", () => {
-    const parsed = parseWavex(`~~~\nmain [stack gap:xl]\nsection [stack gap-xl\np Hello [stack gap-xl\n`);
+    const parsed = parseWavex(`~~~\nmain [stack gap:xl]\nsection [stack gap-xl\np Hello [stack gap-xl\nmain [gap:xl gap:xl]\n`);
 
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX005", severity: "error", line: 2, column: 13 },
       { code: "WX005", severity: "error", line: 3, column: 9 },
-      { code: "WX005", severity: "error", line: 4, column: 9 }
+      { code: "WX005", severity: "error", line: 4, column: 9 },
+      { code: "WX005", severity: "error", line: 5, column: 7 },
+      { code: "WX005", severity: "error", line: 5, column: 14 }
     ]);
     expect(parsed.diagnostics[0]!.message).toContain("gap:xl");
     expect(parsed.diagnostics[1]!.message).toContain("missing closing");

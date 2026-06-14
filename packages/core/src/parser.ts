@@ -460,18 +460,38 @@ function isUtilityGroupToken(token: string): boolean {
 }
 
 function parseUtilityGroupToken(token: TokenRecord, range: SourceRange, diagnostics: Diagnostic[]): string[] {
-  const values = token.raw.slice(1, -1).trim().split(/\s+/).filter(Boolean);
+  const values = utilityGroupValueTokens(token.raw);
   for (const value of values) {
-    if (value.includes(":")) {
+    if (value.raw.includes(":")) {
       diagnostics.push({
         code: "WX005",
         severity: "error",
         line: range.start.line,
-        column: range.start.column + token.start + token.raw.indexOf(value),
-        message: `Utility token "${value}" is invalid: utilities are literal wa-* suffixes in dash form (e.g. "gap-xl" -> wa-gap-xl); ":" is not allowed inside a utility group.`
+        column: range.start.column + token.start + value.start,
+        message: `Utility token "${value.raw}" is invalid: utilities are literal wa-* suffixes in dash form (e.g. "gap-xl" -> wa-gap-xl); ":" is not allowed inside a utility group.`
       });
     }
   }
+  return values.map((value) => value.raw);
+}
+
+function utilityGroupValueTokens(token: string): TokenRecord[] {
+  const values: TokenRecord[] = [];
+  const innerStart = 1;
+  const innerEnd = token.endsWith("]") ? token.length - 1 : token.length;
+  let currentStart: number | undefined;
+
+  for (let index = innerStart; index < innerEnd; index += 1) {
+    const char = token[index]!;
+    if (/\s/.test(char)) {
+      if (currentStart !== undefined) values.push({ raw: token.slice(currentStart, index), start: currentStart, end: index });
+      currentStart = undefined;
+    } else {
+      currentStart ??= index;
+    }
+  }
+
+  if (currentStart !== undefined) values.push({ raw: token.slice(currentStart, innerEnd), start: currentStart, end: innerEnd });
   return values;
 }
 
