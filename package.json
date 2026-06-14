@@ -24,18 +24,24 @@
   "packageManager": "pnpm@10.18.0",
   "pnpm": {
     "overrides": {
-      "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-      "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+      "vite": "npm:@voidzero-dev/vite-plus-core@0.1.24",
+      "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.24"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "vite": "0.1.24",
+        "vitest": "0.1.24"
+      }
     }
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "lit": "latest",
+    "@types/node": "25.9.3",
+    "lit": "3.3.3",
     "typedoc": "0.28.19",
     "typedoc-plugin-markdown": "4.12.0",
-    "typescript": "latest",
-    "vite": "latest",
-    "vite-plus": "latest",
-    "vitest": "latest"
+    "typescript": "6.0.3",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.1.24",
+    "vite-plus": "0.1.24",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.24"
   }
 }

@@ -1,5 +1,5 @@
-@import "@web.awesome.me/webawesome-pro/dist/styles/webawesome.css";
-@import "@web.awesome.me/webawesome-pro/dist/styles/native.css";
+@import "@awesome.me/webawesome/dist/styles/webawesome.css";
+@import "@awesome.me/webawesome/dist/styles/native.css";
 
 .site-header {
   padding-block: var(--wa-space-s);

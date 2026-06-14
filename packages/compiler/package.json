@@ -17,6 +17,7 @@
     "@wavex/core": "workspace:*"
   },
   "peerDependencies": {
+    "@wavex/runtime": "workspace:*",
     "lit": ">=3.0.0"
   },
   "files": ["dist"],

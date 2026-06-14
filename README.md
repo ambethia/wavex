@@ -3,9 +3,9 @@
 WAVEx (pronounced *wave-ex*, template files `.wx`, visual mark `~x`) is a
 personal, opinionated, TypeScript-first framework for browser-based realtime
 apps: **Convex** as the backend/realtime layer, **Web Awesome** as the UI
-system, **Font Awesome** for icons (Pro supported when installed), **PostHog**
-analytics, and `.wx` templates that compile to Lit render modules on a
-Vite+ substrate.
+system, **Font Awesome** for icons (Pro supported when apps bring their own
+licensed packages), **PostHog** analytics, and `.wx` templates that compile to
+Lit render modules on a Vite+ substrate.
 
 ## Core principles
 
@@ -22,9 +22,10 @@ Vite+ substrate.
 6. **Build only what is WAVEx-specific** — the novel pieces are the `.wx` →
    Lit compiler and the Convex/Web Awesome/Font Awesome capability inference;
    stand on the Lit ecosystem (and Vite+) for the rest.
-7. **Capability-based, BYO license** — free packages work, Pro packages unlock
-   Pro surfaces; WAVEx never bundles licensed assets, so it stays
-   open-sourceable.
+7. **Capability-based, BYO license** — the committed workspace uses public
+   packages; Pro packages unlock Pro surfaces only when an app deliberately
+   adds its own licensed dependencies. WAVEx never bundles licensed assets, so
+   it stays open-sourceable.
 
 ## Architecture
 
@@ -81,6 +82,22 @@ public/          static assets
   mutation events, HMR).
 - `apps/swell` — Swell Conf, the full-feature validation app covering the
   language surface across realistic screens.
+
+## Installation and optional commercial packages
+
+A fresh clone installs without Font Awesome or Web Awesome commercial registry
+tokens:
+
+```sh
+pnpm install
+```
+
+The demo apps depend on the public `@awesome.me/webawesome` package and the
+free icons bundled with Web Awesome. Do not add personal Font Awesome kit
+packages such as `@awesome.me/kit-*` to committed app manifests. If an app needs
+Web Awesome Pro or a Font Awesome Pro kit, use your own license, keep registry
+authentication in your user-level npm config or environment, and document the
+app-specific dependency change alongside that app.
 
 ## Commands
 

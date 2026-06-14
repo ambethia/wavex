@@ -5,18 +5,18 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
+  vite: npm:@voidzero-dev/vite-plus-core@0.1.24
+  vitest: npm:@voidzero-dev/vite-plus-test@0.1.24
 
 importers:
 
   .:
     devDependencies:
       '@types/node':
-        specifier: latest
+        specifier: 25.9.3
         version: 25.9.3
       lit:
-        specifier: latest
+        specifier: 3.3.3
         version: 3.3.3
       typedoc:
         specifier: 0.28.19
@@ -25,25 +25,22 @@ importers:
         specifier: 4.12.0
         version: 4.12.0(typedoc@0.28.19(typescript@6.0.3))
       typescript:
-        specifier: latest
+        specifier: 6.0.3
         version: 6.0.3
       vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@latest
+        specifier: npm:@voidzero-dev/vite-plus-core@0.1.24
         version: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
       vite-plus:
-        specifier: latest
+        specifier: 0.1.24
         version: 0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.3)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0))(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)
       vitest:
-        specifier: npm:@voidzero-dev/vite-plus-test@latest
+        specifier: npm:@voidzero-dev/vite-plus-test@0.1.24
         version: '@voidzero-dev/vite-plus-test@0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.3)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0))(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
 
   apps/swell:
     dependencies:
-      '@awesome.me/kit-bb4fac79fe':
-        specifier: ^1.0.132
-        version: 1.0.132
-      '@web.awesome.me/webawesome-pro':
-        specifier: ^3.7.0
+      '@awesome.me/webawesome':
+        specifier: 3.8.0
         version: 3.8.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)
       convex:
         specifier: ^1.40.0
@@ -59,19 +56,19 @@ importers:
         specifier: ^0.0.53
         version: 0.0.53(convex@1.41.0)
       lit:
-        specifier: latest
+        specifier: 3.3.3
         version: 3.3.3
       typescript:
         specifier: ~6.0.2
         version: 6.0.3
       vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@latest
+        specifier: npm:@voidzero-dev/vite-plus-core@0.1.24
         version: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
       vite-plus:
-        specifier: latest
+        specifier: 0.1.24
         version: 0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.3)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0))(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)
       vitest:
-        specifier: npm:@voidzero-dev/vite-plus-test@latest
+        specifier: npm:@voidzero-dev/vite-plus-test@0.1.24
         version: '@voidzero-dev/vite-plus-test@0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.3)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0))(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
       wavex:
         specifier: workspace:*
@@ -79,11 +76,8 @@ importers:
 
   apps/todo:
     dependencies:
-      '@awesome.me/kit-bb4fac79fe':
-        specifier: ^1.0.132
-        version: 1.0.132
-      '@web.awesome.me/webawesome-pro':
-        specifier: ^3.7.0
+      '@awesome.me/webawesome':
+        specifier: 3.8.0
         version: 3.8.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)
       convex:
         specifier: ^1.40.0
@@ -105,7 +99,7 @@ importers:
         specifier: ^0.0.53
         version: 0.0.53(convex@1.41.0)
       lit:
-        specifier: latest
+        specifier: 3.3.3
         version: 3.3.3
       playwright:
         specifier: ^1.60.0
@@ -114,13 +108,13 @@ importers:
         specifier: ~6.0.2
         version: 6.0.3
       vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@latest
+        specifier: npm:@voidzero-dev/vite-plus-core@0.1.24
         version: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
       vite-plus:
-        specifier: latest
+        specifier: 0.1.24
         version: 0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.3)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0))(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)
       vitest:
-        specifier: npm:@voidzero-dev/vite-plus-test@latest
+        specifier: npm:@voidzero-dev/vite-plus-test@0.1.24
         version: '@voidzero-dev/vite-plus-test@0.1.24(@edge-runtime/vm@5.0.0)(@types/node@25.9.3)(@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0))(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
       wavex:
         specifier: workspace:*
@@ -136,7 +130,7 @@ importers:
         version: 9.0.1
     devDependencies:
       '@types/node':
-        specifier: latest
+        specifier: 25.9.3
         version: 25.9.3
       '@types/vscode':
         specifier: ^1.90.0
@@ -156,6 +150,9 @@ importers:
       '@wavex/core':
         specifier: workspace:*
         version: link:../core
+      '@wavex/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       lit:
         specifier: '>=3.0.0'
         version: 3.3.3
@@ -163,7 +160,7 @@ importers:
   packages/core:
     devDependencies:
       '@types/node':
-        specifier: latest
+        specifier: 25.9.3
         version: 25.9.3
 
   packages/lsp:
@@ -194,7 +191,7 @@ importers:
         version: 3.1.0
     devDependencies:
       '@types/node':
-        specifier: latest
+        specifier: 25.9.3
         version: 25.9.3
       '@volar/kit':
         specifier: ^2.4.28
@@ -224,7 +221,7 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@latest
+        specifier: npm:@voidzero-dev/vite-plus-core@0.1.24
         version: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
 
   packages/wavex:
@@ -242,14 +239,14 @@ importers:
         specifier: workspace:*
         version: link:../runtime
       vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@latest
+        specifier: npm:@voidzero-dev/vite-plus-core@0.1.24
         version: '@voidzero-dev/vite-plus-core@0.1.24(@types/node@25.9.3)(esbuild@0.27.0)(typescript@6.0.3)(yaml@2.9.0)'
 
 packages:
 
-  '@awesome.me/kit-bb4fac79fe@1.0.132':
-    resolution: {integrity: sha512-v5l+LMvuLEx7CmR2xErQjQ7tpyaOCfounk4XWlC37th3ZdOdV3b6fv0np4iBPiDeiGCK/iwLq78PtoVqvTkBLQ==}
-    engines: {node: '>=16'}
+  '@awesome.me/webawesome@3.8.0':
+    resolution: {integrity: sha512-LBu/vkivsVaXoC7SGQAKf579lLoLtgk9zJYstA31mRchrkVPGQsUNH1osoXefOhra0VLk9ZuIRT23+Ynw/xCKw==}
+    engines: {node: '>=14.17.0'}
 
   '@azu/format-text@1.0.2':
     resolution: {integrity: sha512-Swi4N7Edy1Eqq82GxgEECXSSLyn6GOb5htRFPzBDdUkECGXtlf12ynO5oJSpWKPwCaUssOu7NfhDcCWpIC6Ywg==}
@@ -489,10 +486,6 @@ packages:
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
 
-  '@fortawesome/fontawesome-common-types@7.2.0':
-    resolution: {integrity: sha512-IpR0bER9FY25p+e7BmFH25MZKEwFHTfRAfhOyJubgiDnoJNsSvJ7nigLraHtp4VOG/cy8D7uiV0dLkHOne5Fhw==}
-    engines: {node: '>=6'}
-
   '@gerrit0/mini-shiki@3.23.0':
     resolution: {integrity: sha512-bEMORlG0cqdjVyCEuU0cDQbORWX+kYCeo0kV1lbxF5bt4r7SID2l9bqsxJEM0zndaxpOUT7riCyIVEuqq/Ynxg==}
 
@@ -501,9 +494,6 @@ packages:
 
   '@konnorr/qr-creator@1.0.1':
     resolution: {integrity: sha512-EmRR9rny1ENBtQy7TLOguO/79h1EpzXUmqIdMTGp2BW8NkZtRRPr5hmQcE+n9QXYo4T8NjcaJ14hnZg+s/+K+A==}
-
-  '@kurkle/color@0.3.4':
-    resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
 
   '@lit-labs/ssr-client@1.1.8':
     resolution: {integrity: sha512-PjGh81oKsoI64m3IDjTqqjhC7dr2uC/o0jrllUb5gRAyp/RlAHxapgJrjq9kWz97faCHLQ8jUlTi6tGm+8fgyA==}
@@ -1187,10 +1177,6 @@ packages:
     engines: {node: '>= 20'}
     hasBin: true
 
-  '@web.awesome.me/webawesome-pro@3.8.0':
-    resolution: {integrity: sha512-zo0pRhJYdTOlHZqIdGcVAsw0egrkxTifM7u30eJwCvxrjjY4LFsCRyGSeLQCwGRi3OD+bvwVhaD9jrf6/MWbFg==}
-    engines: {node: '>=14.17.0'}
-
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
@@ -1293,10 +1279,6 @@ packages:
   chalk@5.6.2:
     resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
-
-  chart.js@4.5.1:
-    resolution: {integrity: sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw==}
-    engines: {pnpm: '>=8'}
 
   cheerio-select@2.1.0:
     resolution: {integrity: sha512-9v9kG0LvzrlcungtnJtpGNxY+fzECQKhK4EGJX2vByejiMX84MFNQw4UxPJl3bFbTMw+Dfs37XaIkCwTZfLh4g==}
@@ -2224,9 +2206,6 @@ packages:
   structured-source@4.0.0:
     resolution: {integrity: sha512-qGzRFNJDjFieQkl/sVOI2dUjHKRyL9dAJi2gCPGJLbJHBIkyOHxjuocpIEfbLioX+qSJpvbYdT49/YCdMznKxA==}
 
-  style-observer@0.1.2:
-    resolution: {integrity: sha512-VdGkVx7dGqEzosau63CI33vRJsAGKPJCXyS9f5ze7gFbgsXm0wt5liXUNB9+YjyfhMyD+iTwNa7sM4cvpP3N9Q==}
-
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
@@ -2490,9 +2469,23 @@ packages:
 
 snapshots:
 
-  '@awesome.me/kit-bb4fac79fe@1.0.132':
+  '@awesome.me/webawesome@3.8.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)':
     dependencies:
-      '@fortawesome/fontawesome-common-types': 7.2.0
+      '@ctrl/tinycolor': 4.1.0
+      '@floating-ui/dom': 1.7.6
+      '@konnorr/qr-creator': 1.0.1
+      '@lit-labs/ssr-client': 1.1.8
+      '@lit/context': 1.1.6
+      '@lit/react': 1.0.8(@types/react@19.2.17)
+      '@shoelace-style/animations': 1.2.0
+      '@shoelace-style/localize': 3.2.2
+      composed-offset-position: 0.0.6(@floating-ui/utils@0.2.11)
+      lit: 3.3.3
+      marked: 11.2.0
+      nanoid: 5.1.11
+    transitivePeerDependencies:
+      - '@floating-ui/utils'
+      - '@types/react'
 
   '@azu/format-text@1.0.2': {}
 
@@ -2689,8 +2682,6 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@fortawesome/fontawesome-common-types@7.2.0': {}
-
   '@gerrit0/mini-shiki@3.23.0':
     dependencies:
       '@shikijs/engine-oniguruma': 3.23.0
@@ -2702,8 +2693,6 @@ snapshots:
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
   '@konnorr/qr-creator@1.0.1': {}
-
-  '@kurkle/color@0.3.4': {}
 
   '@lit-labs/ssr-client@1.1.8':
     dependencies:
@@ -3310,26 +3299,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@web.awesome.me/webawesome-pro@3.8.0(@floating-ui/utils@0.2.11)(@types/react@19.2.17)':
-    dependencies:
-      '@ctrl/tinycolor': 4.1.0
-      '@floating-ui/dom': 1.7.6
-      '@konnorr/qr-creator': 1.0.1
-      '@lit-labs/ssr-client': 1.1.8
-      '@lit/context': 1.1.6
-      '@lit/react': 1.0.8(@types/react@19.2.17)
-      '@shoelace-style/animations': 1.2.0
-      '@shoelace-style/localize': 3.2.2
-      chart.js: 4.5.1
-      composed-offset-position: 0.0.6(@floating-ui/utils@0.2.11)
-      lit: 3.3.3
-      marked: 11.2.0
-      nanoid: 5.1.11
-      style-observer: 0.1.2
-    transitivePeerDependencies:
-      - '@floating-ui/utils'
-      - '@types/react'
-
   agent-base@7.1.4: {}
 
   ajv@8.20.0:
@@ -3428,10 +3397,6 @@ snapshots:
       supports-color: 7.2.0
 
   chalk@5.6.2: {}
-
-  chart.js@4.5.1:
-    dependencies:
-      '@kurkle/color': 0.3.4
 
   cheerio-select@2.1.0:
     dependencies:
@@ -4408,8 +4373,6 @@ snapshots:
   structured-source@4.0.0:
     dependencies:
       boundary: 2.0.0
-
-  style-observer@0.1.2: {}
 
   supports-color@7.2.0:
     dependencies:

@@ -38,7 +38,7 @@ Shared agent skills live in `.agents/skills/` (`.claude/skills` is a symlink to 
 
 ## UI work (Web Awesome / Font Awesome)
 
-- The demo apps build UIs with Web Awesome components (`<wa-*>`) and Font Awesome icons, including Pro packages (registry auth via `.npmrc` env vars `FONTAWESOME_NPM_TOKEN` / `WEBAWESOME_NPM_TOKEN`).
+- The demo apps build UIs with Web Awesome components (`<wa-*>`) and Font Awesome free icons using public packages so `pnpm install` works without commercial registry tokens. Do not commit personal Font Awesome kits or private Web Awesome Pro dependencies; if a task explicitly needs Pro assets, document the BYO-license registry setup in the README and keep credentials in the user's npm config or environment.
 - **Do not fabricate UI patterns from scratch with Web Awesome.** First check `.agents/skills/using-webawesome/patterns/` — categories: `app/`, `blog-news/`, `ecommerce/`, `layouts/`, indexed in `patterns.md` — and use a matching pattern directly or as the starting point/inspiration. Only design something novel when no pattern is close, and reuse the conventions (layout utilities, tokens, component composition) the patterns demonstrate.
 - For component APIs, themes, and design tokens, read the relevant files in `.agents/skills/using-webawesome/` (`components/`, `tokens/`, `themes.md`, `layout.md`) instead of guessing attribute or token names.
 - For icons, start from the catalog at `.agents/skills/using-fontawesome/docs/_catalog.md` and base answers on those local docs.
