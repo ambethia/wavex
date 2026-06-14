@@ -568,8 +568,9 @@ function looksLikeExpression(value: string): boolean {
   if (value.startsWith("{") || value.startsWith("[")) return true;
   if (/^(true|false|null|undefined)$/.test(value)) return true;
   if (/^(route|attrs|state|api|ctx|context)(?:$|[.(\[]|\?\.)/.test(value)) return true;
-  // URL-path values like href:/tasks or src:/assets/logo.svg are literals.
+  // URL values like href:/tasks, src:/assets/logo.svg, or href:https://example.com are literals.
   if (/^\/[\w\-./:?=&%#~]*$/.test(value)) return false;
+  if (/^[a-z][a-z0-9+.-]*:\/\/\S+$/i.test(value)) return false;
   if (/^!\S+/.test(value)) return true;
   return /[.()[\]{}]|=>|[+*/%]|===?|!==?|[<>]=?|&&|\|\||\?\?|\?.+:/.test(value);
 }

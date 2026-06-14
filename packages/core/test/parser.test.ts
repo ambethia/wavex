@@ -36,6 +36,10 @@ describe("parseWavex", () => {
     expect(parseAttributeToken("task:")).toMatchObject({ kind: "same-name", name: "task" });
     expect(parseAttributeToken("label:\"Full name\"")).toMatchObject({ kind: "literal", value: "Full name" });
     expect(parseAttributeToken("variant:brand")).toMatchObject({ kind: "literal", value: "brand" });
+    expect(parseAttributeToken("href:https://example.com/tasks?filter=open#list")).toMatchObject({
+      kind: "literal",
+      value: "https://example.com/tasks?filter=open#list"
+    });
     expect(parseAttributeToken("value:task")).toMatchObject({ kind: "literal", value: "task" });
     expect(parseAttributeToken("task:task")).toMatchObject({ kind: "literal", value: "task" });
     expect(parseAttributeToken("mode:api-client")).toMatchObject({ kind: "literal", value: "api-client" });
