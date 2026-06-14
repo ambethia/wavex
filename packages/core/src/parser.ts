@@ -570,7 +570,8 @@ function looksLikeExpression(value: string): boolean {
   if (/^(route|attrs|state|api|ctx|context)\b/.test(value)) return true;
   // URL-path values like href:/tasks or src:/assets/logo.svg are literals.
   if (/^\/[\w\-./:?=&%#~]*$/.test(value)) return false;
-  return /[.()[\]{}]|=>|[+*/%]|===?|!==?|[<>]=?|&&|\|\||[!?]/.test(value);
+  if (/^!\S+/.test(value)) return true;
+  return /[.()[\]{}]|=>|[+*/%]|===?|!==?|[<>]=?|&&|\|\||\?\?|\?.+:/.test(value);
 }
 
 function extractUtilityGroups(input: string): { withoutUtilities: string; utilities: string[] } {

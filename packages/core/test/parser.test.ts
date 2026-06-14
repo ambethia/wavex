@@ -44,6 +44,10 @@ describe("parseWavex", () => {
     });
     expect(parseAttributeToken("disabled:count>0")).toMatchObject({ kind: "expression", expression: "count>0" });
     expect(parseAttributeToken("hidden:!isVisible")).toMatchObject({ kind: "expression", expression: "!isVisible" });
+    expect(parseAttributeToken("value:maybe??fallback")).toMatchObject({ kind: "expression", expression: "maybe??fallback" });
+    expect(parseAttributeToken("value:condition?yes:no")).toMatchObject({ kind: "expression", expression: "condition?yes:no" });
+    expect(parseAttributeToken("label:Really?")).toMatchObject({ kind: "literal", value: "Really?" });
+    expect(parseAttributeToken("label:Save!")).toMatchObject({ kind: "literal", value: "Save!" });
     expect(parseAttributeToken(":click:$$tasks:create")).toMatchObject({
       kind: "semantic-event",
       event: "click",
