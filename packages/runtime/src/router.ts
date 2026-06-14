@@ -217,8 +217,8 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
 
     if (!match) {
       if (navigationPending) setNavigation({ pending: false });
-      current = { route };
       options.host.setPage({ render: notFound, resources: [], route });
+      current = { route };
       options.onNavigate?.(route);
       return;
     }

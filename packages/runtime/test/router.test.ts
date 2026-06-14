@@ -256,6 +256,28 @@ describe("client router navigation lifecycle", () => {
     expect(env.calls.some((call) => call.kind === "setNavigation" && call.payload === true)).toBe(false);
   });
 
+  it("does not advance current when an unmatched route commit fails", async () => {
+    const env = fakeEnvironment();
+    const host = {
+      ...env.host,
+      setPage: (page: { route: { path: string } }) => {
+        if (page.route.path === "/missing") throw new Error("not found commit failed");
+        env.host.setPage(page);
+      }
+    };
+    const router = createClientRouter({
+      routes: [routeOf("a.wx", "/a", async () => ({ default: () => "a" }))],
+      host,
+      window: env.win,
+      viewTransitions: false
+    });
+
+    await router.navigate("/a");
+    await expect(router.navigate("/missing")).rejects.toThrow("not found commit failed");
+
+    expect(router.current?.route.path).toBe("/a");
+  });
+
   it("works with hosts that do not implement setNavigation", async () => {
     const env = fakeEnvironment();
     const host = { setPage: () => undefined, update: () => undefined };
