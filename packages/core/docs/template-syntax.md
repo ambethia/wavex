@@ -93,7 +93,7 @@ Attributes use colon syntax.
 @input label:"Full name" required
 ```
 
-Recognized HTML/Web Awesome boolean attributes omit the value.
+Recognized HTML and WAVEx-defined boolean attributes omit the value.
 
 ```wx
 video autoplay muted loop
