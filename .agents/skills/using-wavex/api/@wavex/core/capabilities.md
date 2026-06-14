@@ -124,7 +124,7 @@ Defined in: [packages/core/src/capabilities.ts:44](packages/core/src/capabilitie
 
 ### WebAwesomeAttribute
 
-Defined in: [packages/core/src/capabilities.ts:300](packages/core/src/capabilities.ts#L300)
+Defined in: [packages/core/src/capabilities.ts:303](packages/core/src/capabilities.ts#L303)
 
 #### Properties
 
@@ -134,7 +134,7 @@ Defined in: [packages/core/src/capabilities.ts:300](packages/core/src/capabiliti
 optional default?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:304](packages/core/src/capabilities.ts#L304)
+Defined in: [packages/core/src/capabilities.ts:307](packages/core/src/capabilities.ts#L307)
 
 ##### description?
 
@@ -142,7 +142,7 @@ Defined in: [packages/core/src/capabilities.ts:304](packages/core/src/capabiliti
 optional description?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:302](packages/core/src/capabilities.ts#L302)
+Defined in: [packages/core/src/capabilities.ts:305](packages/core/src/capabilities.ts#L305)
 
 ##### name
 
@@ -150,7 +150,7 @@ Defined in: [packages/core/src/capabilities.ts:302](packages/core/src/capabiliti
 name: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:301](packages/core/src/capabilities.ts#L301)
+Defined in: [packages/core/src/capabilities.ts:304](packages/core/src/capabilities.ts#L304)
 
 ##### type?
 
@@ -158,7 +158,7 @@ Defined in: [packages/core/src/capabilities.ts:301](packages/core/src/capabiliti
 optional type?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:303](packages/core/src/capabilities.ts#L303)
+Defined in: [packages/core/src/capabilities.ts:306](packages/core/src/capabilities.ts#L306)
 
 ***
 
@@ -210,7 +210,7 @@ Defined in: [packages/core/src/capabilities.ts:29](packages/core/src/capabilitie
 
 ### WebAwesomeComponentDetail
 
-Defined in: [packages/core/src/capabilities.ts:307](packages/core/src/capabilities.ts#L307)
+Defined in: [packages/core/src/capabilities.ts:310](packages/core/src/capabilities.ts#L310)
 
 #### Properties
 
@@ -220,7 +220,7 @@ Defined in: [packages/core/src/capabilities.ts:307](packages/core/src/capabiliti
 attributes: WebAwesomeAttribute[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:311](packages/core/src/capabilities.ts#L311)
+Defined in: [packages/core/src/capabilities.ts:314](packages/core/src/capabilities.ts#L314)
 
 ##### name
 
@@ -228,7 +228,7 @@ Defined in: [packages/core/src/capabilities.ts:311](packages/core/src/capabiliti
 name: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:309](packages/core/src/capabilities.ts#L309)
+Defined in: [packages/core/src/capabilities.ts:312](packages/core/src/capabilities.ts#L312)
 
 Component name without the wa- prefix.
 
@@ -238,7 +238,7 @@ Component name without the wa- prefix.
 slots: object[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:312](packages/core/src/capabilities.ts#L312)
+Defined in: [packages/core/src/capabilities.ts:315](packages/core/src/capabilities.ts#L315)
 
 ###### description?
 
@@ -258,7 +258,7 @@ name: string;
 optional summary?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:310](packages/core/src/capabilities.ts#L310)
+Defined in: [packages/core/src/capabilities.ts:313](packages/core/src/capabilities.ts#L313)
 
 ## Type Aliases
 
@@ -322,7 +322,7 @@ Detect installed Web Awesome / Font Awesome capabilities from an app root.
 function discoverConvexFunctionKinds(root): Record<string, ConvexFunctionKind>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:257](packages/core/src/capabilities.ts#L257)
+Defined in: [packages/core/src/capabilities.ts:260](packages/core/src/capabilities.ts#L260)
 
 Classify Convex functions by scanning convex/ sources ("module/path:fn" ->
 kind). Public functions keep their concrete query/mutation/action kind;
@@ -347,7 +347,7 @@ Shared by the compiler, Vite plugin, CLI, and LSP.
 function discoverLocalComponents(root): string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:282](packages/core/src/capabilities.ts#L282)
+Defined in: [packages/core/src/capabilities.ts:285](packages/core/src/capabilities.ts#L285)
 
 Local component references discovered from src/components (e.g. "talk-card", "tasks/item").
 
@@ -369,7 +369,7 @@ Local component references discovered from src/components (e.g. "talk-card", "ta
 function readManifestComponentDetails(manifestPath): Map<string, WebAwesomeComponentDetail>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:316](packages/core/src/capabilities.ts#L316)
+Defined in: [packages/core/src/capabilities.ts:319](packages/core/src/capabilities.ts#L319)
 
 Full component metadata (descriptions, attributes, slots) from custom-elements.json.
 
@@ -413,7 +413,7 @@ Parse component names (without wa- prefix) from a custom-elements.json manifest.
 function readUtilityClasses(packageDir): string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:353](packages/core/src/capabilities.ts#L353)
+Defined in: [packages/core/src/capabilities.ts:356](packages/core/src/capabilities.ts#L356)
 
 Utility class suffixes (wa-stack -> "stack") scraped from the installed package's stylesheets.
 

@@ -356,7 +356,9 @@ describe("validateComponentReferences", () => {
 describe("validateConvexReferences", () => {
   it("flags bare mutation/action resources and non-template-callable Convex functions", async () => {
     const { validateConvexReferences } = await import("../src/capabilities.js");
-    const parsed = parseWavex(`~~~\n$$tasks:list\n$$tasks:create\n$secret:read\n@button :click:$$webhook:receive Handle\n`);
+    const parsed = parseWavex(
+      `~~~\n$$tasks:list\n$$tasks:create\n$secret:read\n@button :click:$$webhook:receive({ id: String(task._id) }) Handle\n`
+    );
 
     const diagnostics = validateConvexReferences(parsed, {
       functionKinds: {

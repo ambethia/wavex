@@ -242,7 +242,10 @@ function referenceForNode(node: ConvexReferenceNode | ConvexCallNode): string {
 
 export function convexSemanticEventTargetReference(target: string): string | undefined {
   if (!target.startsWith("$$")) return undefined;
-  const address = target.slice(2).replace(/\([^)]*\)$/, "");
+  const withoutSigils = target.slice(2);
+  const openParenIndex = withoutSigils.indexOf("(");
+  const hasInlineArgs = openParenIndex !== -1 && withoutSigils.endsWith(")");
+  const address = hasInlineArgs ? withoutSigils.slice(0, openParenIndex) : withoutSigils;
   const splitIndex = address.lastIndexOf(":");
   if (splitIndex === -1) return undefined;
   return `${address.slice(0, splitIndex).replace(/:/g, "/")}:${address.slice(splitIndex + 1)}`;

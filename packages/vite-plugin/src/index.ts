@@ -86,7 +86,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     },
     configureServer(server) {
       const config = resolveDirs(server.config.root);
-      server.watcher.add([config.pagesDir, config.componentsDir].filter(existsSync));
+      server.watcher.add([config.pagesDir, config.componentsDir, config.convexDir].filter(existsSync));
       server.middlewares.use((request, _response, next) => {
         const file = fileFromRequestUrl(request.url, server.config.root);
         if (file && isWavexTemplateFile(file, config)) invalidateWavexFile(server, file);
@@ -94,18 +94,33 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
       });
       const mtimes = snapshotWavexMtimes(config);
       server.watcher.on("change", (file) => {
+        if (isConvexSourceFile(file, config)) {
+          convexFunctionKinds = undefined;
+          sendWavexProjectFullReload(server, config);
+          return;
+        }
         if (!isWavexTemplateFile(file, config)) return;
         const mtime = safeMtime(file);
         if (mtime !== undefined) mtimes.set(file, mtime);
         sendWavexHotUpdate(server, file);
       });
       server.watcher.on("add", (file) => {
+        if (isConvexSourceFile(file, config)) {
+          convexFunctionKinds = undefined;
+          sendWavexProjectFullReload(server, config);
+          return;
+        }
         if (!isWavexTemplateFile(file, config)) return;
         const mtime = safeMtime(file);
         if (mtime !== undefined) mtimes.set(file, mtime);
         sendWavexFullReload(server, file);
       });
       server.watcher.on("unlink", (file) => {
+        if (isConvexSourceFile(file, config)) {
+          convexFunctionKinds = undefined;
+          sendWavexProjectFullReload(server, config);
+          return;
+        }
         if (!isWavexTemplateFile(file, config)) return;
         mtimes.delete(file);
         sendWavexFullReload(server, file);
@@ -235,6 +250,7 @@ interface ResolvedDirs {
   pagesDir: string;
   componentsDir: string;
   styleFile: string;
+  convexDir: string;
   convexApiFile: string;
 }
 
@@ -244,6 +260,7 @@ function resolveDirs(root: string): ResolvedDirs {
     pagesDir: resolve(root, defaults.pagesDir),
     componentsDir: resolve(root, defaults.componentsDir),
     styleFile: resolve(root, defaults.sourceDir, "style.css"),
+    convexDir: resolve(root, defaults.apiDir),
     convexApiFile: resolve(root, defaults.apiDir, "_generated/api.js")
   };
 }
@@ -389,9 +406,23 @@ function fileFromRequestUrl(url: string | undefined, root: string): string | und
 
 function invalidateWavexFile(server: ViteDevServer, file: string): void {
   server.moduleGraph.onFileChange(file);
-  const routesModule = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_ROUTES_ID);
-  if (routesModule) server.moduleGraph.invalidateModule(routesModule);
+  invalidateVirtualModules(server);
   for (const module of server.moduleGraph.getModulesByFile(file) ?? []) server.moduleGraph.invalidateModule(module);
+}
+
+function invalidateWavexProject(server: ViteDevServer, config: ResolvedDirs): void {
+  invalidateVirtualModules(server);
+  for (const file of listWavexTemplateFiles(config)) {
+    server.moduleGraph.onFileChange(file);
+    for (const module of server.moduleGraph.getModulesByFile(file) ?? []) server.moduleGraph.invalidateModule(module);
+  }
+}
+
+function invalidateVirtualModules(server: ViteDevServer): void {
+  for (const id of [RESOLVED_VIRTUAL_ROUTES_ID, RESOLVED_VIRTUAL_BOOTSTRAP_ID]) {
+    const module = server.moduleGraph.getModuleById(id);
+    if (module) server.moduleGraph.invalidateModule(module);
+  }
 }
 
 function sendWavexHotUpdate(server: ViteDevServer, file: string): void {
@@ -414,6 +445,11 @@ function sendWavexHotUpdate(server: ViteDevServer, file: string): void {
 
 function sendWavexFullReload(server: ViteDevServer, file: string): void {
   invalidateWavexFile(server, file);
+  server.ws.send({ type: "full-reload", path: "*" });
+}
+
+function sendWavexProjectFullReload(server: ViteDevServer, config: ResolvedDirs): void {
+  invalidateWavexProject(server, config);
   server.ws.send({ type: "full-reload", path: "*" });
 }
 
@@ -480,4 +516,8 @@ function isInside(file: string, dir: string): boolean {
 
 function isWavexTemplateFile(file: string, config: ResolvedDirs): boolean {
   return file.endsWith(".wx") && (isInside(file, config.pagesDir) || isInside(file, config.componentsDir));
+}
+
+function isConvexSourceFile(file: string, config: ResolvedDirs): boolean {
+  return file.endsWith(".ts") && !file.endsWith(".d.ts") && isInside(file, config.convexDir);
 }
