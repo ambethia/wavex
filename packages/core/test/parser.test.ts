@@ -37,6 +37,7 @@ describe("parseWavex", () => {
     expect(parseAttributeToken("label:\"Full name\"")).toMatchObject({ kind: "literal", value: "Full name" });
     expect(parseAttributeToken("variant:brand")).toMatchObject({ kind: "literal", value: "brand" });
     expect(parseAttributeToken("value:task")).toMatchObject({ kind: "literal", value: "task" });
+    expect(parseAttributeToken("task:task")).toMatchObject({ kind: "literal", value: "task" });
     expect(parseAttributeToken("checked:{{ task.isCompleted }}")).toMatchObject({
       kind: "expression",
       expression: "task.isCompleted"

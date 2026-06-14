@@ -124,16 +124,11 @@ $$tasks:get args:{ id: route.params.id }
 ```
 
 A trailing colon with no value passes the in-scope value with the same name. Use
-this for bare identifier expressions.
+this for bare identifier expressions; `task:task` is a static string value, while
+`task:` passes the `task` binding.
 
 ```wx
 @tasks/item task:
-```
-
-is equivalent to:
-
-```wx
-@tasks/item task:task
 ```
 
 Explicit `id` and `class` are allowed.
