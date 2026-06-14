@@ -33,7 +33,7 @@ export async function prerender(rootInput: string): Promise<void> {
   }
 
   // Lit SSR needs the DOM shim globals before any component module loads.
-  await import("@lit-labs/ssr/lib/install-global-dom-shim.js").catch(() => undefined);
+  await import("@lit-labs/ssr/lib/install-global-dom-shim.js");
   const { render } = await import("@lit-labs/ssr");
   const { collectResult } = await import("@lit-labs/ssr/lib/render-result.js");
   const { composeLayoutRender } = await import("@wavex/runtime");
@@ -90,8 +90,8 @@ export function injectPrerender(shell: string, body: string, head: HeadEntryLike
   const title = head.find((entry) => entry.tag === "title")?.text;
   if (title) {
     const titleTag = `<title data-wx-head>${escapeHtml(title)}</title>`;
-    html = /<title>[\s\S]*?<\/title>/i.test(html)
-      ? html.replace(/<title>[\s\S]*?<\/title>/i, titleTag)
+    html = /<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)
+      ? html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, titleTag)
       : html.replace(/<\/head>/i, `${titleTag}</head>`);
   }
 

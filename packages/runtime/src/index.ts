@@ -474,7 +474,13 @@ export function applyHead(entries: readonly HeadEntry[], documentRef: Document =
 
   for (const entry of entries) {
     if (entry.tag === "title") {
+      const existing = documentRef.head.querySelector("title") as HTMLTitleElement | null;
+      const element = existing ?? documentRef.createElement("title");
+      element.textContent = entry.text ?? "";
+      element.setAttribute("data-wx-head", "");
+      if (!element.parentNode) documentRef.head.append(element);
       documentRef.title = entry.text ?? "";
+      managed.delete(element);
       continue;
     }
 
