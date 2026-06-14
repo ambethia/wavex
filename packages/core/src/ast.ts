@@ -157,7 +157,7 @@ export interface ResourceBinding {
 
 /**
  * One parsed attribute token. The colon grammar is the language's backbone:
- * bare names are booleans, unquoted `name:value` is a static string unless the
+ * recognized bare names are booleans, unquoted `name:value` is a static string unless the
  * value is expression-shaped, `name:{{ expr }}` is an explicit TypeScript
  * expression, `name:` passes the in-scope value of the same name,
  * `:event:target` is a semantic WAVEx action, and `on:event:handler` is the

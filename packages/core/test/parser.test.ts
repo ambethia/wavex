@@ -127,6 +127,27 @@ describe("parseWavex", () => {
     });
   });
 
+  it("parses native boolean attributes without treating hyphenated prose as attributes", () => {
+    const parsed = parseWavex(`~~~\nvideo autoplay muted loop\np easy-going folks\n`);
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.nodes[0]).toMatchObject({
+      kind: "element",
+      tag: "video",
+      attributes: [
+        { kind: "boolean", name: "autoplay" },
+        { kind: "boolean", name: "muted" },
+        { kind: "boolean", name: "loop" }
+      ]
+    });
+    expect(parsed.nodes[1]).toMatchObject({
+      kind: "element",
+      tag: "p",
+      attributes: [],
+      inlineText: "easy-going folks"
+    });
+  });
+
   it("parses colon-bearing prose as inline text instead of a same-name attribute", () => {
     const parsed = parseWavex(`~~~\np Total: {{ n }}\n`);
 

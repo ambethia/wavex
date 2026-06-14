@@ -42,21 +42,47 @@ interface TokenRecord {
 
 const ATTRIBUTE_NAME_PATTERN = /^[a-z][a-z0-9_-]*$/;
 
-const BOOLEAN_ATTRIBUTE_NAMES = new Set([
+const HTML_BOOLEAN_ATTRIBUTE_NAMES = [
+  "allowfullscreen",
+  "allowpaymentrequest",
   "async",
   "autofocus",
+  "autoplay",
   "checked",
+  "controls",
+  "default",
   "defer",
   "disabled",
+  "disablepictureinpicture",
+  "disableremoteplayback",
+  "formnovalidate",
   "hidden",
-  "indeterminate",
+  "inert",
+  "ismap",
+  "itemscope",
+  "loop",
   "multiple",
+  "muted",
+  "nomodule",
+  "novalidate",
   "open",
+  "playsinline",
   "readonly",
   "required",
+  "reversed",
   "selected",
-  "with-footer",
-  "with-header"
+  "shadowrootclonable",
+  "shadowrootdelegatesfocus",
+  "shadowrootserializable",
+  "truespeed",
+  "webkitdirectory"
+] as const;
+
+const WAVEX_BOOLEAN_ATTRIBUTE_NAMES = ["indeterminate", "with-footer", "with-header"] as const;
+
+const BOOLEAN_ATTRIBUTE_NAMES = new Set<string>([
+  ...HTML_BOOLEAN_ATTRIBUTE_NAMES,
+  ...WAVEX_BOOLEAN_ATTRIBUTE_NAMES
 ]);
 
 /**
@@ -694,8 +720,7 @@ function isAttributeLike(token: string): boolean {
   if (token.startsWith(":") || token.startsWith("on:")) return true;
   const colonIndex = token.indexOf(":");
   if (colonIndex !== -1) return ATTRIBUTE_NAME_PATTERN.test(token.slice(0, colonIndex));
-  if (BOOLEAN_ATTRIBUTE_NAMES.has(token)) return true;
-  return /^[a-z][a-z0-9_-]*-[a-z0-9_-]+$/.test(token);
+  return BOOLEAN_ATTRIBUTE_NAMES.has(token);
 }
 
 function parseAttributeTokens(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage?: string): Attribute[] {

@@ -1884,7 +1884,7 @@ type Attribute =
 Defined in: [packages/core/src/ast.ts:166](packages/core/src/ast.ts#L166)
 
 One parsed attribute token. The colon grammar is the language's backbone:
-bare names are booleans, unquoted `name:value` is a static string unless the
+recognized bare names are booleans, unquoted `name:value` is a static string unless the
 value is expression-shaped, `name:{{ expr }}` is an explicit TypeScript
 expression, `name:` passes the in-scope value of the same name,
 `:event:target` is a semantic WAVEx action, and `on:event:handler` is the
@@ -2252,7 +2252,7 @@ Defined in: [packages/core/src/model.ts:90](packages/core/src/model.ts#L90)
 function parseAttributeToken(token, range?): Attribute | undefined;
 ```
 
-Defined in: [packages/core/src/parser.ts:585](packages/core/src/parser.ts#L585)
+Defined in: [packages/core/src/parser.ts:611](packages/core/src/parser.ts#L611)
 
 Parse one attribute token into its [Attribute](#attribute) form: boolean
 (`required`), literal (`variant:brand`), expression-shaped value
@@ -2304,7 +2304,7 @@ Parse a search string into a flat record; the first occurrence of a repeated key
 function parseWavex(source, _options?): WavexFile;
 ```
 
-Defined in: [packages/core/src/parser.ts:71](packages/core/src/parser.ts#L71)
+Defined in: [packages/core/src/parser.ts:97](packages/core/src/parser.ts#L97)
 
 Parse a complete `.wx` source file into a [WavexFile](#wavexfile).
 

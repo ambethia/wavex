@@ -84,6 +84,19 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`(__wxc_page_shell.default ?? __wxc_page_shell.render)({ ...context, attrs:`);
   });
 
+  it("compiles standard boolean attributes without stealing hyphenated inline text", () => {
+    const compiled = compileWavexModule(`~~~\nvideo autoplay muted loop\np easy-going folks\n`, {
+      id: "src/pages/index.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("<video ?autoplay=${true} ?muted=${true} ?loop=${true}></video>");
+    expect(compiled.code).toContain("<p>easy-going folks</p>");
+
+    const render = evaluateGeneratedRender(compiled.code);
+    expect(() => render({})).not.toThrow();
+  });
+
   it("compiles colon-bearing prose as inline text instead of a same-name property binding", () => {
     const compiled = compileWavexModule(`const n = 3;\n~~~\np Total: {{ n }}\n`, {
       id: "src/pages/index.wx"

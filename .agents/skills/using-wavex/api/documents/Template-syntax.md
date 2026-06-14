@@ -89,12 +89,15 @@ Attributes use colon syntax.
 @input label:"Full name" required
 ```
 
-Boolean attributes omit the value.
+Recognized HTML/Web Awesome boolean attributes omit the value.
 
 ```wx
+video autoplay muted loop
 @card with-header
 @input required
 ```
+
+Bare prose is still text, so hyphenated text such as `p easy-going folks` does not become an attribute.
 
 Quoted values are strings.
 
