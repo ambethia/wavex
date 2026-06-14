@@ -80,14 +80,28 @@ describe("parseWavex", () => {
     expect(parseAttributeToken("href:route.url")).toMatchObject({ kind: "expression", expression: "route.url" });
   });
 
-  it("does not mistake member-access brackets in directive expressions for utility groups", () => {
-    const parsed = parseWavex('~~~\n+if actionStates["$$ai/summarize:run"]?.result\n  p Yes\n');
+  it("does not mistake TypeScript brackets in directive expressions for utility groups", () => {
+    const parsed = parseWavex('~~~\n+if actionStates["$$ai/summarize:run"]?.result\n  p Yes\n+for item in [1, 2] key:item\n  p {{ item }}\n');
+    expect(parsed.diagnostics).toEqual([]);
     const directive = parsed.nodes[0];
     expect(directive).toMatchObject({
       kind: "directive",
       name: "if",
       expression: 'actionStates["$$ai/summarize:run"]?.result'
     });
+    expect(parsed.nodes[1]).toMatchObject({
+      kind: "directive",
+      name: "for",
+      for: { itemName: "item", collectionExpression: "[1, 2]", keyExpression: "item" }
+    });
+  });
+
+  it("diagnoses likely utility groups in directive expressions", () => {
+    const parsed = parseWavex("~~~\n+if [stack gap-xl]\n  p Yes\n");
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX006", severity: "error", line: 2, column: 5 }
+    ]);
   });
 
   it("treats mustache tokens with inner colons as inline text, not attributes", () => {

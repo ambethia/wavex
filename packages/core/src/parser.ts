@@ -461,7 +461,7 @@ function diagnoseInvalidAttributeToken(token: TokenRecord, range: SourceRange, d
 
 function diagnoseNonHeadUtilityGroups(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], message: string): void {
   for (const token of tokens) {
-    if (!isUtilityGroupToken(token.raw)) continue;
+    if (!isLikelyUtilityGroupToken(token.raw)) continue;
     diagnostics.push({
       code: "WX006",
       severity: "error",
@@ -470,6 +470,16 @@ function diagnoseNonHeadUtilityGroups(tokens: TokenRecord[], range: SourceRange,
       message
     });
   }
+}
+
+function isLikelyUtilityGroupToken(token: string): boolean {
+  if (!isUtilityGroupToken(token)) return false;
+  const values = token.slice(1, -1).trim().split(/\s+/).filter(Boolean);
+  return (
+    values.length > 0 &&
+    (values.length > 1 || values.some((value) => value.includes("-"))) &&
+    values.every((value) => /^[A-Za-z][A-Za-z0-9_-]*$/.test(value))
+  );
 }
 
 /**
