@@ -71,6 +71,8 @@ describe("parseWavex", () => {
       event: "wa-show",
       handler: "opened"
     });
+    expect(parseAttributeToken(":click:")).toBeUndefined();
+    expect(parseAttributeToken("on:wa-show:")).toBeUndefined();
     // URL paths are literals, not expressions (a href:/tasks Tasks)
     expect(parseAttributeToken("href:/tasks")).toMatchObject({ kind: "literal", value: "/tasks" });
     expect(parseAttributeToken("href:/schedule?track=systems")).toMatchObject({
@@ -146,11 +148,13 @@ describe("parseWavex", () => {
   });
 
   it("diagnoses invalid attribute tokens in directive and Convex heads", () => {
-    const parsed = parseWavex(`~~~\n+head Bad:token\n$$tasks:list Bad:token\n`);
+    const parsed = parseWavex(`~~~\n+head Bad:token :click:\n$$tasks:list Bad:token on:wa-show:\n`);
 
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX008", severity: "error", line: 2, column: 7 },
-      { code: "WX008", severity: "error", line: 3, column: 14 }
+      { code: "WX008", severity: "error", line: 2, column: 17 },
+      { code: "WX008", severity: "error", line: 3, column: 14 },
+      { code: "WX008", severity: "error", line: 3, column: 24 }
     ]);
   });
 

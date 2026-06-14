@@ -499,38 +499,37 @@ export function parseAttributeToken(token: string, range?: SourceRange): Attribu
   if (token.startsWith("on:")) {
     const [, event, ...handlerParts] = token.split(":");
     const handler = handlerParts.join(":");
-    if (event && handler) {
-      const handlerStart = token.length - handler.length;
-      return {
-        kind: "raw-event",
-        name: `on:${event}`,
-        event,
-        handler,
-        ...base,
-        nameRange: nameRange(0, `on:${event}`.length),
-        valueRange: valueRange(handlerStart, token.length),
-        expressionRange: valueRange(handlerStart, token.length)
-      };
-    }
+    if (!event || !handler) return undefined;
+    const handlerStart = token.length - handler.length;
+    return {
+      kind: "raw-event",
+      name: `on:${event}`,
+      event,
+      handler,
+      ...base,
+      nameRange: nameRange(0, `on:${event}`.length),
+      valueRange: valueRange(handlerStart, token.length),
+      expressionRange: valueRange(handlerStart, token.length)
+    };
   }
 
   if (token.startsWith(":")) {
     const body = token.slice(1);
     const split = body.indexOf(":");
-    if (split !== -1) {
-      const event = body.slice(0, split);
-      const target = body.slice(split + 1);
-      const targetStart = split + 2;
-      return {
-        kind: "semantic-event",
-        name: `:${event}`,
-        event,
-        target,
-        ...base,
-        nameRange: nameRange(0, split + 1),
-        valueRange: valueRange(targetStart, token.length)
-      };
-    }
+    if (split === -1) return undefined;
+    const event = body.slice(0, split);
+    const target = body.slice(split + 1);
+    if (!event || !target) return undefined;
+    const targetStart = split + 2;
+    return {
+      kind: "semantic-event",
+      name: `:${event}`,
+      event,
+      target,
+      ...base,
+      nameRange: nameRange(0, split + 1),
+      valueRange: valueRange(targetStart, token.length)
+    };
   }
 
   const colonIndex = token.indexOf(":");
