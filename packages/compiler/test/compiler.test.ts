@@ -1,5 +1,22 @@
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { compileWavexModule } from "../src/index.js";
+
+type GeneratedRender = (context?: Record<string, unknown>) => unknown;
+
+function evaluateGeneratedRender(code: string): GeneratedRender {
+  const javascript = ts.transpileModule(code, {
+    compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 }
+  }).outputText;
+  const executable = javascript
+    .replace(/^import .*$/gm, "")
+    .replace(/^export default render;$/m, "")
+    .replace(/\bexport /g, "");
+  const html = () => undefined;
+  const repeat = <T>(items: readonly T[], renderItem: (item: T, index: number) => unknown) => items.map(renderItem);
+
+  return Function("html", "nothing", "repeat", `${executable}; return render;`)(html, undefined, repeat) as GeneratedRender;
+}
 
 describe("compileWavexModule", () => {
   it("emits a Lit render module for basic .wx templates", () => {
@@ -65,6 +82,19 @@ describe("compileWavexModule", () => {
     // remaining children fill the default slot
     expect(compiled.code).toContain(`"default": html\``);
     expect(compiled.code).toContain(`(__wxc_page_shell.default ?? __wxc_page_shell.render)({ ...context, attrs:`);
+  });
+
+  it("compiles colon-bearing prose as inline text instead of a same-name property binding", () => {
+    const compiled = compileWavexModule(`const n = 3;\n~~~\np Total: {{ n }}\n`, {
+      id: "src/pages/index.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("<p>Total: ${n}</p>");
+    expect(compiled.code).not.toContain(".Total=${Total}");
+
+    const render = evaluateGeneratedRender(compiled.code);
+    expect(() => render({})).not.toThrow();
   });
 
   it("compiles bare slot elements to semantic projection with fallback", () => {
