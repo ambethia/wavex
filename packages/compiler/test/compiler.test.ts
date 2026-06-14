@@ -175,18 +175,20 @@ describe("compileWavexModule", () => {
     expect(compiled.code).not.toContain('context.actionStates?.["$$ai:summarize({ id: task._id })"]');
   });
 
-  it("exposes the validation-app context surface for state, action results, and data args", () => {
+  it("exposes the validation-app context surface for state, action results, resource states, and data args", () => {
     const compiled = compileWavexModule(
-      `~~~\n+if state.filter === "open"\n  @button data-task-id:task._id :click:$$tasks:toggle\n    | Toggle\n\n+if actionStates["$$ai/summarize:run"]?.result\n  p {{ actionStates["$$ai/summarize:run"].result }}\n`,
+      `~~~\n+if state.filter === "open"\n  @button data-task-id:task._id :click:$$tasks:toggle\n    | Toggle\n\n+if actionStates["$$ai/summarize:run"]?.result\n  p {{ actionStates["$$ai/summarize:run"].result }}\n\n+if resourceStates.tasks?.status === "error"\n  p Failed\n`,
       { id: "src/pages/index.wx" }
     );
 
     expect(compiled.ast.diagnostics).toEqual([]);
     expect(compiled.code).toContain("const state = context.state ?? {};");
+    expect(compiled.code).toContain("const resourceStates = context.resourceStates ?? {};");
     expect(compiled.code).toContain('${state.filter === "open" ? html`');
     expect(compiled.code).toContain('data-task-id=${task._id}');
     expect(compiled.code).toContain('data-wx-click="$$tasks:toggle"');
     expect(compiled.code).toContain('${actionStates["$$ai/summarize:run"]?.result ? html`');
+    expect(compiled.code).toContain('${resourceStates.tasks?.status === "error" ? html`');
   });
 
   it("compiles attribute args on $$ calls (the wavex-native form)", () => {
