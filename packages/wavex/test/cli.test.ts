@@ -227,11 +227,31 @@ describe("wavex prerender", () => {
     expect(html).not.toContain("https://example.test/default");
   });
 
+  it("inserts prerender titles in the head without rewriting body titles", () => {
+    const shell = [
+      "<!doctype html><html><head>",
+      '<meta charset="utf-8">',
+      "</head><body>",
+      "<svg><title>Navigation icon</title></svg>",
+      "</body></html>"
+    ].join("");
+
+    const html = injectPrerender(shell, "", [{ tag: "title", text: "Page title" }]);
+
+    expect(html).toContain('<head><meta charset="utf-8"><title data-wx-head>Page title</title></head>');
+    expect(html).toContain("<svg><title>Navigation icon</title></svg>");
+  });
+
   it("throws instead of silently skipping prerender injection for malformed shells", () => {
     expect(() => injectPrerender("<!doctype html><html><head></head></html>", "", [])).toThrow(/missing a <body> tag/);
     expect(() =>
       injectPrerender("<!doctype html><html><head><body></body></html>", "", [
         { tag: "meta", attributes: { name: "description", content: "Page" } }
+      ])
+    ).toThrow(/missing a closing <\/head> tag/);
+    expect(() =>
+      injectPrerender("<!doctype html><html><head><title>App</title><body></body></html>", "", [
+        { tag: "title", text: "Page" }
       ])
     ).toThrow(/missing a closing <\/head> tag/);
   });

@@ -91,9 +91,7 @@ export function injectPrerender(shell: string, body: string, head: HeadEntryLike
 
   if (reconciledHead.title) {
     const titleTag = `<title data-wx-head>${escapeHtml(reconciledHead.title.text ?? "")}</title>`;
-    html = /<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)
-      ? html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, () => titleTag)
-      : insertBeforeHeadClose(html, titleTag);
+    html = upsertHeadTitle(html, titleTag);
   }
 
   const metaTags = reconciledHead.entries
@@ -163,6 +161,17 @@ function insertPrerenderBody(html: string, body: string): string {
 
 function insertBeforeHeadClose(html: string, markup: string): string {
   const inserted = html.replace(/<\/head>/i, () => `${markup}</head>`);
+  if (inserted === html) throw new Error("wavex prerender: shell is missing a closing </head> tag.");
+  return inserted;
+}
+
+function upsertHeadTitle(html: string, titleTag: string): string {
+  const inserted = html.replace(/<head\b[^>]*>[\s\S]*?<\/head>/i, (headMarkup) => {
+    if (/<title\b[^>]*>[\s\S]*?<\/title>/i.test(headMarkup)) {
+      return headMarkup.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, () => titleTag);
+    }
+    return headMarkup.replace(/<\/head>/i, () => `${titleTag}</head>`);
+  });
   if (inserted === html) throw new Error("wavex prerender: shell is missing a closing </head> tag.");
   return inserted;
 }
