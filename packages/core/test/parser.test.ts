@@ -126,9 +126,18 @@ describe("parseWavex", () => {
     const parsed = parseWavex(`~~~\nmain [stack gap:xl]\n  p Hello\n`);
 
     expect(parsed.diagnostics).toMatchObject([
-      { code: "WX005", severity: "error", line: 2 }
+      { code: "WX005", severity: "error", line: 2, column: 13 }
     ]);
     expect(parsed.diagnostics[0]!.message).toContain("gap:xl");
+  });
+
+  it("diagnoses invalid attribute tokens in directive and Convex heads", () => {
+    const parsed = parseWavex(`~~~\n+head Bad:token\n$$tasks:list Bad:token\n`);
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX008", severity: "error", line: 2, column: 7 },
+      { code: "WX008", severity: "error", line: 3, column: 14 }
+    ]);
   });
 
   it("accepts dash-form utility tokens without diagnostics", () => {

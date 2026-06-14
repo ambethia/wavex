@@ -259,13 +259,13 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange, diagno
   let forDirective: ForDirective | undefined;
 
   if (name === "for") {
-    const parsedFor = parseForDirective(tokens, range);
+    const parsedFor = parseForDirective(tokens, range, diagnostics);
     forDirective = parsedFor.forDirective;
     attributes.push(...parsedFor.attributes);
     expression = tokens.map((token) => token.raw).join(" ") || undefined;
     expressionRange = rangeForTokenSpan(range, tokens);
   } else if (name === "head" || name === "boundary") {
-    attributes.push(...tokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute));
+    attributes.push(...parseAttributeTokens(tokens, range, diagnostics));
   } else if (name === "suspense") {
     const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics);
     attributes.push(...parsed.attributes);
@@ -289,11 +289,11 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange, diagno
   };
 }
 
-function parseForDirective(tokens: TokenRecord[], range: SourceRange): { forDirective?: ForDirective; attributes: Attribute[] } {
+function parseForDirective(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): { forDirective?: ForDirective; attributes: Attribute[] } {
   const keyTokenIndex = tokens.findIndex((token) => token.raw.startsWith("key:"));
   const loopTokens = keyTokenIndex === -1 ? tokens : tokens.slice(0, keyTokenIndex);
   const attrTokens = keyTokenIndex === -1 ? [] : tokens.slice(keyTokenIndex);
-  const attributes = attrTokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute);
+  const attributes = parseAttributeTokens(attrTokens, range, diagnostics);
   const keyAttribute = attributes.find((attribute) => attribute.name === "key");
   const inTokenIndex = loopTokens.findIndex((token) => token.raw === "in");
   const itemToken = loopTokens[0];
@@ -326,7 +326,7 @@ function parseConvexReference(
   return {
     kind: "convex-reference",
     address,
-    attributes: tokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute),
+    attributes: parseAttributeTokens(tokens, range, diagnostics),
     children: [],
     raw,
     range
@@ -343,7 +343,7 @@ function parseConvexCall(
   const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
   const head = headToken?.raw ?? "$$missing:missing";
   const address = parseConvexAddress(head, range, diagnostics);
-  const attributes = tokens.map((token) => parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end))).filter(isAttribute);
+  const attributes = parseAttributeTokens(tokens, range, diagnostics);
   const asAttribute = attributes.find((attribute) => attribute.name === "as");
   const bindingName = attributeLiteralValue(asAttribute) ?? inferResourceBindingName(address.modulePath, address.functionName);
   const node: ConvexCallNode = {
@@ -419,7 +419,7 @@ function parseUtilityGroupToken(token: TokenRecord, range: SourceRange, diagnost
         code: "WX005",
         severity: "error",
         line: range.start.line,
-        column: range.start.column + token.start + 1 + token.raw.indexOf(value),
+        column: range.start.column + token.start + token.raw.indexOf(value),
         message: `Utility token "${value}" is invalid: utilities are literal wa-* suffixes in dash form (e.g. "gap-xl" -> wa-gap-xl); ":" is not allowed inside a utility group.`
       });
     }
@@ -596,8 +596,14 @@ function isAttributeLike(token: string): boolean {
   return /^[a-z][a-z0-9_-]*-[a-z0-9_-]+$/.test(token);
 }
 
-function isAttribute(attribute: Attribute | undefined): attribute is Attribute {
-  return attribute !== undefined;
+function parseAttributeTokens(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): Attribute[] {
+  const attributes: Attribute[] = [];
+  for (const token of tokens) {
+    const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end));
+    if (attribute) attributes.push(attribute);
+    else diagnoseInvalidAttributeToken(token, range, diagnostics);
+  }
+  return attributes;
 }
 
 function attributeLiteralValue(attribute: Attribute | undefined): string | undefined {
