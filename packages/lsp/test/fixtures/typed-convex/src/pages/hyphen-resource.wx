@@ -1,3 +1,5 @@
 ~~~
+$$talks-alt:list as:talksAlt
+  p Valid string-literal API path segments should type-check
 $$talks-bad:list as:talksBad
   p Typo should be diagnosed for string-literal API path segments

@@ -95,8 +95,9 @@ describe("@wavex/lsp", () => {
     const missingResourceError = diagnostics.find((diagnostic) => String(diagnostic.message).includes("talks-bad"));
     expect(missingResourceError).toBeDefined();
     expect(missingResourceError!.source).not.toBe("wavex");
-    expect(missingResourceError!.range.start.line).toBe(1);
+    expect(missingResourceError!.range.start.line).toBe(3);
     expect(missingResourceError!.range.start.character).toBe(2);
+    expect(diagnostics.filter((diagnostic) => diagnostic.source !== "wavex")).toEqual([missingResourceError]);
   });
 
   it("offers component, directive, and Convex completions", async () => {
