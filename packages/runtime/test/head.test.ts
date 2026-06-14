@@ -35,7 +35,11 @@ class FakeHead {
 
   querySelector(selector: string): FakeElement | null {
     if (selector === "title") return this.children.find((element) => element.tagName === "title") ?? null;
-    return null;
+    const match = selector.match(/^(meta|link)\[(name|property|rel)="(.+)"\]$/);
+    if (!match) return null;
+    const [, tagName, attribute, rawValue] = match;
+    const value = rawValue.replace(/\\\\/g, "\\").replace(/\\"/g, '"');
+    return this.children.find((element) => element.tagName === tagName && element.attributes.get(attribute) === value) ?? null;
   }
 
   querySelectorAll(selector: string): FakeElement[] {
@@ -90,5 +94,32 @@ describe("applyHead", () => {
     applyHead([], documentRef as never);
 
     expect(documentRef.head.children).toEqual([]);
+  });
+
+  it("reconciles managed meta and link nodes while leaving static head content alone", () => {
+    const documentRef = new FakeDocument();
+    const staticMeta = documentRef.createElement("meta");
+    staticMeta.setAttribute("name", "viewport");
+    documentRef.head.append(staticMeta);
+
+    applyHead(
+      [
+        { tag: "meta", attributes: { name: "description", content: "First" } },
+        { tag: "link", attributes: { rel: "canonical", href: "/first" } }
+      ],
+      documentRef as never
+    );
+
+    const description = documentRef.head.children.find((element) => element.attributes.get("name") === "description");
+    const canonical = documentRef.head.children.find((element) => element.attributes.get("rel") === "canonical");
+    expect(description?.attributes.get("content")).toBe("First");
+    expect(canonical?.attributes.get("href")).toBe("/first");
+
+    applyHead([{ tag: "meta", attributes: { name: "description", content: "Second" } }], documentRef as never);
+
+    expect(documentRef.head.children).toContain(staticMeta);
+    expect(documentRef.head.children).toContain(description);
+    expect(description?.attributes.get("content")).toBe("Second");
+    expect(documentRef.head.children).not.toContain(canonical);
   });
 });

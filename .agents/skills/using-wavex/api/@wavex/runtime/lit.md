@@ -323,7 +323,7 @@ function mountLitPage<Result>(
 options?): LitMount<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:187](packages/runtime/src/lit.ts#L187)
+Defined in: [packages/runtime/src/lit.ts:200](packages/runtime/src/lit.ts#L200)
 
 Mount a compiled `.wx` page module (render export + inferred resources) — the bootstrap entry point.
 

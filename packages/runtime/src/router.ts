@@ -120,8 +120,10 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const viewTransitionsEnabled = options.viewTransitions ?? true;
   let navigationToken = 0;
   let current: ActivePage | undefined;
+  let navigationPending = false;
 
   const setNavigation = (navigation: NavigationState) => {
+    navigationPending = navigation.pending;
     options.host.setNavigation?.(navigation);
     const documentElement = win.document?.documentElement;
     if (!documentElement) return;
@@ -196,6 +198,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     };
 
     if (!match) {
+      if (navigationPending) setNavigation({ pending: false });
       current = { route };
       options.host.setPage({ render: notFound, resources: [], route });
       options.onNavigate?.(route);
@@ -260,9 +263,11 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const onClick = (event: MouseEvent) => {
     if (event.defaultPrevented || event.button !== 0) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const anchor = event
-      .composedPath()
-      .find((node): node is HTMLAnchorElement => node instanceof HTMLAnchorElement && node.hasAttribute("href"));
+    const AnchorElement = (win as Window & { HTMLAnchorElement?: typeof HTMLAnchorElement }).HTMLAnchorElement ?? globalThis.HTMLAnchorElement;
+    if (typeof AnchorElement !== "function") return;
+    const anchor = event.composedPath().find((node): node is HTMLAnchorElement => {
+      return node instanceof AnchorElement && node.hasAttribute("href");
+    });
     if (!anchor) return;
     if (anchor.target && anchor.target !== "_self") return;
     if (anchor.hasAttribute("download") || anchor.getAttribute("rel")?.split(/\s+/).includes("external")) return;

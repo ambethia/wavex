@@ -87,9 +87,11 @@ export function mountLit<Result = unknown>(
   let resourceDefinitions = [...(options.resources ?? [])];
   let resourceController: ResourceController | undefined;
   let updateRequested = false;
+  let disposed = false;
   let headCurrent: ((context?: RenderContext) => HeadEntry[]) | undefined;
 
   const update = (nextContext: RenderContext = {}) => {
+    if (disposed) return;
     // A synchronous render supersedes any queued microtask render.
     updateRequested = false;
     Object.assign(context, createRenderContext({ ...context, ...nextContext }));
@@ -100,9 +102,13 @@ export function mountLit<Result = unknown>(
   };
 
   const requestUpdate = () => {
-    if (updateRequested) return;
+    if (disposed || updateRequested) return;
     updateRequested = true;
     queueMicrotask(() => {
+      if (disposed) {
+        updateRequested = false;
+        return;
+      }
       updateRequested = false;
       update();
     });
@@ -131,11 +137,13 @@ export function mountLit<Result = unknown>(
   });
 
   const setRender = (nextRender: RenderFunction<Result>) => {
+    if (disposed) return;
     renderCurrent = nextRender;
     update();
   };
 
   const setResources = (nextResources: readonly ResourceDefinition[]) => {
+    if (disposed) return;
     resourceDefinitions = [...nextResources];
     resourceController ??= createResourceController(context, resourceDefinitions, {
       client: options.resourceClient,
@@ -145,6 +153,7 @@ export function mountLit<Result = unknown>(
   };
 
   const setNavigation = (navigation: NavigationState) => {
+    if (disposed) return;
     context.navigation = navigation;
     requestUpdate();
   };
@@ -155,6 +164,7 @@ export function mountLit<Result = unknown>(
     route: RouteContext;
     head?: (context?: RenderContext) => HeadEntry[];
   }) => {
+    if (disposed) return;
     renderCurrent = page.render;
     resourceDefinitions = [...page.resources];
     headCurrent = page.head;
@@ -175,6 +185,9 @@ export function mountLit<Result = unknown>(
     setPage,
     setNavigation,
     dispose() {
+      if (disposed) return;
+      disposed = true;
+      updateRequested = false;
       resourceController?.dispose();
       resourceController = undefined;
       disposeDelegation();

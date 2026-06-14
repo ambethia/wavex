@@ -59,10 +59,37 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
   const calls: Array<{ kind: string; payload?: unknown }> = [];
   const attributes = new Set<string>();
   const transitions: Array<{ types?: string[] }> = [];
+  const documentListeners = new Map<string, Set<(event: Event) => void>>();
+  const windowListeners = new Map<string, Set<(event: Event) => void>>();
+
+  class FakeAnchor {
+    target = "";
+    href: string;
+    private readonly attributes = new Map<string, string>();
+
+    constructor(href: string, attributes: Record<string, string> = {}) {
+      this.href = new URL(href, win.location.href).href;
+      for (const [name, value] of Object.entries(attributes)) this.attributes.set(name, value);
+      this.attributes.set("href", href);
+      this.target = attributes.target ?? "";
+    }
+
+    hasAttribute(name: string): boolean {
+      return this.attributes.has(name);
+    }
+
+    getAttribute(name: string): string | null {
+      return this.attributes.get(name) ?? null;
+    }
+  }
 
   const documentRef: Record<string, unknown> = {
-    addEventListener: () => undefined,
-    removeEventListener: () => undefined,
+    addEventListener: (type: string, listener: (event: Event) => void) => {
+      const listeners = documentListeners.get(type) ?? new Set();
+      listeners.add(listener);
+      documentListeners.set(type, listeners);
+    },
+    removeEventListener: (type: string, listener: (event: Event) => void) => documentListeners.get(type)?.delete(listener),
     documentElement: {
       setAttribute: (name: string) => attributes.add(name),
       removeAttribute: (name: string) => attributes.delete(name)
@@ -77,17 +104,60 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
     };
   }
 
+  const location = { href: "http://app.test/", origin: "http://app.test", pathname: "/", search: "" };
+  const setLocation = (url: string) => {
+    const next = new URL(url, location.href);
+    location.href = next.href;
+    location.origin = next.origin;
+    location.pathname = next.pathname;
+    location.search = next.search;
+  };
   const win = {
-    location: { href: "http://app.test/", origin: "http://app.test", pathname: "/", search: "" },
+    location,
     history: {
-      pushState: (_s: unknown, _t: string, url: string) => calls.push({ kind: "pushState", payload: url }),
-      replaceState: (_s: unknown, _t: string, url: string) => calls.push({ kind: "replaceState", payload: url })
+      pushState: (_s: unknown, _t: string, url: string) => {
+        calls.push({ kind: "pushState", payload: url });
+        setLocation(url);
+      },
+      replaceState: (_s: unknown, _t: string, url: string) => {
+        calls.push({ kind: "replaceState", payload: url });
+        setLocation(url);
+      }
     },
     matchMedia: () => ({ matches: options.reducedMotion ?? false }),
-    addEventListener: () => undefined,
-    removeEventListener: () => undefined,
-    document: documentRef
+    addEventListener: (type: string, listener: (event: Event) => void) => {
+      const listeners = windowListeners.get(type) ?? new Set();
+      listeners.add(listener);
+      windowListeners.set(type, listeners);
+    },
+    removeEventListener: (type: string, listener: (event: Event) => void) => windowListeners.get(type)?.delete(listener),
+    document: documentRef,
+    HTMLAnchorElement: FakeAnchor
   } as never;
+
+  const click = (anchor: InstanceType<typeof FakeAnchor>, eventInit: Partial<MouseEvent> = {}) => {
+    let prevented = false;
+    const event = {
+      defaultPrevented: false,
+      button: 0,
+      metaKey: false,
+      ctrlKey: false,
+      shiftKey: false,
+      altKey: false,
+      composedPath: () => [anchor, documentRef],
+      preventDefault: () => {
+        prevented = true;
+      },
+      ...eventInit
+    } as MouseEvent;
+    documentListeners.get("click")?.forEach((listener) => listener(event));
+    return prevented;
+  };
+
+  const pop = (url: string) => {
+    setLocation(url);
+    windowListeners.get("popstate")?.forEach((listener) => listener(new Event("popstate")));
+  };
 
   const host = {
     setPage: (page: { route: { path: string } }) => calls.push({ kind: "setPage", payload: page.route.path }),
@@ -95,7 +165,7 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
     setNavigation: (navigation: { pending: boolean }) => calls.push({ kind: "setNavigation", payload: navigation.pending })
   };
 
-  return { win, host, calls, attributes, transitions };
+  return { win, host, calls, attributes, transitions, click, pop, FakeAnchor };
 }
 
 function routeOf(file: string, path: string, load: () => Promise<RoutePageModule>, errors: ClientRoute["errors"] = []): ClientRoute {
@@ -196,6 +266,68 @@ describe("client router navigation lifecycle", () => {
       viewTransitions: false
     });
     await expect(router.navigate("/a")).resolves.toBeUndefined();
+  });
+
+  it("intercepts eligible same-origin route links and leaves native-only links alone", async () => {
+    const env = fakeEnvironment();
+    createClientRouter({
+      routes: [routeOf("a.wx", "/a", async () => ({ default: () => "a" }))],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+
+    expect(env.click(new env.FakeAnchor("/a?tab=1"))).toBe(true);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(env.calls.some((call) => call.kind === "pushState" && call.payload === "/a?tab=1")).toBe(true);
+    expect(env.calls.some((call) => call.kind === "setPage" && call.payload === "/a")).toBe(true);
+
+    expect(env.click(new env.FakeAnchor("/unmatched"))).toBe(false);
+    expect(env.click(new env.FakeAnchor("https://external.test/a"))).toBe(false);
+    expect(env.click(new env.FakeAnchor("/a", { target: "_blank" }))).toBe(false);
+    expect(env.click(new env.FakeAnchor("/a", { download: "file.txt" }))).toBe(false);
+    expect(env.click(new env.FakeAnchor("/a", { rel: "external" }))).toBe(false);
+    expect(env.click(new env.FakeAnchor("/a"), { metaKey: true })).toBe(false);
+  });
+
+  it("navigates on popstate without pushing a new history entry", async () => {
+    const env = fakeEnvironment();
+    createClientRouter({
+      routes: [routeOf("a.wx", "/a", async () => ({ default: () => "a" }))],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+
+    env.pop("/a?from=back");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(env.calls.some((call) => call.kind === "pushState" || call.kind === "replaceState")).toBe(false);
+    expect(env.calls.some((call) => call.kind === "setPage" && call.payload === "/a")).toBe(true);
+  });
+
+  it("clears pending when an unmatched navigation supersedes an in-flight route", async () => {
+    const env = fakeEnvironment();
+    const slow = deferred();
+    const router = createClientRouter({
+      routes: [routeOf("a.wx", "/a", () => slow.promise)],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+
+    const first = router.navigate("/a");
+    await router.navigate("/missing");
+
+    expect(env.calls).toContainEqual({ kind: "setNavigation", payload: false });
+    expect(env.attributes.has("data-wx-navigating")).toBe(false);
+    expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([{ kind: "setPage", payload: "/missing" }]);
+
+    slow.resolve({ default: () => "a" });
+    await first;
+    expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([{ kind: "setPage", payload: "/missing" }]);
   });
 });
 
