@@ -58,6 +58,19 @@ describe("compileWavexModule", () => {
     expect(compiled.code).not.toContain("Should not render");
   });
 
+  it("omits invalid Convex semantic event bindings when kind diagnostics fire", () => {
+    const compiled = compileWavexModule(`~~~\n@button :click:$$tasks:list\n  +pending\n    p Refreshing…\n  +idle\n    p Refresh\n`, {
+      id: "src/pages/index.wx",
+      convexFunctionKinds: { "tasks:list": "query" }
+    });
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX102", severity: "error", line: 2, column: 1 }]);
+    expect(compiled.code).not.toContain("data-wx-click");
+    expect(compiled.code).not.toContain("context.actionStates?.[\"$$tasks:list\"]");
+    expect(compiled.code).toContain("Refreshing");
+    expect(compiled.code).toContain("Refresh");
+  });
+
   it("compiles resource-state directives conditionally inside $$ blocks", () => {
     const compiled = compileWavexModule(
       `~~~\n$$tasks:list\n  +loading\n    p Loading…\n  +empty\n    p No tasks yet.\n  +error problem\n    p {{ String(problem) }}\n  +for task in tasks\n    p {{ task.text }}\n`,

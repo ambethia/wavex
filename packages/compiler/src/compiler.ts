@@ -1,6 +1,6 @@
 import { componentReferenceToTag, expandUtilityClassList, extractAttrsTypeKeys, toKebabCase } from "@wavex/core";
 import { parseWavex } from "@wavex/core";
-import { validateConvexReferences, type ConvexFunctionKind } from "@wavex/core/capabilities";
+import { convexSemanticEventTargetReference, validateConvexReferences, type ConvexFunctionKind } from "@wavex/core/capabilities";
 import type {
   Attribute,
   ComponentNode,
@@ -294,9 +294,9 @@ function compileElement(node: ElementNode, options: InternalCompileOptions, scop
     const fallback = node.children.length > 0 ? `html\`${compileNodes(node.children, options, scope)}\`` : "nothing";
     return `\${context.slots?.[${JSON.stringify(slotName)}] ?? ${fallback}}`;
   }
-  const attrs = compileAttributes(node.attributes, node.utilities);
+  const attrs = compileAttributes(node.attributes, node.utilities, options);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
-  const children = compileNodes(node.children, options, scopeForChildren(node.attributes, scope));
+  const children = compileNodes(node.children, options, scopeForChildren(node.attributes, scope, options.convexFunctionKinds));
   if (VOID_TAGS.has(node.tag)) return `<${node.tag}${attrs}>`;
   return `<${node.tag}${attrs}>${inlineText}${children}</${node.tag}>`;
 }
@@ -313,9 +313,9 @@ function compileComponent(node: ComponentNode, options: InternalCompileOptions, 
     webAwesomeComponents: options.webAwesomeComponents
   });
   if (tag.startsWith("wa-")) options.usedWebAwesomeComponents?.add(tag.slice(3));
-  const attrs = compileAttributes(node.attributes, node.utilities);
+  const attrs = compileAttributes(node.attributes, node.utilities, options);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
-  const children = compileNodes(node.children, options, scopeForChildren(node.attributes, scope));
+  const children = compileNodes(node.children, options, scopeForChildren(node.attributes, scope, options.convexFunctionKinds));
   return `<${tag}${attrs}>${inlineText}${children}</${tag}>`;
 }
 
@@ -387,12 +387,15 @@ function localComponentModuleName(reference: string): string {
   return `__wxc_${reference.replace(/[^a-zA-Z0-9_$]+/g, "_")}`;
 }
 
-
-function scopeForChildren(attributes: readonly Attribute[], scope: CompileScope): CompileScope {
+function scopeForChildren(
+  attributes: readonly Attribute[],
+  scope: CompileScope,
+  convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined
+): CompileScope {
   const semanticTarget = attributes.find(
     (attribute) => attribute.kind === "semantic-event" && attribute.event !== "track" && attribute.target.startsWith("$$")
   );
-  if (!semanticTarget || semanticTarget.kind !== "semantic-event") return scope;
+  if (!semanticTarget || semanticTarget.kind !== "semantic-event" || !isAllowedSemanticEventTarget(semanticTarget.target, convexFunctionKinds)) return scope;
   return { ...scope, action: semanticEventRuntimeTarget(semanticTarget.target).target };
 }
 
@@ -519,11 +522,19 @@ function compileConvexCall(node: ConvexCallNode, options: InternalCompileOptions
   return compileNodes(node.children, options, { resource: node.bindingName });
 }
 
-function compileSemanticEventAttribute(attribute: Extract<Attribute, { kind: "semantic-event" }>): string[] {
+function compileSemanticEventAttribute(attribute: Extract<Attribute, { kind: "semantic-event" }>, options: InternalCompileOptions): string[] {
+  if (!isAllowedSemanticEventTarget(attribute.target, options.convexFunctionKinds)) return [];
   const runtimeTarget = semanticEventRuntimeTarget(attribute.target);
   const emitted = [` data-wx-${attribute.event}=\"${escapeStaticAttribute(runtimeTarget.target)}\"`];
   if (runtimeTarget.argsExpression) emitted.push(` .args=\${${runtimeTarget.argsExpression}}`);
   return emitted;
+}
+
+function isAllowedSemanticEventTarget(target: string, convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined): boolean {
+  const reference = convexSemanticEventTargetReference(target);
+  if (!reference) return true;
+  const kind = convexFunctionKinds?.[reference];
+  return kind === undefined || kind === "mutation" || kind === "action";
 }
 
 function semanticEventRuntimeTarget(target: string): { target: string; argsExpression?: string } {
@@ -546,7 +557,7 @@ function isConvexActionTarget(target: string): boolean {
   return /^[A-Za-z0-9_./-]+$/.test(modulePath) && /^[A-Za-z_$][\w$]*$/.test(functionName);
 }
 
-function compileAttributes(attributes: readonly Attribute[], utilities: readonly string[]): string {
+function compileAttributes(attributes: readonly Attribute[], utilities: readonly string[], options: InternalCompileOptions): string {
   const emitted: string[] = [];
   const staticClasses: string[] = expandUtilityClassList(utilities);
   const dynamicClasses: string[] = [];
@@ -573,7 +584,7 @@ function compileAttributes(attributes: readonly Attribute[], utilities: readonly
         emitted.push(compileExpressionAttribute(attribute.name, attribute.name));
         break;
       case "semantic-event":
-        emitted.push(...compileSemanticEventAttribute(attribute));
+        emitted.push(...compileSemanticEventAttribute(attribute, options));
         break;
       case "raw-event":
         emitted.push(` @${attribute.event}=\${${attribute.handler}}`);
