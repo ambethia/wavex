@@ -194,7 +194,17 @@ export function validateConvexReferences(file: WavexFile, options: ConvexValidat
         if (attribute.kind !== "semantic-event") continue;
         const reference = convexSemanticEventTargetReference(attribute.target);
         if (!reference) continue;
-        diagnoseDisallowedConvexKind(diagnostics, node, attribute.target, reference, kinds[reference]);
+        const kind = kinds[reference];
+        diagnoseDisallowedConvexKind(diagnostics, node, attribute.target, reference, kind);
+        if (kind === "query") {
+          diagnostics.push({
+            code: "WX102",
+            severity: "error",
+            line: node.range.start.line,
+            column: node.range.start.column,
+            message: `${attribute.target} refers to a Convex query (${reference}); bind it as a bare resource instead of an event trigger.`
+          });
+        }
       }
     }
     if (node.kind === "convex-reference") {

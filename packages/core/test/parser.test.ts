@@ -357,7 +357,7 @@ describe("validateConvexReferences", () => {
   it("flags bare mutation/action resources and non-template-callable Convex functions", async () => {
     const { validateConvexReferences } = await import("../src/capabilities.js");
     const parsed = parseWavex(
-      `~~~\n$$tasks:list\n$$tasks:create\n$secret:read\n@button :click:$$webhook:receive({ id: String(task._id) }) Handle\n`
+      `~~~\n$$tasks:list\n$$tasks:create\n$secret:read\n@button :click:$$webhook:receive({ id: String(task._id) }) Handle\n@button :click:$$tasks:list Refresh\n`
     );
 
     const diagnostics = validateConvexReferences(parsed, {
@@ -372,11 +372,13 @@ describe("validateConvexReferences", () => {
     expect(diagnostics).toMatchObject([
       { code: "WX102", severity: "error", line: 3, column: 1 },
       { code: "WX102", severity: "error", line: 4, column: 1 },
-      { code: "WX102", severity: "error", line: 5, column: 1 }
+      { code: "WX102", severity: "error", line: 5, column: 1 },
+      { code: "WX102", severity: "error", line: 6, column: 1 }
     ]);
     expect(diagnostics[0]!.message).toContain("Bare $$tasks:create cannot bind a Convex mutation");
     expect(diagnostics[1]!.message).toContain("internal function");
     expect(diagnostics[2]!.message).toContain("httpAction");
+    expect(diagnostics[3]!.message).toContain("bind it as a bare resource");
   });
 
   it("discovers public and reserved Convex function kinds from source files", async () => {
