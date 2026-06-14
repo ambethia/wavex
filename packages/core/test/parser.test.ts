@@ -42,6 +42,8 @@ describe("parseWavex", () => {
       kind: "expression",
       expression: "task.isCompleted"
     });
+    expect(parseAttributeToken("disabled:count>0")).toMatchObject({ kind: "expression", expression: "count>0" });
+    expect(parseAttributeToken("hidden:!isVisible")).toMatchObject({ kind: "expression", expression: "!isVisible" });
     expect(parseAttributeToken(":click:$$tasks:create")).toMatchObject({
       kind: "semantic-event",
       event: "click",
