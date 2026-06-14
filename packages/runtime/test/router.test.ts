@@ -343,9 +343,10 @@ describe("client router navigation lifecycle", () => {
     const first = router.navigate("/a");
     await router.navigate("/missing");
 
-    expect(env.calls).toContainEqual({ kind: "setNavigation", payload: false });
+    expect(env.calls.filter((call) => call.kind === "setNavigation").map((call) => call.payload)).toEqual([true, false]);
     expect(env.attributes.has("data-wx-navigating")).toBe(false);
     expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([{ kind: "setPage", payload: "/missing" }]);
+    expect(router.current?.route.path).toBe("/missing");
 
     slow.resolve({ default: () => "a" });
     await first;

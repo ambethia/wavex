@@ -132,6 +132,10 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     else documentElement.removeAttribute("data-wx-navigating");
   };
 
+  const clearNavigation = () => {
+    if (navigationPending) setNavigation({ pending: false });
+  };
+
   /**
    * Commit a page swap, wrapped in a View Transition when appropriate.
    * pending->false clears inside the update callback, atomically with the
@@ -211,7 +215,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     };
 
     if (!match) {
-      if (navigationPending) setNavigation({ pending: false });
+      clearNavigation();
       options.host.setPage({ render: notFound, resources: [], route });
       current = { route };
       options.onNavigate?.(route);
@@ -333,7 +337,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       if (disposed) return;
       disposed = true;
       navigationToken += 1;
-      if (navigationPending) setNavigation({ pending: false });
+      clearNavigation();
       win.document.removeEventListener("click", onClick);
       win.removeEventListener("popstate", onPopState);
     }
