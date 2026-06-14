@@ -36,11 +36,16 @@ describe("documentation drift guards", () => {
     expect(docs).not.toMatch(/semantic tokens/i);
   });
 
-  it("does not claim JSON CLI output before JSON output exists", () => {
+  it("does not claim JSON CLI output or overstate static prerendering", () => {
     const wavexReadme = readProjectFile("packages/wavex/README.md");
+    const vitePluginReadme = readProjectFile("packages/vite-plugin/README.md");
 
     expect(wavexReadme).toContain("deterministic text output");
-    expect(wavexReadme).not.toMatch(/JSON-friendly|JSON output/i);
+    expect(wavexReadme).toContain("static HTML output optimization");
+    expect(vitePluginReadme).toContain("static HTML optimization for resource-free");
+    expect(`${wavexReadme}\n${vitePluginReadme}`).not.toMatch(
+      /JSON-friendly|JSON output|Tier-1 SEO|Tier-1 prerender/i
+    );
   });
 
   it("documents Convex Doc and Id as explicit imports while only api is injected", () => {

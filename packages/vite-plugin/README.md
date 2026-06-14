@@ -27,5 +27,6 @@ declarations; apps reference it from tsconfig `types`.
 - **Open question:** the exact HMR contract for colocated TypeScript state
   preservation (snapshot/restore hooks) is not settled; today template edits
   preserve Convex state and prelude changes reload the module.
-- **Deferral:** prerendering is the Tier-1 SEO/initial-load plan (see the
-  `wavex` CLI); build-time Convex data and edge SSR are later tiers.
+- **Deferral:** prerendering is a static HTML optimization for resource-free
+  routes (see the `wavex` CLI); build-time Convex data and edge SSR are later
+  tiers.
