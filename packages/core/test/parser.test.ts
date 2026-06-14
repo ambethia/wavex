@@ -40,6 +40,11 @@ describe("parseWavex", () => {
       kind: "literal",
       value: "https://example.com/tasks?filter=open#list"
     });
+    expect(parseAttributeToken("href:tel:+1234567890")).toMatchObject({ kind: "literal", value: "tel:+1234567890" });
+    expect(parseAttributeToken("src:data:image/svg+xml;base64,PHN2Zy8+")).toMatchObject({
+      kind: "literal",
+      value: "data:image/svg+xml;base64,PHN2Zy8+"
+    });
     expect(parseAttributeToken("value:task")).toMatchObject({ kind: "literal", value: "task" });
     expect(parseAttributeToken("task:task")).toMatchObject({ kind: "literal", value: "task" });
     expect(parseAttributeToken("mode:api-client")).toMatchObject({ kind: "literal", value: "api-client" });
