@@ -61,7 +61,7 @@ const BOOLEAN_ATTRIBUTE_NAMES = new Set([
 export function parseWavex(source: string, _options: ParseWavexOptions = {}): WavexFile {
   const diagnostics: Diagnostic[] = [];
   const allLines = source.split(/\r?\n/);
-  const lineStartOffsets = computeLineStartOffsets(source, allLines);
+  const lineStartOffsets = computeLineStartOffsets(source);
   const separatorIndex = allLines.findIndex((line) => line.trim() === "~~~");
   const hasWaveSeparator = separatorIndex !== -1;
 
@@ -150,7 +150,7 @@ function parseTemplateLines(
     }
 
     const content = line.raw.slice(leadingWhitespace.length);
-    const range = makeRange(line, indentSpaces, line.raw.length);
+    const range = makeRange(line, leadingWhitespace.length, line.raw.length);
     const node = parseLine(content, range, diagnostics, resources);
     if (!node) continue;
 
@@ -566,12 +566,16 @@ function tokenize(input: string): string[] {
   return tokens;
 }
 
-function computeLineStartOffsets(source: string, lines: string[]): number[] {
-  const offsets: number[] = [];
-  let offset = 0;
-  for (const line of lines) {
-    offsets.push(offset);
-    offset += line.length + 1;
+function computeLineStartOffsets(source: string): number[] {
+  const offsets = [0];
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (char === "\r") {
+      if (source[index + 1] === "\n") index += 1;
+      offsets.push(index + 1);
+    } else if (char === "\n") {
+      offsets.push(index + 1);
+    }
   }
   return offsets;
 }

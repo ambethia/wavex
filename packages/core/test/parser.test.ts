@@ -93,6 +93,36 @@ describe("parseWavex", () => {
     expect(parsed.diagnostics).toEqual([]);
     expect(parsed.nodes[0]).toMatchObject({ utilities: ["stack", "gap-xl", "align-items-center"] });
   });
+
+  it("records UTF-16 source ranges across CRLF newlines, tabs, and unicode text", () => {
+    const source = 'type Marker = "é"\r\n\r\n~~~\r\nmain [stack]\r\n  p Café 🧪\r\n\t@button Go\r\n';
+    const parsed = parseWavex(source);
+    const main = parsed.nodes[0];
+    const paragraph = main?.children[0];
+    const button = main?.children[1];
+
+    expect(main?.range).toEqual({
+      start: { line: 4, column: 1, offset: source.indexOf("main [stack]") },
+      end: { line: 4, column: "main [stack]".length + 1, offset: source.indexOf("main [stack]") + "main [stack]".length }
+    });
+    expect(paragraph?.range).toEqual({
+      start: { line: 5, column: 3, offset: source.indexOf("p Café 🧪") },
+      end: {
+        line: 5,
+        column: "  p Café 🧪".length + 1,
+        offset: source.indexOf("  p Café 🧪") + "  p Café 🧪".length
+      }
+    });
+    expect(button?.range).toEqual({
+      start: { line: 6, column: 2, offset: source.indexOf("@button Go") },
+      end: {
+        line: 6,
+        column: "\t@button Go".length + 1,
+        offset: source.indexOf("\t@button Go") + "\t@button Go".length
+      }
+    });
+    expect(parsed.diagnostics).toMatchObject([{ code: "WX002", line: 6, column: 1 }]);
+  });
 });
 
 describe("validateComponentReferences", () => {
