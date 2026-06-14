@@ -84,6 +84,7 @@ const BOOLEAN_ATTRIBUTE_NAMES = new Set<string>([
   ...HTML_BOOLEAN_ATTRIBUTE_NAMES,
   ...WAVEX_BOOLEAN_ATTRIBUTE_NAMES
 ]);
+const SINGLE_TOKEN_UTILITY_GROUP_NAMES = new Set(["cluster", "grid", "stack"]);
 
 /**
  * Parse a complete `.wx` source file into a {@link WavexFile}.
@@ -523,7 +524,7 @@ function utilityGroupValueTokens(token: string): TokenRecord[] {
 
 function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage: string): void {
   for (const token of tokens) {
-    if (isUtilityGroupToken(token.raw)) {
+    if (isLikelyUtilityGroupToken(token.raw)) {
       diagnostics.push({
         code: "WX006",
         severity: "error",
@@ -596,7 +597,7 @@ function isLikelyUtilityGroupValues(value: string): boolean {
   const values = value.trim().split(/\s+/).filter(Boolean);
   return (
     values.length > 0 &&
-    (values.length > 1 || values.some((entry) => entry.includes("-") || entry.includes(":"))) &&
+    (values.length > 1 || values.some((entry) => entry.includes("-") || entry.includes(":")) || SINGLE_TOKEN_UTILITY_GROUP_NAMES.has(values[0]!)) &&
     values.every((entry) => /^[A-Za-z][A-Za-z0-9_:-]*$/.test(entry))
   );
 }

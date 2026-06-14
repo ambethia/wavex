@@ -86,7 +86,9 @@ describe("parseWavex", () => {
   });
 
   it("does not mistake TypeScript brackets in directive expressions for utility groups", () => {
-    const parsed = parseWavex('~~~\n+if actionStates["$$ai/summarize:run"]?.result\n  p Yes\n+for item in [1, 2] key:item\n  p {{ item }}\n');
+    const parsed = parseWavex(
+      '~~~\n+if actionStates["$$ai/summarize:run"]?.result\n  p Yes\n+if [1, 2].includes(selected)\n  p Also yes\n+for item in [1, 2] key:item\n  p {{ item }}\n'
+    );
     expect(parsed.diagnostics).toEqual([]);
     const directive = parsed.nodes[0];
     expect(directive).toMatchObject({
@@ -96,8 +98,25 @@ describe("parseWavex", () => {
     });
     expect(parsed.nodes[1]).toMatchObject({
       kind: "directive",
+      name: "if",
+      expression: "[1, 2].includes(selected)"
+    });
+    expect(parsed.nodes[2]).toMatchObject({
+      kind: "directive",
       name: "for",
       for: { itemName: "item", collectionExpression: "[1, 2]", keyExpression: "item" }
+    });
+  });
+
+  it("preserves prose bracket notes after inline text", () => {
+    const parsed = parseWavex("~~~\np Read the [draft] note\n");
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.nodes[0]).toMatchObject({
+      kind: "element",
+      tag: "p",
+      utilities: [],
+      inlineText: "Read the [draft] note"
     });
   });
 
