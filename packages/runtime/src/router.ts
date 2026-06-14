@@ -319,7 +319,11 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   };
 
   const onPopState = () => {
-    if (current?.route.path === win.location.pathname && queriesEqual(current.route.query, parseQueryString(win.location.search))) return;
+    if (current?.route.path === win.location.pathname && queriesEqual(current.route.query, parseQueryString(win.location.search))) {
+      navigationToken += 1;
+      clearNavigation();
+      return;
+    }
     const hasFragment = win.location.href.includes("#");
     void navigate(win.location.pathname + win.location.search + (hasFragment ? win.location.hash || "#" : ""), { pop: true });
   };

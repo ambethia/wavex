@@ -333,6 +333,30 @@ describe("client router navigation lifecycle", () => {
     expect(env.calls).toEqual([]);
   });
 
+  it("cancels pending route navigations when history returns to the current document hash", async () => {
+    const env = fakeEnvironment();
+    const slow = deferred();
+    const router = createClientRouter({
+      routes: [routeOf("a.wx", "/a", async () => ({ default: () => "a" })), routeOf("b.wx", "/b", () => slow.promise)],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+    await router.navigate("/a");
+    env.calls.length = 0;
+
+    const pending = router.navigate("/b");
+    await Promise.resolve();
+    env.pop("/a#section");
+
+    slow.resolve({ default: () => "b" });
+    await pending;
+
+    expect(env.calls.filter((call) => call.kind === "setNavigation").map((call) => call.payload)).toEqual([true, false]);
+    expect(env.calls.some((call) => call.kind === "setPage" && call.payload === "/b")).toBe(false);
+    expect(router.current?.route.path).toBe("/a");
+  });
+
   it("preserves hashes for routed link and popstate navigations", async () => {
     const env = fakeEnvironment();
     createClientRouter({
