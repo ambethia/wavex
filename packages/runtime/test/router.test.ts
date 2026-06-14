@@ -326,6 +326,7 @@ describe("client router navigation lifecycle", () => {
     env.calls.length = 0;
 
     expect(env.click(new env.FakeAnchor("#section"))).toBe(false);
+    expect(env.click(new env.FakeAnchor("/a?tab=1#"))).toBe(false);
     expect(env.calls).toEqual([]);
   });
 
@@ -342,6 +343,12 @@ describe("client router navigation lifecycle", () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(env.calls).toContainEqual({ kind: "pushState", payload: "/a#section" });
+
+    env.calls.length = 0;
+    expect(env.click(new env.FakeAnchor("/a?from=home#"))).toBe(true);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(env.calls).toContainEqual({ kind: "pushState", payload: "/a?from=home#" });
 
     env.calls.length = 0;
     env.pop("/a?from=back#section");
