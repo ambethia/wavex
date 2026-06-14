@@ -102,6 +102,19 @@ describe("parseWavex", () => {
     expect(parseAttributeToken("href:route.url")).toMatchObject({ kind: "expression", expression: "route.url" });
   });
 
+  it("accepts TypeScript expression calls and arrow callbacks in template expression positions", () => {
+    const parsed = parseWavex(
+      `~~~\n+if tasks && tasks.some((todo) => todo.completed)\n  p {{ (tasks ?? []).filter((todo) => !todo.completed).length }} left\n  = tasks.map((todo) => todo.text).join(", ")\n`
+    );
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.nodes[0]).toMatchObject({
+      kind: "directive",
+      name: "if",
+      expression: "tasks && tasks.some((todo) => todo.completed)"
+    });
+  });
+
   it("does not mistake TypeScript brackets in directive expressions for utility groups", () => {
     const parsed = parseWavex(
       '~~~\n+if actionStates["$$ai/summarize:run"]?.result\n  p Yes\n+if [1, 2].includes(selected)\n  p Also yes\n+for item in [1, 2] key:item\n  p {{ item }}\n'
