@@ -1720,7 +1720,7 @@ Defined in: [packages/runtime/src/index.ts:117](packages/runtime/src/index.ts#L1
 function analyticsEventNameForTarget(target): string;
 ```
 
-Defined in: [packages/runtime/src/analytics.ts:73](packages/runtime/src/analytics.ts#L73)
+Defined in: [packages/runtime/src/analytics.ts:81](packages/runtime/src/analytics.ts#L81)
 
 Conventional analytics event name for a semantic Convex action target, e.g. "$$tasks:create" -> "tasks:create".
 

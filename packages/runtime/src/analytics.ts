@@ -21,14 +21,14 @@ export function createPostHogCaptureClient(options: PostHogCaptureOptions): Anal
 
   return {
     capture(event, properties = {}) {
-      const payload = {
-        api_key: options.apiKey,
-        event,
-        distinct_id: distinctId(options.storage),
-        properties: { ...properties, $lib: "wavex" },
-        timestamp: new Date().toISOString()
-      };
       try {
+        const payload = {
+          api_key: options.apiKey,
+          event,
+          distinct_id: distinctId(options.storage),
+          properties: { ...properties, $lib: "wavex" },
+          timestamp: new Date().toISOString()
+        };
         void Promise.resolve(
           fetchFn(`${host}/capture/`, {
             method: "POST",
@@ -38,15 +38,15 @@ export function createPostHogCaptureClient(options: PostHogCaptureOptions): Anal
           })
         ).catch(() => undefined);
       } catch {
-        // PostHog telemetry is optional; synchronous client/fetch failures must
-        // never bubble into app actions or rendering.
+        // PostHog telemetry is optional; storage, serialization, and fetch
+        // failures must never bubble into app actions or rendering.
       }
     }
   };
 }
 
 function distinctId(storage: Pick<Storage, "getItem" | "setItem"> | undefined): string {
-  const store = storage ?? (typeof localStorage !== "undefined" ? localStorage : undefined);
+  const store = storage ?? defaultStorage();
   if (!store) return "wavex-anonymous";
   try {
     const existing = store.getItem("wx_distinct_id");
@@ -63,6 +63,14 @@ function distinctId(storage: Pick<Storage, "getItem" | "setItem"> | undefined): 
     // using this event's generated id without attempting persistence fallback.
   }
   return id;
+}
+
+function defaultStorage(): Pick<Storage, "getItem" | "setItem"> | undefined {
+  try {
+    return typeof localStorage !== "undefined" ? localStorage : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function createVolatileDistinctId(): string {

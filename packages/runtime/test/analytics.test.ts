@@ -84,6 +84,47 @@ describe("analytics", () => {
     });
   });
 
+  it("captures without throwing when default storage access fails", () => {
+    const requests: RequestInit[] = [];
+    const previousLocalStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() {
+        throw new Error("SecurityError");
+      }
+    });
+    const client = createPostHogCaptureClient({
+      apiKey: "ph_test",
+      fetchFn: vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+        requests.push(init ?? {});
+        return Promise.resolve(new Response(null, { status: 200 }));
+      }) as typeof fetch
+    });
+
+    try {
+      expect(() => client.capture("storage-denied")).not.toThrow();
+      expect(JSON.parse(String(requests[0]?.body))).toMatchObject({ distinct_id: "wavex-anonymous" });
+    } finally {
+      if (previousLocalStorage) {
+        Object.defineProperty(globalThis, "localStorage", previousLocalStorage);
+      } else {
+        Reflect.deleteProperty(globalThis, "localStorage");
+      }
+    }
+  });
+
+  it("captures without throwing when payload serialization fails", () => {
+    const client = createPostHogCaptureClient({
+      apiKey: "ph_test",
+      storage: { getItem: () => "user-1", setItem: () => undefined },
+      fetchFn: vi.fn(() => Promise.resolve(new Response(null, { status: 200 }))) as typeof fetch
+    });
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+
+    expect(() => client.capture("circular", circular)).not.toThrow();
+  });
+
   it("derives conventional event names from semantic action targets", () => {
     expect(analyticsEventNameForTarget("$$tasks:create")).toBe("tasks:create");
     expect(analyticsEventNameForTarget("$pageview")).toBe("pageview");
