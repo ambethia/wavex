@@ -34,13 +34,41 @@ describe("parseWavex", () => {
     ]);
   });
 
-  it("diagnoses empty Convex module path segments", () => {
-    const parsed = parseWavex(`~~~\n$$foo//bar:list\n$$foo/:list\n`);
+  it("diagnoses a missing wave separator with WX001", () => {
+    const parsed = parseWavex("main\n  p Missing separator\n");
+
+    expect(parsed.hasWaveSeparator).toBe(false);
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX001", severity: "error", line: 1, column: 1 }
+    ]);
+    expect(parsed.diagnostics[0]!.message).toContain("~~~");
+  });
+
+  it("diagnoses indentation violations with WX002-WX004", () => {
+    const parsed = parseWavex("~~~\n\t@button Tabbed\n p Odd indent\nmain\n    p Skipped level\n");
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX002", severity: "error", line: 2, column: 1 },
+      { code: "WX003", severity: "error", line: 3, column: 2 },
+      { code: "WX004", severity: "error", line: 5, column: 5 }
+    ]);
+    expect(parsed.diagnostics).toHaveLength(3);
+    expect(parsed.diagnostics[0]!.message).toContain("Tabs are not allowed");
+    expect(parsed.diagnostics[1]!.message).toContain("multiples of exactly two spaces");
+    expect(parsed.diagnostics[2]!.message).toContain("cannot skip a nesting level");
+  });
+
+  it("diagnoses invalid Convex addresses with WX020", () => {
+    const parsed = parseWavex(`~~~\n$$foo//bar:list\n$$foo/:list\n$tasks\n$$tasks:list?\n`);
 
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX020", severity: "error", line: 2, column: 1 },
-      { code: "WX020", severity: "error", line: 3, column: 1 }
+      { code: "WX020", severity: "error", line: 3, column: 1 },
+      { code: "WX020", severity: "error", line: 4, column: 1 },
+      { code: "WX020", severity: "error", line: 5, column: 1 }
     ]);
+    expect(parsed.diagnostics).toHaveLength(4);
+    for (const diagnostic of parsed.diagnostics) expect(diagnostic.message).toContain("Expected $module:function or $$module:function");
   });
 
   it("parses attribute value forms", () => {
