@@ -430,13 +430,15 @@ function captureActionAnalytics(
 
   try {
     const trackOverride = event.element.getAttribute?.("data-wx-track") ?? undefined;
-    options.analytics.capture(trackOverride ?? analyticsEventNameForTarget(definition.target), {
-      wx_event_type: event.type,
-      wx_target: definition.target,
-      wx_kind: definition.kind,
-      wx_module: definition.modulePath,
-      wx_function: definition.functionName
-    });
+    void Promise.resolve(
+      options.analytics.capture(trackOverride ?? analyticsEventNameForTarget(definition.target), {
+        wx_event_type: event.type,
+        wx_target: definition.target,
+        wx_kind: definition.kind,
+        wx_module: definition.modulePath,
+        wx_function: definition.functionName
+      })
+    ).catch(() => undefined);
   } catch {
     // Analytics is best-effort telemetry. A broken analytics sink must not
     // prevent the Convex action from running or leave its actionState pending.

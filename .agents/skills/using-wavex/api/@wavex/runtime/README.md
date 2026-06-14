@@ -1742,7 +1742,7 @@ Conventional analytics event name for a semantic Convex action target, e.g. "$$t
 function applyHead(entries, documentRef?): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:484](packages/runtime/src/index.ts#L484)
+Defined in: [packages/runtime/src/index.ts:486](packages/runtime/src/index.ts#L486)
 
 Reconcile `document.title` and `data-wx-head`-managed meta/link nodes with
 the given entries. Only nodes the runtime created are touched, so static
@@ -2044,7 +2044,7 @@ fall through to `options.dispatch` (app-defined handlers).
 function installSemanticEventDelegation(root, context): () => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:452](packages/runtime/src/index.ts#L452)
+Defined in: [packages/runtime/src/index.ts:454](packages/runtime/src/index.ts#L454)
 
 Listen for click/submit/change at the root (capture phase) and route
 `data-wx-*` action attributes — the compiled form of `:event:target` — to

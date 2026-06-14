@@ -143,32 +143,41 @@ describe("semantic action dispatcher", () => {
     ]);
   });
 
-  it("continues the Convex action lifecycle when analytics throws synchronously", async () => {
-    const calls: ResolvedActionDefinition[] = [];
-    const event = fakeActionEvent({ target: "$$tasks:create" });
-    const dispatch = createSemanticActionDispatcher(event.context, {
-      actionClient: {
-        async invoke(definition) {
-          calls.push(definition);
-          return { created: true };
-        }
-      },
-      analytics: {
-        capture() {
-          throw new Error("localStorage.setItem failed");
-        }
+  it.each([
+    [
+      "throws synchronously",
+      () => {
+        throw new Error("localStorage.setItem failed");
       }
-    });
+    ],
+    ["rejects asynchronously", () => Promise.reject(new Error("capture rejected"))]
+  ] satisfies Array<[string, () => unknown]>)(
+    "continues the Convex action lifecycle when analytics %s",
+    async (_case, capture) => {
+      const calls: ResolvedActionDefinition[] = [];
+      const event = fakeActionEvent({ target: "$$tasks:create" });
+      const dispatch = createSemanticActionDispatcher(event.context, {
+        actionClient: {
+          async invoke(definition) {
+            calls.push(definition);
+            return { created: true };
+          }
+        },
+        analytics: {
+          capture: capture as () => void
+        }
+      });
 
-    await dispatch(event);
+      await dispatch(event);
 
-    expect(calls).toMatchObject([{ target: "$$tasks:create" }]);
-    expect(event.context.actionStates?.["$$tasks:create"]).toMatchObject({
-      status: "idle",
-      pending: false,
-      result: { created: true }
-    });
-  });
+      expect(calls).toMatchObject([{ target: "$$tasks:create" }]);
+      expect(event.context.actionStates?.["$$tasks:create"]).toMatchObject({
+        status: "idle",
+        pending: false,
+        result: { created: true }
+      });
+    }
+  );
 
   it("prevents default submit navigation and stores errors", async () => {
     const error = new Error("mutation failed");
