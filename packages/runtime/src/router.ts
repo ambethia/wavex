@@ -204,7 +204,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     const token = ++navigationToken;
     if (!navOptions.pop) {
       const method = navOptions.replace ? "replaceState" : "pushState";
-      win.history[method]({}, "", url.pathname + url.search);
+      win.history[method]({}, "", url.pathname + url.search + url.hash);
     }
 
     const match = matchRoutePath(options.routes, url.pathname);
@@ -300,15 +300,18 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
 
     const url = new URL(anchor.href, win.location.href);
     if (url.origin !== win.location.origin) return;
+    const href = anchor.getAttribute("href") ?? "";
+    const sameDocument = url.pathname === win.location.pathname && url.search === win.location.search;
+    if (sameDocument && (url.hash !== "" || href.startsWith("#"))) return;
     // Progressive interception: unmatched paths stay native browser navigations.
     if (!matchRoutePath(options.routes, url.pathname)) return;
 
     event.preventDefault();
-    void navigate(url.pathname + url.search);
+    void navigate(url.pathname + url.search + url.hash);
   };
 
   const onPopState = () => {
-    void navigate(win.location.pathname + win.location.search, { pop: true });
+    void navigate(win.location.pathname + win.location.search + win.location.hash, { pop: true });
   };
 
   win.document.addEventListener("click", onClick);

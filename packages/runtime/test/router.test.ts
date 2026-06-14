@@ -104,13 +104,14 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
     };
   }
 
-  const location = { href: "http://app.test/", origin: "http://app.test", pathname: "/", search: "" };
+  const location = { href: "http://app.test/", origin: "http://app.test", pathname: "/", search: "", hash: "" };
   const setLocation = (url: string) => {
     const next = new URL(url, location.href);
     location.href = next.href;
     location.origin = next.origin;
     location.pathname = next.pathname;
     location.search = next.search;
+    location.hash = next.hash;
   };
   const win = {
     location,
@@ -311,6 +312,43 @@ describe("client router navigation lifecycle", () => {
     expect(env.click(new env.FakeAnchor("/a", { download: "file.txt" }))).toBe(false);
     expect(env.click(new env.FakeAnchor("/a", { rel: "external" }))).toBe(false);
     expect(env.click(new env.FakeAnchor("/a"), { metaKey: true })).toBe(false);
+  });
+
+  it("leaves same-document hash anchors to native browser scrolling", async () => {
+    const env = fakeEnvironment();
+    const router = createClientRouter({
+      routes: [routeOf("a.wx", "/a", async () => ({ default: () => "a" }))],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+    await router.navigate("/a?tab=1");
+    env.calls.length = 0;
+
+    expect(env.click(new env.FakeAnchor("#section"))).toBe(false);
+    expect(env.calls).toEqual([]);
+  });
+
+  it("preserves hashes for routed link and popstate navigations", async () => {
+    const env = fakeEnvironment();
+    createClientRouter({
+      routes: [routeOf("a.wx", "/a", async () => ({ default: () => "a" }))],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+
+    expect(env.click(new env.FakeAnchor("/a#section"))).toBe(true);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(env.calls).toContainEqual({ kind: "pushState", payload: "/a#section" });
+
+    env.calls.length = 0;
+    env.pop("/a?from=back#section");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(env.calls.some((call) => call.kind === "pushState" || call.kind === "replaceState")).toBe(false);
+    expect(env.calls.some((call) => call.kind === "setPage" && call.payload === "/a")).toBe(true);
   });
 
   it("navigates on popstate without pushing a new history entry", async () => {
