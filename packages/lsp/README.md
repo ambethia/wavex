@@ -22,8 +22,8 @@ from `@wavex/core/capabilities` per workspace.
   only on the parser — not the runtime — and TypeScript-native sources
   (TS language service, Convex generated types, Web Awesome metadata,
   installed Font Awesome packages) provide the intelligence.
-- Editor syntax highlighting comes from LSP semantic tokens, which work
-  across editors without per-editor grammars. A thin TextMate grammar for
-  highlight-before-LSP-boots/GitHub views is allowed later — cosmetic only,
-  never a parsing input.
+- Editor syntax highlighting is provided by the VS Code TextMate grammar in
+  `editors/vscode/syntaxes/wavex.tmLanguage.json`. The grammar is cosmetic and
+  drift-tolerant; the `@wavex/core` parser remains the only parsing input for
+  diagnostics, completions, and type-aware language features.
 - **Deferral:** no per-editor extensions beyond the LSP baseline.

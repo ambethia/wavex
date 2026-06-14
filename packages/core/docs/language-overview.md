@@ -134,6 +134,8 @@ src/pages/tasks/+error.wx
 A `.wx` file contains a TypeScript prelude followed by a WAVEx template body. The prelude may be empty, but the `~~~` wave pragma is always required and marks where template syntax begins.
 
 ```wx
+import type { Doc } from "../../convex/_generated/dataModel"
+
 type Task = Doc<"tasks">
 
 function label(task: Task) {
@@ -157,5 +159,6 @@ Rules:
 - A line containing only `~~~` separates TypeScript prelude from template body.
 - `~~~` is required in every `.wx` file.
 - If no TypeScript is needed, `~~~` is the first non-comment line.
-- Prelude code may define types, constants, functions, and handlers used by the template.
-- Convex ambient types such as `Doc<"tasks">`, `Id<"tasks">`, and `api` are available to `.wx` files.
+- Prelude code may define types, constants, functions, imports, and handlers used by the template.
+- Convex `Doc` and `Id` types are ordinary TypeScript imports from the app's generated `convex/_generated/dataModel` module.
+- The Convex `api` object is injected into compiled template expressions for resource/action dispatch; prelude TypeScript should still import any Convex types it references explicitly.

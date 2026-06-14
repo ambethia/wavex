@@ -2,9 +2,8 @@
 
 Language support for `.wx` files:
 
-- Syntax highlighting via a thin TextMate grammar (TypeScript injected into the
-  prelude and `{{ … }}` interpolations) until the language server's semantic
-  tokens take over.
+- Syntax highlighting via a thin, cosmetic TextMate grammar (TypeScript
+  injected into the prelude and `{{ … }}` interpolations).
 - Diagnostics, completions (`@` components, `+` directives, `$$` Convex
   functions), hover, and typed template expressions via `@wavex/lsp`
   (Volar-based, driven by the `@wavex/core` parser).

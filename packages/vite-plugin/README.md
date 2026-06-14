@@ -11,8 +11,9 @@ owns the WAVEx-specific dev/build surface:
   mount div; the bootstrap renders the app directly under `<body>` so the
   app's root element (conventionally `<wa-page>` from the root layout) is the
   first element in the body. Prerendered HTML emits the same shape.
-- Targeted Vite HMR updates for `.wx` edits, so the client can hot swap a
-  page/component render without losing Convex client state.
+- Standard Vite `js-update` HMR for `.wx` edits, so the client can hot swap a
+  page/component render without losing Convex client state without inventing a
+  WAVEx-specific HMR event protocol.
 - Lit dedupe and Web Awesome dep-optimizer exclusions, so custom elements are
   served as native ESM and never registered twice.
 

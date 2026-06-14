@@ -23,8 +23,8 @@ single source of truth for the WAVEx language.
 - **Single parser, no second grammar.** The TypeScript parser here is consumed
   by both the compiler and the Volar LSP. An earlier Tree-sitter grammar and
   Zed extension were deleted rather than maintained as a second, drift-prone
-  definition; do not reintroduce them. Editor highlighting comes from LSP
-  semantic tokens instead of per-editor grammars.
+  definition; do not reintroduce them. Editor highlighting may use a cosmetic,
+  drift-tolerant TextMate grammar, but `@wavex/core` remains the only parser.
 - **Diagnostics, not exceptions.** Parsing collects `Diagnostic` values and
   always yields a best-effort AST, so the LSP and compiler can report every
   problem in a file with positions.

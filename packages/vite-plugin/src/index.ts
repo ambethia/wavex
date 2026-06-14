@@ -43,8 +43,8 @@ const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
  * The WAVEx Vite plugin. Compiles `.wx` files to Lit render modules on
  * demand, serves `virtual:wavex/routes` (the file-convention route table with
  * lazy per-route loaders, layouts, and error pages) and the
- * `/@wavex/bootstrap` entry, dedupes Lit, and sends targeted Vite HMR
- * updates for template edits so Convex client state survives `.wx` edits.
+ * `/@wavex/bootstrap` entry, dedupes Lit, and sends standard Vite `js-update`
+ * HMR updates for template edits so Convex client state survives `.wx` edits.
  */
 export function wavex(options: WavexVitePluginOptions = {}): Plugin {
   let projectRoot = process.cwd();

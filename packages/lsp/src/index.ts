@@ -7,8 +7,9 @@
  * expressions into virtual TypeScript documents, so completions, diagnostics,
  * hover, and go-to-definition come from the real TypeScript language service
  * plus Convex, Web Awesome, and Font Awesome metadata, then map back to `.wx`
- * source positions. Editor syntax highlighting comes from LSP semantic tokens
- * rather than per-editor grammars.
+ * source positions. Editor syntax highlighting is handled by the VS Code
+ * TextMate grammar; the grammar is cosmetic, while this LSP uses the
+ * `@wavex/core` parser for diagnostics and type-aware language features.
  *
  * @module @wavex/lsp
  */

@@ -2,10 +2,10 @@
  * Parser, AST, diagnostics, and the shared project model for `.wx` files.
  *
  * This package is the single source of truth for the WAVEx language. The
- * TypeScript parser exported here is the only `.wx` grammar definition,
- * consumed by both the compiler and the Volar-based LSP — there is
- * intentionally no second grammar (an earlier Tree-sitter grammar was deleted
- * rather than maintained as a drift-prone duplicate; do not reintroduce one).
+ * TypeScript parser exported here is the only `.wx` parser definition,
+ * consumed by both the compiler and the Volar-based LSP. Cosmetic editor
+ * grammars, such as the VS Code TextMate grammar, must stay drift-tolerant and
+ * never become parser inputs.
  *
  * `.wx` is an indentation-based template language with an optional TypeScript
  * prelude separated by `~~~`. The parser produces an AST with source ranges
