@@ -229,6 +229,7 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
     };
 
     if (node.kind === "element" || node.kind === "component") emitInterpolations(node.inlineTextRange);
+    if (node.kind === "text") emitInterpolations(node.textRange);
 
     if (node.kind === "expression") {
       if (node.expressionRange) {
@@ -237,7 +238,7 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
       } else emitExpression(node.expression, node.range.start.offset, raw);
     }
 
-    if (node.kind === "element" || node.kind === "component" || node.kind === "convex-call") {
+    if (node.kind === "element" || node.kind === "component" || node.kind === "convex-reference" || node.kind === "convex-call") {
       for (const attribute of node.attributes) {
         emitInterpolations(attribute.range);
         // Bare expression attributes (checked:todo.completed) outside mustaches.
