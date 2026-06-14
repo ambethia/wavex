@@ -107,15 +107,28 @@ Quoted values are strings.
 meta name:description content:"Manage your tasks"
 ```
 
-Expression values may use identifiers, paths, calls, or object expressions.
+Unquoted values are static strings by default. This keeps Web Awesome enum-style
+attributes concise.
+
+```wx
+@button variant:brand appearance:filled
+@input autocomplete:off
+```
+
+Dynamic values use expression-shaped TypeScript: member paths, calls,
+object/array literals, operators, or one of the built-in roots (`route`, `attrs`,
+`state`, `api`, `ctx`, `context`). `{{ ... }}` may be used to mark any value
+explicitly as an expression.
 
 ```wx
 @checkbox checked:task.isCompleted
 @button disabled:createTask.pending
 $$tasks:get args:{ id: route.params.id }
+@input value:{{ task }}
 ```
 
-A trailing colon with no value passes the in-scope value with the same name.
+A trailing colon with no value passes the in-scope value with the same name. Use
+this for bare identifier expressions.
 
 ```wx
 @tasks/item task:

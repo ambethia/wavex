@@ -413,9 +413,10 @@ function parseAttributesAndInlineText(tokens: TokenRecord[], range: SourceRange)
 
 /**
  * Parse one attribute token into its {@link Attribute} form: boolean
- * (`required`), literal (`variant:brand`), expression
- * (`checked:{{ task.done }}`), same-name shorthand (`task:`), semantic event
- * (`:click:save`), or raw DOM event (`on:wa-show:opened`).
+ * (`required`), literal (`variant:brand`), expression-shaped value
+ * (`checked:task.done` or `checked:{{ task.done }}`), same-name shorthand
+ * (`task:`), semantic event (`:click:save`), or raw DOM event
+ * (`on:wa-show:opened`).
  */
 export function parseAttributeToken(token: string, range?: SourceRange): Attribute | undefined {
   if (!token) return undefined;
