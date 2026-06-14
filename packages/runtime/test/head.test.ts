@@ -35,11 +35,19 @@ class FakeHead {
 
   querySelector(selector: string): FakeElement | null {
     if (selector === "title") return this.children.find((element) => element.tagName === "title") ?? null;
-    const match = selector.match(/^(meta|link)\[(name|property|rel)="(.+)"\]$/);
+    const match = selector.match(/^(meta|link)\[(name|property|rel)="(.+)"\](\[data-wx-head\])?$/);
     if (!match) return null;
-    const [, tagName, attribute, rawValue] = match;
+    const [, tagName, attribute, rawValue, managedSelector] = match;
     const value = rawValue.replace(/\\\\/g, "\\").replace(/\\"/g, '"');
-    return this.children.find((element) => element.tagName === tagName && element.attributes.get(attribute) === value) ?? null;
+    return (
+      this.children.find((element) => {
+        return (
+          element.tagName === tagName &&
+          element.attributes.get(attribute) === value &&
+          (!managedSelector || element.attributes.has("data-wx-head"))
+        );
+      }) ?? null
+    );
   }
 
   querySelectorAll(selector: string): FakeElement[] {
@@ -99,7 +107,8 @@ describe("applyHead", () => {
   it("reconciles managed meta and link nodes while leaving static head content alone", () => {
     const documentRef = new FakeDocument();
     const staticMeta = documentRef.createElement("meta");
-    staticMeta.setAttribute("name", "viewport");
+    staticMeta.setAttribute("name", "description");
+    staticMeta.setAttribute("content", "Static");
     documentRef.head.append(staticMeta);
 
     applyHead(
@@ -110,8 +119,11 @@ describe("applyHead", () => {
       documentRef as never
     );
 
-    const description = documentRef.head.children.find((element) => element.attributes.get("name") === "description");
+    const description = documentRef.head.children.find((element) => {
+      return element !== staticMeta && element.attributes.get("name") === "description";
+    });
     const canonical = documentRef.head.children.find((element) => element.attributes.get("rel") === "canonical");
+    expect(staticMeta.attributes.get("content")).toBe("Static");
     expect(description?.attributes.get("content")).toBe("First");
     expect(canonical?.attributes.get("href")).toBe("/first");
 
@@ -119,6 +131,7 @@ describe("applyHead", () => {
 
     expect(documentRef.head.children).toContain(staticMeta);
     expect(documentRef.head.children).toContain(description);
+    expect(staticMeta.attributes.get("content")).toBe("Static");
     expect(description?.attributes.get("content")).toBe("Second");
     expect(documentRef.head.children).not.toContain(canonical);
   });

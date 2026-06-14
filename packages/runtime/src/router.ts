@@ -157,12 +157,14 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     if (!useTransition) return guardedCommit();
 
     let committed = false;
+    let updateInvoked = false;
 
     let transition: { updateCallbackDone: Promise<void> };
     try {
       // Object signature carries direction types for :active-view-transition-type().
       transition = documentRef.startViewTransition!({
         update: () => {
+          updateInvoked = true;
           committed = guardedCommit();
         },
         types: ["wavex-navigation", pop ? "backward" : "forward"]
@@ -170,7 +172,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     } catch (error) {
       // Older Chromium builds only accept the function signature. Do not
       // misclassify arbitrary transition/commit failures as API-shape fallback.
-      if (!(error instanceof TypeError)) throw error;
+      if (!(error instanceof TypeError) || updateInvoked) throw error;
       transition = documentRef.startViewTransition!(() => {
         committed = guardedCommit();
       });

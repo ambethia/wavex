@@ -707,12 +707,12 @@ function headSelector(entry: HeadEntry): string | undefined {
   if (entry.tag === "meta") {
     const name = entry.attributes?.["name"];
     const property = entry.attributes?.["property"];
-    if (name) return `meta[name=\"${cssEscape(name)}\"]`;
-    if (property) return `meta[property=\"${cssEscape(property)}\"]`;
+    if (name) return `meta[name=\"${cssEscape(name)}\"][data-wx-head]`;
+    if (property) return `meta[property=\"${cssEscape(property)}\"][data-wx-head]`;
   }
   if (entry.tag === "link") {
     const rel = entry.attributes?.["rel"];
-    if (rel) return `link[rel=\"${cssEscape(rel)}\"]`;
+    if (rel) return `link[rel=\"${cssEscape(rel)}\"][data-wx-head]`;
   }
   return undefined;
 }

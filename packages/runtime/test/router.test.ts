@@ -416,6 +416,42 @@ describe("client router view transitions", () => {
     expect(router.current?.route.path).toBe("/a");
   });
 
+  it("does not retry synchronous TypeError commit failures as view-transition API fallback", async () => {
+    const env = fakeEnvironment({ startViewTransition: true });
+    const documentRef = env.win.document as Document & {
+      startViewTransition: (update: (() => void) | { update: () => void }) => { updateCallbackDone: Promise<void> };
+    };
+    documentRef.startViewTransition = (update) => {
+      const callback = typeof update === "function" ? update : update.update;
+      callback();
+      return { updateCallbackDone: Promise.resolve() };
+    };
+    let commitAttempts = 0;
+    const host = {
+      ...env.host,
+      setPage: (page: { route: { path: string } }) => {
+        if (page.route.path === "/b") {
+          commitAttempts += 1;
+          throw new TypeError("commit failed");
+        }
+        env.host.setPage(page);
+      }
+    };
+    const router = createClientRouter({
+      routes: [
+        routeOf("a.wx", "/a", async () => ({ default: () => "a" })),
+        routeOf("b.wx", "/b", async () => ({ default: () => "b" }))
+      ],
+      host,
+      window: env.win
+    });
+
+    await router.navigate("/a");
+    await expect(router.navigate("/b")).rejects.toThrow("commit failed");
+    expect(commitAttempts).toBe(1);
+    expect(router.current?.route.path).toBe("/a");
+  });
+
   it("never transitions HMR hot replacement", async () => {
     const env = fakeEnvironment({ startViewTransition: true });
     const router = createClientRouter({
