@@ -109,7 +109,7 @@ describe("parseWavex", () => {
   });
 
   it("preserves prose bracket notes after inline text", () => {
-    const parsed = parseWavex("~~~\np Read the [draft] note\n");
+    const parsed = parseWavex("~~~\np Read the [draft] note\np Read the [stack] note\n");
 
     expect(parsed.diagnostics).toEqual([]);
     expect(parsed.nodes[0]).toMatchObject({
@@ -117,6 +117,12 @@ describe("parseWavex", () => {
       tag: "p",
       utilities: [],
       inlineText: "Read the [draft] note"
+    });
+    expect(parsed.nodes[1]).toMatchObject({
+      kind: "element",
+      tag: "p",
+      utilities: [],
+      inlineText: "Read the [stack] note"
     });
   });
 
@@ -131,9 +137,9 @@ describe("parseWavex", () => {
   });
 
   it("does not silently drop utility groups from suspense directive text", () => {
-    const parsed = parseWavex("~~~\n+suspense [stack] Loading\n");
+    const parsed = parseWavex("~~~\n+suspense [stack gap-xl] Loading\n");
 
-    expect(parsed.nodes[0]).toMatchObject({ kind: "directive", name: "suspense", expression: "[stack] Loading" });
+    expect(parsed.nodes[0]).toMatchObject({ kind: "directive", name: "suspense", expression: "[stack gap-xl] Loading" });
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX006", severity: "error", line: 2, column: 11 }
     ]);
@@ -183,12 +189,12 @@ describe("parseWavex", () => {
   });
 
   it("diagnoses head-only attributes and utilities after inline text", () => {
-    const parsed = parseWavex(`~~~\np Hello [stack] id:greeting\n`);
+    const parsed = parseWavex(`~~~\np Hello [stack gap-xl] id:greeting\n`);
 
-    expect(parsed.nodes[0]).toMatchObject({ kind: "element", utilities: [], inlineText: "Hello [stack] id:greeting" });
+    expect(parsed.nodes[0]).toMatchObject({ kind: "element", utilities: [], inlineText: "Hello [stack gap-xl] id:greeting" });
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX006", severity: "error", line: 2, column: 9 },
-      { code: "WX007", severity: "error", line: 2, column: 17 }
+      { code: "WX007", severity: "error", line: 2, column: 24 }
     ]);
   });
 
