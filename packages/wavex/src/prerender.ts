@@ -171,10 +171,12 @@ function removeConflictingShellHeadTags(html: string, entries: HeadEntryLike[]):
   const managedKeys = new Set(entries.map((entry) => headEntryKey(entry)).filter((key): key is string => key !== undefined));
   if (managedKeys.size === 0) return html;
 
-  return html.replace(/<(meta|link)\b[^>]*>/gi, (tag, rawTagName: string) => {
-    const key = htmlHeadTagKey(rawTagName.toLowerCase(), tag);
-    return key && managedKeys.has(key) ? "" : tag;
-  });
+  return html.replace(/<head\b[^>]*>[\s\S]*?<\/head>/i, (headMarkup) =>
+    headMarkup.replace(/<(meta|link)\b[^>]*>/gi, (tag, rawTagName: string) => {
+      const key = htmlHeadTagKey(rawTagName.toLowerCase(), tag);
+      return key && managedKeys.has(key) ? "" : tag;
+    })
+  );
 }
 
 function htmlHeadTagKey(tagName: string, source: string): string | undefined {

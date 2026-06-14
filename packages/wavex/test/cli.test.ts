@@ -208,6 +208,25 @@ describe("wavex prerender", () => {
     expect(html).not.toContain("https://example.test/default");
   });
 
+  it("does not rewrite body markup when pruning conflicting shell head entries", () => {
+    const shell = [
+      "<!doctype html><html><head>",
+      '<link rel="canonical" href="https://example.test/default">',
+      "</head><body>",
+      '<template><link rel="canonical" href="https://example.test/template"></template>',
+      "</body></html>"
+    ].join("");
+
+    const html = injectPrerender(shell, '<section><link rel="canonical" href="https://example.test/body"></section>', [
+      { tag: "link", attributes: { rel: "canonical", href: "https://example.test/page" } }
+    ]);
+
+    expect(html).toContain('<link rel="canonical" href="https://example.test/page" data-wx-head>');
+    expect(html).toContain('<template><link rel="canonical" href="https://example.test/template"></template>');
+    expect(html).toContain('<section><link rel="canonical" href="https://example.test/body"></section>');
+    expect(html).not.toContain("https://example.test/default");
+  });
+
   it("throws instead of silently skipping prerender injection for malformed shells", () => {
     expect(() => injectPrerender("<!doctype html><html><head></head></html>", "", [])).toThrow(/missing a <body> tag/);
     expect(() =>
