@@ -416,6 +416,10 @@ function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: Sou
         column: range.start.column + token.start,
         message: `Utility group "${token.raw}" is invalid: missing closing "]".`
       });
+      const inlineTokens = tokens.slice(index);
+      inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
+      inlineTextRange = rangeForTokenSpan(range, inlineTokens);
+      break;
     }
 
     if (!isAttributeLike(token.raw)) {
@@ -486,6 +490,14 @@ function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceR
         line: range.start.line,
         column: range.start.column + token.start,
         message: utilityGroupMessage
+      });
+    } else if (isLikelyUnclosedUtilityGroupToken(token.raw)) {
+      diagnostics.push({
+        code: "WX005",
+        severity: "error",
+        line: range.start.line,
+        column: range.start.column + token.start,
+        message: `Utility group "${token.raw}" is invalid: missing closing "]".`
       });
     } else if (isAttributeLike(token.raw)) {
       diagnostics.push({
