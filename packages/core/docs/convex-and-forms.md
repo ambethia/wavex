@@ -61,6 +61,20 @@ form :submit:$$tasks:create
     | Summarize
 ```
 
+The runtime stores each mutation/action lifecycle under `actionStates["$$module:function"]`. The key is the normalized target without inline args, even when the event used `({ ... })`. `+pending`, `+idle`, and `+mutation-error` cover the common loading/error UI inside the triggering element; read `actionStates` directly when the page needs the settled result elsewhere.
+
+```wx
+@button :click:$$ai/summarize:run({ slug: talk.slug })
+  +pending
+    @spinner
+    | Summarizing…
+  +idle
+    | AI summary
+
++if actionStates["$$ai/summarize:run"]?.result
+  p {{ actionStates["$$ai/summarize:run"].result }}
+```
+
 Convex `internal` functions are backend-only and unavailable in client `.wx` templates. `httpAction` functions are endpoint/webhook/proxy concerns and are not template-callable in MVP.
 
 ### Resource binding names
@@ -114,6 +128,15 @@ form :submit:$$tasks:create
 ```
 
 On submit, named form controls map to Convex args.
+
+For semantic Convex events on non-form elements, `data-*` attributes become Convex args. WAVEx ignores `data-wx-*` because those are reserved for the compiler/runtime event bridge. Kebab-case data attributes are converted to camelCase argument names.
+
+```wx
+@checkbox data-id:todo._id :change:$$tasks:toggle
+@button data-talk-slug:route.params.slug :click:$$questions:upvote
+```
+
+The runtime invokes the mutations with `{ id: todo._id }` and `{ talkSlug: route.params.slug }` respectively.
 
 Semantic event directives use `:event:target`.
 

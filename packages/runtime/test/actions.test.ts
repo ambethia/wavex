@@ -46,8 +46,15 @@ describe("semantic action dispatcher", () => {
     const event = fakeActionEvent({
       target: "$$tasks:toggle",
       element: {
-        getAttributeNames: () => ["data-id", "data-wx-click"],
-        getAttribute: (name) => (name === "data-id" ? "task-1" : name === "data-wx-click" ? "$$tasks:toggle" : null)
+        getAttributeNames: () => ["data-id", "data-talk-slug", "data-wx-click"],
+        getAttribute: (name) =>
+          name === "data-id"
+            ? "task-1"
+            : name === "data-talk-slug"
+              ? "keynote"
+              : name === "data-wx-click"
+                ? "$$tasks:toggle"
+                : null
       }
     });
     const dispatch = createSemanticActionDispatcher(event.context, { actionClient: client });
@@ -55,7 +62,13 @@ describe("semantic action dispatcher", () => {
     const dispatched = dispatch(event);
 
     expect(calls).toMatchObject([
-      { target: "$$tasks:toggle", modulePath: "tasks", functionName: "toggle", kind: "mutation", args: { id: "task-1" } }
+      {
+        target: "$$tasks:toggle",
+        modulePath: "tasks",
+        functionName: "toggle",
+        kind: "mutation",
+        args: { id: "task-1", talkSlug: "keynote" }
+      }
     ]);
     expect(event.context.actionStates?.["$$tasks:toggle"]).toMatchObject({ status: "pending", pending: true });
 

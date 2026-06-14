@@ -84,6 +84,30 @@ _em_      -> <em>
 
 This is not Markdown. No blockquote, table, link, list, or heading shorthand is specified for MVP. Ambiguous nesting may be rejected or escaped.
 
+## Template context values
+
+Compiled templates receive a runtime context and expose its common entries as bare expression roots:
+
+- `route` — current route (`route.path`, `route.params`, `route.query`).
+- `attrs` — attributes passed to a local `.wx` component.
+- `state` — app-provided local state. WAVEx does not mutate this object for you; pass it through the mount/update context when a host integration owns client-only state.
+- Resource bindings such as `tasks` or `talk` — live values created by `$$` query resources.
+- `resourceStates` — lifecycle details for those query resources; prefer `+loading`, `+empty`, and `+error` inside the resource block for ordinary UI states.
+- `actionStates` — lifecycle details for semantic Convex mutation/action targets. Use this when UI needs an action result or error outside the built-in `+pending`, `+idle`, and `+mutation-error` children.
+- `navigation` — client navigation lifecycle (`navigation.pending`, `navigation.to`).
+
+```wx
+@button :click:$$ai/summarize:run({ slug: talk.slug })
+  +pending
+    @spinner
+    | Summarizing…
+  +idle
+    | AI summary
+
++if actionStates["$$ai/summarize:run"]?.result
+  p {{ actionStates["$$ai/summarize:run"].result }}
+```
+
 ## Attributes and values
 
 Attributes use colon syntax.
