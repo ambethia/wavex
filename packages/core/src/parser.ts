@@ -580,11 +580,11 @@ function computeLineStartOffsets(source: string): number[] {
   return offsets;
 }
 
-function makeRange(line: LineRecord, indentSpaces: number, lineLength: number): SourceRange {
+function makeRange(line: LineRecord, leadingWhitespaceLength: number, lineLength: number): SourceRange {
   const start: SourceLocation = {
     line: line.sourceLine,
-    column: indentSpaces + 1,
-    offset: line.sourceOffset + indentSpaces
+    column: leadingWhitespaceLength + 1,
+    offset: line.sourceOffset + leadingWhitespaceLength
   };
   const end: SourceLocation = {
     line: line.sourceLine,
