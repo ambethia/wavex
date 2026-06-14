@@ -1867,7 +1867,7 @@ Defined in: [packages/core/src/model.ts:90](packages/core/src/model.ts#L90)
 function parseAttributeToken(token): Attribute | undefined;
 ```
 
-Defined in: [packages/core/src/parser.ts:377](packages/core/src/parser.ts#L377)
+Defined in: [packages/core/src/parser.ts:378](packages/core/src/parser.ts#L378)
 
 Parse one attribute token into its [Attribute](#attribute) form: boolean
 (`required`), literal (`variant:brand`), expression

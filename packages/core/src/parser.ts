@@ -75,11 +75,12 @@ export function parseWavex(source: string, _options: ParseWavexOptions = {}): Wa
     });
   }
 
-  const prelude = hasWaveSeparator ? allLines.slice(0, separatorIndex).join("\n") : "";
+  const preludeEndOffset = hasWaveSeparator ? lineStartOffsets[separatorIndex]! : 0;
+  const bodyStartOffset = hasWaveSeparator ? (lineStartOffsets[separatorIndex + 1] ?? source.length) : 0;
+  const prelude = hasWaveSeparator ? source.slice(0, preludeEndOffset) : "";
   const bodyLines = hasWaveSeparator ? allLines.slice(separatorIndex + 1) : allLines;
   const bodyStartLine = hasWaveSeparator ? separatorIndex + 2 : 1;
-  const bodyStartOffset = lineStartOffsets[hasWaveSeparator ? separatorIndex + 1 : 0] ?? 0;
-  const body = bodyLines.join("\n");
+  const body = hasWaveSeparator ? source.slice(bodyStartOffset) : source;
 
   const resources: ResourceBinding[] = [];
   const nodes = parseTemplateLines(

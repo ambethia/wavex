@@ -181,6 +181,30 @@ describe("virtual code mappings", () => {
     expect(talkMappings.some((mapping) => mapping.sourceOffsets[0] === attributeOffset)).toBe(true);
     expect(talkMappings.some((mapping) => mapping.sourceOffsets[0] === componentNameOffset)).toBe(false);
   });
+
+  it("preserves CRLF prelude bytes in the mapped TypeScript virtual code", async () => {
+    const { WavexVirtualCode } = await import("../src/index.js");
+    const text = 'type Talk = { title: string }\r\nconst talk = {} as Talk;\r\n~~~\r\nmain\r\n  p {{ talk.title }}\r\n';
+    const snapshot = {
+      getText: (start: number, end: number) => text.slice(start, end),
+      getLength: () => text.length,
+      getChangeRange: () => undefined
+    };
+    const code = new WavexVirtualCode(snapshot as never);
+    const tsCode = code.embeddedCodes[0]!;
+    const generated = tsCode.snapshot.getText(0, tsCode.snapshot.getLength());
+    const sourcePrelude = text.slice(0, text.indexOf("~~~"));
+    const preludeMapping = tsCode.mappings.find((mapping) => mapping.sourceOffsets[0] === 0);
+
+    expect(generated.startsWith(sourcePrelude)).toBe(true);
+    expect(preludeMapping?.lengths[0]).toBe(sourcePrelude.length);
+
+    const expressionOffset = text.indexOf("talk.title");
+    const expressionMapping = tsCode.mappings.find(
+      (mapping) => generated.slice(mapping.generatedOffsets[0]!, mapping.generatedOffsets[0]! + mapping.lengths[0]!) === "talk.title"
+    );
+    expect(expressionMapping?.sourceOffsets[0]).toBe(expressionOffset);
+  });
 });
 
 describe("template scopes in virtual code", () => {

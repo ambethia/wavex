@@ -121,6 +121,11 @@ describe("parseWavex", () => {
         offset: source.indexOf("\t@button Go") + "\t@button Go".length
       }
     });
+    expect(parsed.prelude).toBe('type Marker = "é"\r\n\r\n');
+    expect(parsed.body).toBe('main [stack]\r\n  p Café 🧪\r\n\t@button Go\r\n');
+    expect(source.slice(main!.range.start.offset, main!.range.end.offset)).toBe("main [stack]");
+    expect(source.slice(paragraph!.range.start.offset, paragraph!.range.end.offset)).toBe("p Café 🧪");
+    expect(source.slice(button!.range.start.offset, button!.range.end.offset)).toBe("@button Go");
     expect(parsed.diagnostics).toMatchObject([{ code: "WX002", line: 6, column: 1 }]);
   });
 });
