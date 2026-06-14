@@ -268,6 +268,21 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`=== "ready") && (`);
   });
 
+  it("excludes invalid Convex resource bindings from +suspense readiness gates", () => {
+    const compiled = compileWavexModule(
+      `~~~\n+suspense reveal:together\n  $$tasks:list\n  $$tasks:create\n  p Loaded\n`,
+      {
+        id: "src/pages/x.wx",
+        convexFunctionKinds: { "tasks:list": "query", "tasks:create": "mutation" }
+      }
+    );
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX102", severity: "error", line: 4, column: 3 }]);
+    expect(compiled.code).toContain(`context.resourceStates?.["tasks"]`);
+    expect(compiled.code).not.toContain(`context.resourceStates?.["create"]`);
+    expect(compiled.code).toContain("Loaded");
+  });
+
   it("compiles +boundary to a try/catch around eager template evaluation", () => {
     const compiled = compileWavexModule(
       `~~~\n+boundary\n  +error problem\n    p\n      | Failed: {{ String(problem) }}\n  section\n    p {{ data.mustExist }}\n`,

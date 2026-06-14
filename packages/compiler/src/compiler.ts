@@ -426,7 +426,9 @@ function compileActionStateDirective(node: DirectiveNode, options: InternalCompi
 function compileSuspenseDirective(node: DirectiveNode, options: InternalCompileOptions, scope: CompileScope): string {
   const names = new Set<string>();
   const collect = (candidate: TemplateNode) => {
-    if (candidate.kind === "convex-call") names.add((candidate as ConvexCallNode).bindingName);
+    if (candidate.kind === "convex-call" && isQueryConvexAddress(candidate.address, options.convexFunctionKinds)) {
+      names.add(candidate.bindingName);
+    }
     for (const child of candidate.children) collect(child);
   };
   for (const child of node.children) collect(child);
