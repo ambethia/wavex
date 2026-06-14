@@ -125,25 +125,27 @@ describe("wavex dev", () => {
 });
 
 describe("wavex prerender", () => {
-  it("reuses a previously prerendered index.html as a clean shell", () => {
+  it("uses a / route prerendered index.html as a clean shell for later routes", () => {
     const shell = "<!doctype html><html><head><title>App</title></head><body><main>client app</main></body></html>";
-    const first = injectPrerender(shell, "<section><div>First route</div></section>", [
-      { tag: "title", text: "First" },
-      { tag: "meta", attributes: { name: "description", content: "First route" } }
+    const rootRouteHtml = injectPrerender(shell, "<section><div>Home route</div></section>", [
+      { tag: "title", text: "Home" },
+      { tag: "meta", attributes: { name: "description", content: "Home route" } }
     ]);
 
-    const second = injectPrerender(first, "<article>Second route</article>", [
-      { tag: "title", text: "Second" },
-      { tag: "meta", attributes: { name: "description", content: "Second route" } }
+    const laterRouteHtml = injectPrerender(rootRouteHtml, "<article>About route</article>", [
+      { tag: "title", text: "About" },
+      { tag: "meta", attributes: { name: "description", content: "About route" } }
     ]);
 
-    expect(second.match(/data-wx-prerender/g)).toHaveLength(1);
-    expect(second.match(/data-wx-head/g)).toHaveLength(2);
-    expect(second).toContain("<title data-wx-head>Second</title>");
-    expect(second).toContain('<meta name="description" content="Second route" data-wx-head>');
-    expect(second).toContain("<article>Second route</article>");
-    expect(second).toContain("<main>client app</main>");
-    expect(second).not.toContain("First route");
+    expect(laterRouteHtml.match(/data-wx-prerender/g)).toHaveLength(1);
+    expect(laterRouteHtml.match(/data-wx-head/g)).toHaveLength(2);
+    expect(laterRouteHtml.match(/<title\b/g)).toHaveLength(1);
+    expect(laterRouteHtml.match(/<meta\b/g)).toHaveLength(1);
+    expect(laterRouteHtml).toContain("<title data-wx-head>About</title>");
+    expect(laterRouteHtml).toContain('<meta name="description" content="About route" data-wx-head>');
+    expect(laterRouteHtml).toContain("<article>About route</article>");
+    expect(laterRouteHtml).toContain("<main>client app</main>");
+    expect(laterRouteHtml).not.toContain("Home route");
   });
 
   it("preserves an intentionally empty managed title", () => {
