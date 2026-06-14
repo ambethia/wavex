@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
 import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes, parseWavex } from "@wavex/core";
 
@@ -69,13 +69,10 @@ async function check(rootInput: string) {
   let errorCount = 0;
 
   // Capability context: the app root holds node_modules and src/components.
-  const appRoot = existsSync(join(root, "node_modules")) ? root : process.cwd();
-  const { detectCapabilities, validateComponentReferences } = await import("@wavex/core/capabilities");
+  const { detectCapabilities, discoverLocalComponents, validateComponentReferences } = await import("@wavex/core/capabilities");
+  const appRoot = resolveWavexAppRoot(root);
   const capabilities = detectCapabilities(appRoot);
-  const componentsDir = join(appRoot, createDefaultConfig().componentsDir);
-  const localComponents = walkWxFiles(componentsDir).map((file) =>
-    normalizeSlashes(relative(componentsDir, file)).replace(/\.wx$/, "")
-  );
+  const localComponents = discoverLocalComponents(appRoot);
 
   for (const file of files) {
     const parsed = parseWavex(readFileSync(file, "utf8"), { fileName: file });
@@ -144,6 +141,26 @@ function proxyVite(args: string[]) {
   if (result.signal) console.error(`vite terminated by signal ${result.signal}`);
   else console.error("vite exited without a status");
   process.exitCode = 1;
+}
+
+function resolveWavexAppRoot(scanRoot: string): string {
+  let current = scanRoot;
+  while (true) {
+    if (isWavexAppRoot(current)) return current;
+    if (isWavexSourceRoot(current)) return dirname(current);
+
+    const parent = dirname(current);
+    if (parent === current) return scanRoot;
+    current = parent;
+  }
+}
+
+function isWavexAppRoot(dir: string): boolean {
+  return existsSync(join(dir, createDefaultConfig().pagesDir)) || existsSync(join(dir, createDefaultConfig().componentsDir));
+}
+
+function isWavexSourceRoot(dir: string): boolean {
+  return basename(dir) === createDefaultConfig().sourceDir && (existsSync(join(dir, "pages")) || existsSync(join(dir, "components")));
 }
 
 function walkWxFiles(dir: string): string[] {

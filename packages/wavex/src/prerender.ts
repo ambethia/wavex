@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { createDefaultConfig, createRouteDefinition, normalizeSlashes } from "@wavex/core";
 import { readdirSync } from "node:fs";
 
-interface HeadEntryLike {
+export interface HeadEntryLike {
   tag: "title" | "meta" | "link";
   text?: string;
   attributes?: Record<string, string>;
@@ -84,12 +84,12 @@ export async function prerender(rootInput: string): Promise<void> {
   }
 }
 
-function injectPrerender(shell: string, body: string, head: HeadEntryLike[]): string {
-  let html = shell.replace(/(<body[^>]*>)/i, `$1<div data-wx-prerender>${body}</div>`);
+export function injectPrerender(shell: string, body: string, head: HeadEntryLike[]): string {
+  let html = stripPrerenderArtifacts(shell).replace(/(<body[^>]*>)/i, `$1<div data-wx-prerender>${body}</div>`);
 
   const title = head.find((entry) => entry.tag === "title")?.text;
   if (title) {
-    const titleTag = `<title>${escapeHtml(title)}</title>`;
+    const titleTag = `<title data-wx-head>${escapeHtml(title)}</title>`;
     html = /<title>[\s\S]*?<\/title>/i.test(html)
       ? html.replace(/<title>[\s\S]*?<\/title>/i, titleTag)
       : html.replace(/<\/head>/i, `${titleTag}</head>`);
@@ -107,6 +107,35 @@ function injectPrerender(shell: string, body: string, head: HeadEntryLike[]): st
   if (metaTags) html = html.replace(/<\/head>/i, `${metaTags}</head>`);
 
   return html;
+}
+
+function stripPrerenderArtifacts(html: string): string {
+  let stripped = html;
+  while (/<div\b(?=[^>]*\bdata-wx-prerender\b)[^>]*>/i.test(stripped)) {
+    stripped = stripFirstPrerenderBlock(stripped);
+  }
+  return stripped
+    .replace(/<title\b(?=[^>]*\bdata-wx-head\b)[^>]*>[\s\S]*?<\/title>/gi, "")
+    .replace(/<(?:meta|link)\b(?=[^>]*\bdata-wx-head\b)[^>]*>/gi, "");
+}
+
+function stripFirstPrerenderBlock(html: string): string {
+  const open = /<div\b(?=[^>]*\bdata-wx-prerender\b)[^>]*>/i.exec(html);
+  if (!open) return html;
+
+  const tagPattern = /<\/?div\b[^>]*>/gi;
+  tagPattern.lastIndex = open.index + open[0].length;
+  let depth = 1;
+  for (let tag = tagPattern.exec(html); tag; tag = tagPattern.exec(html)) {
+    if (tag[0].startsWith("</")) {
+      depth -= 1;
+      if (depth === 0) return html.slice(0, open.index) + html.slice(tag.index + tag[0].length);
+      continue;
+    }
+    if (!/\/\s*>$/.test(tag[0])) depth += 1;
+  }
+
+  throw new Error("wavex prerender: existing data-wx-prerender block is malformed.");
 }
 
 function layoutChain(routeFile: string, pagesDir: string, root: string): string[] {
