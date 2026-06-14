@@ -1584,7 +1584,7 @@ shorthand: native elements, `@` components, `+` directives, text,
 function componentReferenceToTag(reference, options?): string;
 ```
 
-Defined in: [packages/core/src/model.ts:296](packages/core/src/model.ts#L296)
+Defined in: [packages/core/src/model.ts:316](packages/core/src/model.ts#L316)
 
 Resolve an `@name` component reference to a custom-element tag.
 
@@ -1658,7 +1658,7 @@ Build a full [RouteDefinition](#routedefinition) from a page file path, or undef
 function expandUtilityClassList(tokens): string[];
 ```
 
-Defined in: [packages/core/src/model.ts:267](packages/core/src/model.ts#L267)
+Defined in: [packages/core/src/model.ts:287](packages/core/src/model.ts#L287)
 
 #### Parameters
 
@@ -1678,7 +1678,7 @@ readonly `string`[]
 function expandUtilityToken(token): string;
 ```
 
-Defined in: [packages/core/src/model.ts:261](packages/core/src/model.ts#L261)
+Defined in: [packages/core/src/model.ts:281](packages/core/src/model.ts#L281)
 
 Expand one `[utility]` token to its class name. This is plain `wa-` prefix
 expansion by design — there is no semantic mapping table or `name:value`
@@ -1702,7 +1702,7 @@ utility grammar, so `[stack gap-xl]` is exactly `wa-stack wa-gap-xl`.
 function extractAttrsTypeKeys(prelude): string[] | undefined;
 ```
 
-Defined in: [packages/core/src/model.ts:326](packages/core/src/model.ts#L326)
+Defined in: [packages/core/src/model.ts:346](packages/core/src/model.ts#L346)
 
 Top-level keys of a component's `type Attrs = { ... }` (or `interface Attrs`)
 prelude declaration. Components declaring Attrs get each attribute as a bare,
@@ -1726,7 +1726,7 @@ typed local in their template. Returns undefined when no Attrs is declared.
 function formatDiagnostic(diagnostic): string;
 ```
 
-Defined in: [packages/core/src/model.ts:313](packages/core/src/model.ts#L313)
+Defined in: [packages/core/src/model.ts:333](packages/core/src/model.ts#L333)
 
 Render a diagnostic as a single `SEVERITY code line:column message` line for CLI/log output.
 
@@ -1748,7 +1748,7 @@ Render a diagnostic as a single `SEVERITY code line:column message` line for CLI
 function inferResourceBindingName(modulePath, functionName): string;
 ```
 
-Defined in: [packages/core/src/model.ts:233](packages/core/src/model.ts#L233)
+Defined in: [packages/core/src/model.ts:253](packages/core/src/model.ts#L253)
 
 Infer the template binding name for a `$$module:function` Convex resource.
 The rules are intentionally simple: the last module path segment is the
@@ -1778,7 +1778,7 @@ plural, singleton-style functions (`get`, `byId`, `me`, …) bind singular.
 function lastPathSegment(path): string;
 ```
 
-Defined in: [packages/core/src/model.ts:239](packages/core/src/model.ts#L239)
+Defined in: [packages/core/src/model.ts:259](packages/core/src/model.ts#L259)
 
 #### Parameters
 
@@ -1802,8 +1802,8 @@ Defined in: [packages/core/src/model.ts:165](packages/core/src/model.ts#L165)
 
 Match a pathname against route definitions using the same segment
 semantics as createRouteDefinition. Static segments win over params,
-params win over splats; among equals the more specific (longer static
-prefix) route wins.
+params win over splats, and exact matches win over empty splats; among
+equals the more specific (longer static prefix) route wins.
 
 #### Parameters
 
@@ -1827,7 +1827,7 @@ readonly [`RouteDefinition`](#routedefinition)[]
 function mergeClassNames(...values): string;
 ```
 
-Defined in: [packages/core/src/model.ts:271](packages/core/src/model.ts#L271)
+Defined in: [packages/core/src/model.ts:291](packages/core/src/model.ts#L291)
 
 #### Parameters
 
@@ -1892,7 +1892,7 @@ Parse one attribute token into its [Attribute](#attribute) form: boolean
 function parseQueryString(search): Record<string, string>;
 ```
 
-Defined in: [packages/core/src/model.ts:210](packages/core/src/model.ts#L210)
+Defined in: [packages/core/src/model.ts:230](packages/core/src/model.ts#L230)
 
 Parse a search string into a flat record; the first occurrence of a repeated key wins.
 
@@ -1946,7 +1946,7 @@ with errors still yields a best-effort AST for the LSP and compiler.
 function pluralize(name): string;
 ```
 
-Defined in: [packages/core/src/model.ts:250](packages/core/src/model.ts#L250)
+Defined in: [packages/core/src/model.ts:270](packages/core/src/model.ts#L270)
 
 #### Parameters
 
@@ -2034,7 +2034,7 @@ Defined in: [packages/core/src/model.ts:124](packages/core/src/model.ts#L124)
 function singularize(name): string;
 ```
 
-Defined in: [packages/core/src/model.ts:243](packages/core/src/model.ts#L243)
+Defined in: [packages/core/src/model.ts:263](packages/core/src/model.ts#L263)
 
 #### Parameters
 
@@ -2054,7 +2054,7 @@ Defined in: [packages/core/src/model.ts:243](packages/core/src/model.ts#L243)
 function toKebabCase(value): string;
 ```
 
-Defined in: [packages/core/src/model.ts:278](packages/core/src/model.ts#L278)
+Defined in: [packages/core/src/model.ts:298](packages/core/src/model.ts#L298)
 
 #### Parameters
 

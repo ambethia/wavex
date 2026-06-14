@@ -144,6 +144,7 @@ describe("matchRoutePath", () => {
     "src/pages/talks/index.wx",
     "src/pages/talks/[id].wx",
     "src/pages/talks/new.wx",
+    "src/pages/info/index.wx",
     "src/pages/info/[...slug].wx"
   ].map((file) => createRouteDefinition(file)!);
 
@@ -159,7 +160,16 @@ describe("matchRoutePath", () => {
       route: { path: "/info/*slug" },
       params: { slug: "venue/parking" }
     });
-    expect(matchRoutePath(routes, "/info")).toMatchObject({ route: { path: "/info/*slug" }, params: { slug: "" } });
+    expect(matchRoutePath(routes, "/info")).toMatchObject({ route: { path: "/info" }, params: {} });
+  });
+
+  it("prefers sibling index routes over catch-all routes for the directory path regardless of route order", () => {
+    const siblingRoutes = [
+      "src/pages/info/[...slug].wx",
+      "src/pages/info/index.wx"
+    ].map((file) => createRouteDefinition(file)!);
+
+    expect(matchRoutePath(siblingRoutes, "/info")).toMatchObject({ route: { path: "/info" }, params: {} });
   });
 
   it("prefers static segments over params and decodes param values", () => {

@@ -159,51 +159,71 @@ export interface RouteMatch {
 /**
  * Match a pathname against route definitions using the same segment
  * semantics as createRouteDefinition. Static segments win over params,
- * params win over splats; among equals the more specific (longer static
- * prefix) route wins.
+ * params win over splats, and exact matches win over empty splats; among
+ * equals the more specific (longer static prefix) route wins.
  */
 export function matchRoutePath(routes: readonly RouteDefinition[], pathname: string): RouteMatch | undefined {
   const parts = pathname.split("?")[0]!.split("/").filter(Boolean).map(decodeURIComponentSafe);
-  let best: { match: RouteMatch; score: number } | undefined;
+  let best: { match: RouteMatch; rank: readonly number[] } | undefined;
 
   for (const route of routes) {
     const result = matchSegments(route.segments, parts);
     if (!result) continue;
-    if (!best || result.score > best.score) {
-      best = { match: { route, params: result.params }, score: result.score };
+    if (!best || compareRouteRanks(result.rank, best.rank) > 0) {
+      best = { match: { route, params: result.params }, rank: result.rank };
     }
   }
 
   return best?.match;
 }
 
+const ROUTE_RANK = {
+  static: 4,
+  param: 3,
+  exact: 2,
+  splat: 1
+} as const;
+
 function matchSegments(
   segments: readonly RouteSegment[],
   parts: readonly string[]
-): { params: Record<string, string>; score: number } | undefined {
+): { params: Record<string, string>; rank: readonly number[] } | undefined {
   const params: Record<string, string> = {};
-  let score = 0;
+  const rank: number[] = [];
   let index = 0;
 
   for (const segment of segments) {
     if (segment.kind === "splat") {
       params[segment.name] = parts.slice(index).join("/");
-      // A splat consumes everything that remains (including nothing).
-      return { params, score: score + 1 };
+      // A splat consumes everything that remains (including nothing), but an
+      // exact route terminator outranks an empty splat when ranks are compared.
+      rank.push(ROUTE_RANK.splat);
+      return { params, rank };
     }
     const part = parts[index];
     if (part === undefined) return undefined;
     if (segment.kind === "static") {
       if (part !== segment.value) return undefined;
-      score += 3;
+      rank.push(ROUTE_RANK.static);
     } else {
       params[segment.name] = part;
-      score += 2;
+      rank.push(ROUTE_RANK.param);
     }
     index += 1;
   }
 
-  return index === parts.length ? { params, score } : undefined;
+  if (index !== parts.length) return undefined;
+  rank.push(ROUTE_RANK.exact);
+  return { params, rank };
+}
+
+function compareRouteRanks(left: readonly number[], right: readonly number[]): number {
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
 }
 
 /** Parse a search string into a flat record; the first occurrence of a repeated key wins. */
