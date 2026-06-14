@@ -313,7 +313,13 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     void navigate(target);
   };
 
+  const queriesEqual = (left: Record<string, string>, right: Record<string, string>) => {
+    const leftEntries = Object.entries(left);
+    return leftEntries.length === Object.keys(right).length && leftEntries.every(([key, value]) => right[key] === value);
+  };
+
   const onPopState = () => {
+    if (current?.route.path === win.location.pathname && queriesEqual(current.route.query, parseQueryString(win.location.search))) return;
     const hasFragment = win.location.href.includes("#");
     void navigate(win.location.pathname + win.location.search + (hasFragment ? win.location.hash || "#" : ""), { pop: true });
   };

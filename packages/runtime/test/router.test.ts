@@ -327,6 +327,9 @@ describe("client router navigation lifecycle", () => {
 
     expect(env.click(new env.FakeAnchor("#section"))).toBe(false);
     expect(env.click(new env.FakeAnchor("/a?tab=1#"))).toBe(false);
+    env.pop("/a?tab=1#section");
+    await Promise.resolve();
+    await Promise.resolve();
     expect(env.calls).toEqual([]);
   });
 
