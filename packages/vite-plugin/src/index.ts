@@ -97,14 +97,33 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         if (mtime !== undefined) mtimes.set(file, mtime);
         sendWavexHotUpdate(server, file);
       });
+      server.watcher.on("add", (file) => {
+        if (!isWavexTemplateFile(file, config)) return;
+        const mtime = safeMtime(file);
+        if (mtime !== undefined) mtimes.set(file, mtime);
+        sendWavexFullReload(server, file);
+      });
+      server.watcher.on("unlink", (file) => {
+        if (!isWavexTemplateFile(file, config)) return;
+        mtimes.delete(file);
+        sendWavexFullReload(server, file);
+      });
 
       const pollTimer = setInterval(() => {
-        for (const file of listWavexTemplateFiles(config)) {
+        const files = new Set(listWavexTemplateFiles(config));
+        for (const [file] of mtimes) {
+          if (!files.has(file)) {
+            mtimes.delete(file);
+            sendWavexFullReload(server, file);
+          }
+        }
+        for (const file of files) {
           const mtime = safeMtime(file);
           if (mtime === undefined) continue;
           const previous = mtimes.get(file);
           mtimes.set(file, mtime);
-          if (previous !== undefined && mtime > previous) sendWavexHotUpdate(server, file);
+          if (previous === undefined) sendWavexFullReload(server, file);
+          else if (mtime > previous) sendWavexHotUpdate(server, file);
         }
       }, 300);
       pollTimer.unref?.();
@@ -374,9 +393,7 @@ function invalidateWavexFile(server: ViteDevServer, file: string): void {
 
 function sendWavexHotUpdate(server: ViteDevServer, file: string): void {
   const modules = [...(server.moduleGraph.getModulesByFile(file) ?? [])];
-  const updates = uniqueUpdates(
-    modules.flatMap((module) => collectAcceptedUpdates(module, normalizeHotPath(module.url)))
-  );
+  const updates = uniqueUpdates(modules.flatMap((module) => collectSelfAcceptedUpdates(module)));
 
   invalidateWavexFile(server, file);
   if (updates.length === 0) return;
@@ -392,14 +409,21 @@ function sendWavexHotUpdate(server: ViteDevServer, file: string): void {
   });
 }
 
+function sendWavexFullReload(server: ViteDevServer, file: string): void {
+  invalidateWavexFile(server, file);
+  server.ws.send({ type: "full-reload", path: "*" });
+}
+
 interface WavexHotUpdate {
   path: string;
   acceptedPath: string;
 }
 
-function collectAcceptedUpdates(
+// WAVEx generates page modules as the only HMR boundaries. Component edits must
+// therefore update the nearest self-accepting page module; sending the component
+// URL as acceptedPath does not match the generated page accept callback.
+function collectSelfAcceptedUpdates(
   changedModule: ReturnType<ViteDevServer["moduleGraph"]["getModuleById"]> extends infer Module ? NonNullable<Module> : never,
-  acceptedPath: string,
   seen = new Set<unknown>()
 ): WavexHotUpdate[] {
   if (seen.has(changedModule)) return [];
@@ -409,19 +433,7 @@ function collectAcceptedUpdates(
   if (changedModule.isSelfAccepting) return [{ path: modulePath, acceptedPath: modulePath }];
 
   const updates: WavexHotUpdate[] = [];
-  for (const importer of changedModule.importers) {
-    const importerPath = normalizeHotPath(importer.url);
-    const acceptsChangedModule = [...importer.acceptedHmrDeps].some(
-      (dep) => normalizeHotPath(dep.url) === acceptedPath
-    );
-    if (acceptsChangedModule) {
-      updates.push({ path: importerPath, acceptedPath });
-    } else if (importer.isSelfAccepting) {
-      updates.push({ path: importerPath, acceptedPath: importerPath });
-    } else {
-      updates.push(...collectAcceptedUpdates(importer, acceptedPath, seen));
-    }
-  }
+  for (const importer of changedModule.importers) updates.push(...collectSelfAcceptedUpdates(importer, seen));
   return updates;
 }
 

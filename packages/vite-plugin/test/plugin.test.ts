@@ -31,14 +31,14 @@ function configuredPlugin(root: string, options?: Parameters<typeof wavex>[0]) {
 }
 
 function createDevServer(root: string, modulesByFile: Map<string, Set<any>>) {
-  let changeHandler: ((file: string) => void) | undefined;
+  const fileHandlers = new Map<string, (file: string) => void>();
   let closeHandler: (() => void) | undefined;
   const server = {
     config: { root },
     watcher: {
       add: vi.fn(),
       on: vi.fn((event: string, handler: (file: string) => void) => {
-        if (event === "change") changeHandler = handler;
+        fileHandlers.set(event, handler);
       })
     },
     middlewares: { use: vi.fn() },
@@ -58,7 +58,13 @@ function createDevServer(root: string, modulesByFile: Map<string, Set<any>>) {
   return {
     server,
     change(file: string) {
-      changeHandler?.(file);
+      fileHandlers.get("change")?.(file);
+    },
+    add(file: string) {
+      fileHandlers.get("add")?.(file);
+    },
+    unlink(file: string) {
+      fileHandlers.get("unlink")?.(file);
     },
     close() {
       closeHandler?.();
@@ -164,7 +170,7 @@ describe("wavex Vite transform", () => {
 });
 
 describe("wavex Vite dev-server integration", () => {
-  it("watches pages and components and emits a js update for accepted component edits", () => {
+  it("watches pages and components and emits a page self update for component edits", () => {
     const root = fixtureRoot("wavex-vite-hmr-");
     writeFixture(root, "src/pages/index.wx", "~~~\n@card\n");
     const componentFile = writeFixture(root, "src/components/card.wx", "~~~\nsection Card\n");
@@ -178,7 +184,7 @@ describe("wavex Vite dev-server integration", () => {
       url: "/src/pages/index.wx",
       importers: new Set<any>(),
       acceptedHmrDeps: new Set([componentModule]),
-      isSelfAccepting: false
+      isSelfAccepting: true
     };
     componentModule.importers.add(pageModule);
     const { server, change, close } = createDevServer(root, new Map([[componentFile, new Set([componentModule])]]));
@@ -196,7 +202,7 @@ describe("wavex Vite dev-server integration", () => {
         {
           type: "js-update",
           path: "/src/pages/index.wx",
-          acceptedPath: "/src/components/card.wx",
+          acceptedPath: "/src/pages/index.wx",
           timestamp: expect.any(Number)
         }
       ]
@@ -268,5 +274,21 @@ describe("wavex Vite dev-server integration", () => {
         }
       ]
     });
+  });
+
+  it("full reloads when route files are added or deleted", () => {
+    const root = fixtureRoot("wavex-vite-route-file-hmr-");
+    const pageFile = writeFixture(root, "src/pages/new.wx", "~~~\nh1 New\n");
+    const { server, add, unlink, close } = createDevServer(root, new Map());
+    const plugin = configuredPlugin(root);
+
+    plugin.configureServer(server);
+    add(pageFile);
+    unlink(pageFile);
+    close();
+
+    expect(server.moduleGraph.onFileChange).toHaveBeenCalledWith(pageFile);
+    expect(server.ws.send).toHaveBeenCalledWith({ type: "full-reload", path: "*" });
+    expect(server.ws.send).toHaveBeenCalledTimes(2);
   });
 });
