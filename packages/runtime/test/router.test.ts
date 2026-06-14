@@ -329,6 +329,28 @@ describe("client router navigation lifecycle", () => {
     await first;
     expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([{ kind: "setPage", payload: "/missing" }]);
   });
+
+  it("does not commit a stale error route after a newer navigation wins", async () => {
+    const env = fakeEnvironment();
+    const failing = deferred();
+    const slowError = deferred();
+    const router = createClientRouter({
+      routes: [routeOf("a.wx", "/a", () => failing.promise, [{ file: "+error.wx", load: () => slowError.promise }])],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+
+    const first = router.navigate("/a");
+    failing.reject(new Error("boom"));
+    await Promise.resolve();
+    await router.navigate("/missing");
+
+    slowError.resolve({ default: () => "error" });
+    await first;
+
+    expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([{ kind: "setPage", payload: "/missing" }]);
+  });
 });
 
 describe("client router view transitions", () => {

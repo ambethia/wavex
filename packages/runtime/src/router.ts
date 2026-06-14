@@ -137,7 +137,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
    * swap: clearing earlier flickers the old snapshot, clearing after
    * `finished` bakes the progress UI into the new snapshot.
    */
-  const commitWithTransition = async (token: number, pop: boolean, commit: () => void): Promise<void> => {
+  const commitWithTransition = async (token: number, pop: boolean, commit: () => void): Promise<boolean> => {
     const documentRef = win.document as Document & {
       startViewTransition?: (
         update: (() => void) | { update: () => void; types?: string[] }
@@ -148,27 +148,32 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       viewTransitionsEnabled && current !== undefined && typeof documentRef.startViewTransition === "function" && !reducedMotion;
 
     const guardedCommit = () => {
-      if (token !== navigationToken) return; // superseded during the frame gap
+      if (token !== navigationToken) return false; // superseded during the frame gap
       setNavigation({ pending: false });
       commit();
+      return true;
     };
 
-    if (!useTransition) {
-      guardedCommit();
-      return;
-    }
+    if (!useTransition) return guardedCommit();
+
+    let committed = false;
 
     let transition: { updateCallbackDone: Promise<void> };
     try {
       // Object signature carries direction types for :active-view-transition-type().
       transition = documentRef.startViewTransition!({
-        update: guardedCommit,
+        update: () => {
+          committed = guardedCommit();
+        },
         types: ["wavex-navigation", pop ? "backward" : "forward"]
       });
     } catch {
-      transition = documentRef.startViewTransition!(guardedCommit);
+      transition = documentRef.startViewTransition!(() => {
+        committed = guardedCommit();
+      });
     }
     await transition.updateCallbackDone.catch(() => undefined);
+    return committed;
   };
 
   const applyCurrent = () => {
@@ -215,7 +220,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       ]);
       if (token !== navigationToken) return; // superseded; the newer navigation owns pending state
 
-      await commitWithTransition(token, navOptions.pop ?? false, () => {
+      const committed = await commitWithTransition(token, navOptions.pop ?? false, () => {
         current = {
           route,
           file: clientRoute.file,
@@ -224,15 +229,17 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
         };
         applyCurrent();
       });
+      if (!committed) return;
     } catch (error) {
       if (token !== navigationToken) return;
-      await renderErrorRoute(clientRoute, route, error);
+      const committed = await renderErrorRoute(token, clientRoute, route, error);
+      if (!committed) return;
     }
     options.onNavigate?.(route);
   };
 
   /** Deterministic error UI: render the deepest +error.wx for the route, bare (no layouts). */
-  const renderErrorRoute = async (clientRoute: ClientRoute, route: RouteContext, error: unknown) => {
+  const renderErrorRoute = async (token: number, clientRoute: ClientRoute, route: RouteContext, error: unknown): Promise<boolean> => {
     const errorDef = clientRoute.errors?.at(-1);
     if (!errorDef) {
       setNavigation({ pending: false });
@@ -242,9 +249,11 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     try {
       errorModule = await errorDef.load();
     } catch (loadError) {
+      if (token !== navigationToken) return false;
       setNavigation({ pending: false });
       throw loadError;
     }
+    if (token !== navigationToken) return false;
     const errorRender = errorModule.default ?? errorModule.render;
     if (!errorRender) {
       setNavigation({ pending: false });
@@ -258,6 +267,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       route,
       head: (context) => errorModule.headEntries?.(context) ?? []
     });
+    return true;
   };
 
   const onClick = (event: MouseEvent) => {
