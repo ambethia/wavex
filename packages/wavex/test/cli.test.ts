@@ -153,6 +153,19 @@ describe("wavex prerender", () => {
     expect(html).toContain("<title data-wx-head></title>");
     expect(html).not.toContain("<title>App</title>");
   });
+
+  it("inserts prerendered HTML and head entries without replacement-token expansion", () => {
+    const shell = "<!doctype html><html><head><title>App</title></head><body></body></html>";
+
+    const html = injectPrerender(shell, "<section>Cost $& $1 $$ $'</section>", [
+      { tag: "title", text: "Price $& $1 $$ $'" },
+      { tag: "meta", attributes: { name: "description", content: "Meta $& $1 $$ $'" } }
+    ]);
+
+    expect(html).toContain("<section>Cost $& $1 $$ $'</section>");
+    expect(html).toContain("<title data-wx-head>Price $&amp; $1 $$ $'</title>");
+    expect(html).toContain('<meta name="description" content="Meta $&amp; $1 $$ $\'" data-wx-head>');
+  });
 });
 
 describe("viteArgsForWavexCommand", () => {

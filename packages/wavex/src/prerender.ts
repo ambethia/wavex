@@ -85,14 +85,17 @@ export async function prerender(rootInput: string): Promise<void> {
 }
 
 export function injectPrerender(shell: string, body: string, head: HeadEntryLike[]): string {
-  let html = stripPrerenderArtifacts(shell).replace(/(<body[^>]*>)/i, `$1<div data-wx-prerender>${body}</div>`);
+  let html = stripPrerenderArtifacts(shell).replace(
+    /(<body[^>]*>)/i,
+    (_match, bodyOpen: string) => `${bodyOpen}<div data-wx-prerender>${body}</div>`
+  );
 
   const titleEntry = head.find((entry) => entry.tag === "title");
   if (titleEntry) {
     const titleTag = `<title data-wx-head>${escapeHtml(titleEntry.text ?? "")}</title>`;
     html = /<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)
-      ? html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, titleTag)
-      : html.replace(/<\/head>/i, `${titleTag}</head>`);
+      ? html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, () => titleTag)
+      : html.replace(/<\/head>/i, () => `${titleTag}</head>`);
   }
 
   const metaTags = head
@@ -104,7 +107,7 @@ export function injectPrerender(shell: string, body: string, head: HeadEntryLike
       return `<${entry.tag} ${attributes} data-wx-head>`;
     })
     .join("");
-  if (metaTags) html = html.replace(/<\/head>/i, `${metaTags}</head>`);
+  if (metaTags) html = html.replace(/<\/head>/i, () => `${metaTags}</head>`);
 
   return html;
 }
