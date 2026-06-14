@@ -121,6 +121,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   let navigationToken = 0;
   let current: ActivePage | undefined;
   let navigationPending = false;
+  let disposed = false;
 
   const setNavigation = (navigation: NavigationState) => {
     navigationPending = navigation.pending;
@@ -199,6 +200,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   };
 
   const navigate = async (to: string, navOptions: { replace?: boolean; pop?: boolean } = {}) => {
+    if (disposed) return;
     const url = new URL(to, win.location.href);
     const token = ++navigationToken;
     if (!navOptions.pop) {
@@ -311,7 +313,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   return {
     navigate: (to, navOptions) => navigate(to, navOptions),
     hotReplacePage(file, module) {
-      if (!current) return;
+      if (disposed || !current) return;
       const normalized = file.replace(/^\/+/, "");
       if (current.file?.replace(/^\/+/, "") === normalized) {
         commitPage({ ...current, page: module });
@@ -328,6 +330,10 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       return current;
     },
     dispose() {
+      if (disposed) return;
+      disposed = true;
+      navigationToken += 1;
+      if (navigationPending) setNavigation({ pending: false });
       win.document.removeEventListener("click", onClick);
       win.removeEventListener("popstate", onPopState);
     }

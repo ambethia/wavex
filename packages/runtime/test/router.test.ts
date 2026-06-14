@@ -351,6 +351,30 @@ describe("client router navigation lifecycle", () => {
 
     expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([{ kind: "setPage", payload: "/missing" }]);
   });
+
+  it("cancels in-flight navigation and clears pending state when disposed", async () => {
+    const env = fakeEnvironment();
+    const slow = deferred();
+    const router = createClientRouter({
+      routes: [routeOf("a.wx", "/a", () => slow.promise)],
+      host: env.host,
+      window: env.win,
+      viewTransitions: false
+    });
+
+    const pending = router.navigate("/a");
+    router.dispose();
+    slow.resolve({ default: () => "a" });
+    await pending;
+
+    expect(env.calls).toContainEqual({ kind: "setNavigation", payload: false });
+    expect(env.attributes.has("data-wx-navigating")).toBe(false);
+    expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([]);
+
+    expect(env.click(new env.FakeAnchor("/a"))).toBe(false);
+    await router.navigate("/a");
+    expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([]);
+  });
 });
 
 describe("client router view transitions", () => {
