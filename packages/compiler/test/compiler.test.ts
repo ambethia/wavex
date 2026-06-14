@@ -47,6 +47,17 @@ describe("compileWavexModule", () => {
     expect(compiled.code).not.toContain(`functionName: "create"`);
   });
 
+  it("omits invalid bare $$ resource children when Convex kind diagnostics fire", () => {
+    const compiled = compileWavexModule(`~~~\n$$tasks:create\n  +loading\n    p Creating…\n  p Should not render\n`, {
+      id: "src/pages/index.wx",
+      convexFunctionKinds: { "tasks:create": "mutation" }
+    });
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX102", severity: "error", line: 2, column: 1 }]);
+    expect(compiled.code).not.toContain("Creating");
+    expect(compiled.code).not.toContain("Should not render");
+  });
+
   it("compiles resource-state directives conditionally inside $$ blocks", () => {
     const compiled = compileWavexModule(
       `~~~\n$$tasks:list\n  +loading\n    p Loading…\n  +empty\n    p No tasks yet.\n  +error problem\n    p {{ String(problem) }}\n  +for task in tasks\n    p {{ task.text }}\n`,

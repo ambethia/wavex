@@ -5,6 +5,7 @@ import type {
   Attribute,
   ComponentNode,
   ConvexCallNode,
+  ConvexFunctionAddress,
   DirectiveNode,
   ElementNode,
   ResourceBinding,
@@ -160,7 +161,11 @@ function compileResourceDefinitions(
 const RESERVED_RESOURCE_ATTRIBUTES = new Set(["as", "args"]);
 
 function isQueryResource(resource: ResourceBinding, convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined): boolean {
-  const kind = convexFunctionKinds?.[`${resource.address.modulePath}:${resource.address.functionName}`];
+  return isQueryConvexAddress(resource.address, convexFunctionKinds);
+}
+
+function isQueryConvexAddress(address: ConvexFunctionAddress, convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined): boolean {
+  const kind = convexFunctionKinds?.[`${address.modulePath}:${address.functionName}`];
   return kind === undefined || kind === "query";
 }
 
@@ -510,7 +515,7 @@ function compileResourceStateDirective(node: DirectiveNode, options: InternalCom
 }
 
 function compileConvexCall(node: ConvexCallNode, options: InternalCompileOptions): string {
-  if (node.children.length === 0) return "";
+  if (node.children.length === 0 || !isQueryConvexAddress(node.address, options.convexFunctionKinds)) return "";
   return compileNodes(node.children, options, { resource: node.bindingName });
 }
 

@@ -48,7 +48,7 @@ Key lowering rules carried by this package:
 
 ### CompileWavexOptions
 
-Defined in: [packages/compiler/src/compiler.ts:16](packages/compiler/src/compiler.ts#L16)
+Defined in: [packages/compiler/src/compiler.ts:17](packages/compiler/src/compiler.ts#L17)
 
 Options for [compileWavexModule](#compilewavexmodule).
 
@@ -60,7 +60,7 @@ Options for [compileWavexModule](#compilewavexmodule).
 optional convexFunctionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:24](packages/compiler/src/compiler.ts#L24)
+Defined in: [packages/compiler/src/compiler.ts:25](packages/compiler/src/compiler.ts#L25)
 
 Detected Convex function kind map keyed by normalized `module/path:function`.
 
@@ -70,7 +70,7 @@ Detected Convex function kind map keyed by normalized `module/path:function`.
 optional id?: string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:18](packages/compiler/src/compiler.ts#L18)
+Defined in: [packages/compiler/src/compiler.ts:19](packages/compiler/src/compiler.ts#L19)
 
 Module id used in diagnostics and the generated `wxFile` metadata (usually the file path).
 
@@ -80,7 +80,7 @@ Module id used in diagnostics and the generated `wxFile` metadata (usually the f
 optional localComponents?: readonly string[];
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:20](packages/compiler/src/compiler.ts#L20)
+Defined in: [packages/compiler/src/compiler.ts:21](packages/compiler/src/compiler.ts#L21)
 
 Local `src/components/` references; these shadow Web Awesome names in `@` lookup.
 
@@ -90,7 +90,7 @@ Local `src/components/` references; these shadow Web Awesome names in `@` lookup
 optional webAwesomeComponents?: readonly string[];
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:22](packages/compiler/src/compiler.ts#L22)
+Defined in: [packages/compiler/src/compiler.ts:23](packages/compiler/src/compiler.ts#L23)
 
 Web Awesome component names (without `wa-`) detected from the installed package.
 
@@ -98,7 +98,7 @@ Web Awesome component names (without `wa-`) detected from the installed package.
 
 ### CompileWavexResult
 
-Defined in: [packages/compiler/src/compiler.ts:28](packages/compiler/src/compiler.ts#L28)
+Defined in: [packages/compiler/src/compiler.ts:29](packages/compiler/src/compiler.ts#L29)
 
 Result of [compileWavexModule](#compilewavexmodule): the parsed AST plus the generated module source.
 
@@ -110,7 +110,7 @@ Result of [compileWavexModule](#compilewavexmodule): the parsed AST plus the gen
 ast: WavexFile;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:29](packages/compiler/src/compiler.ts#L29)
+Defined in: [packages/compiler/src/compiler.ts:30](packages/compiler/src/compiler.ts#L30)
 
 ##### code
 
@@ -118,7 +118,7 @@ Defined in: [packages/compiler/src/compiler.ts:29](packages/compiler/src/compile
 code: string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:31](packages/compiler/src/compiler.ts#L31)
+Defined in: [packages/compiler/src/compiler.ts:32](packages/compiler/src/compiler.ts#L32)
 
 Generated TypeScript module source (render function, resources, head entries).
 
@@ -128,7 +128,7 @@ Generated TypeScript module source (render function, resources, head entries).
 usedWebAwesomeComponents: readonly string[];
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:33](packages/compiler/src/compiler.ts#L33)
+Defined in: [packages/compiler/src/compiler.ts:34](packages/compiler/src/compiler.ts#L34)
 
 Web Awesome component names (without the wa- prefix) referenced by this template.
 
@@ -140,7 +140,7 @@ Web Awesome component names (without the wa- prefix) referenced by this template
 function compileWavexModule(source, options?): CompileWavexResult;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:61](packages/compiler/src/compiler.ts#L61)
+Defined in: [packages/compiler/src/compiler.ts:62](packages/compiler/src/compiler.ts#L62)
 
 Compile `.wx` source into a Lit render module.
 
@@ -174,7 +174,7 @@ on `result.ast.diagnostics`, not thrown.
 function componentTagForReference(reference, options?): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:666](packages/compiler/src/compiler.ts#L666)
+Defined in: [packages/compiler/src/compiler.ts:671](packages/compiler/src/compiler.ts#L671)
 
 Resolve an `@name` reference to its custom-element tag using the compile
 options' component sets (local components shadow Web Awesome).
@@ -201,7 +201,7 @@ options' component sets (local components shadow Web Awesome).
 function utilityClassForToken(token): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:671](packages/compiler/src/compiler.ts#L671)
+Defined in: [packages/compiler/src/compiler.ts:676](packages/compiler/src/compiler.ts#L676)
 
 Expand one `[utility]` token to its `wa-` class (plain prefix expansion, no mapping table).
 
