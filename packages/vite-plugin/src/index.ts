@@ -405,14 +405,19 @@ function collectAcceptedUpdates(
   if (seen.has(changedModule)) return [];
   seen.add(changedModule);
 
+  const modulePath = normalizeHotPath(changedModule.url);
+  if (changedModule.isSelfAccepting) return [{ path: modulePath, acceptedPath: modulePath }];
+
   const updates: WavexHotUpdate[] = [];
   for (const importer of changedModule.importers) {
     const importerPath = normalizeHotPath(importer.url);
     const acceptsChangedModule = [...importer.acceptedHmrDeps].some(
       (dep) => normalizeHotPath(dep.url) === acceptedPath
     );
-    if (acceptsChangedModule || importer.isSelfAccepting) {
+    if (acceptsChangedModule) {
       updates.push({ path: importerPath, acceptedPath });
+    } else if (importer.isSelfAccepting) {
+      updates.push({ path: importerPath, acceptedPath: importerPath });
     } else {
       updates.push(...collectAcceptedUpdates(importer, acceptedPath, seen));
     }

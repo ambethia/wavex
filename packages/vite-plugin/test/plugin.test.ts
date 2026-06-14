@@ -30,6 +30,42 @@ function configuredPlugin(root: string, options?: Parameters<typeof wavex>[0]) {
   return plugin;
 }
 
+function createDevServer(root: string, modulesByFile: Map<string, Set<any>>) {
+  let changeHandler: ((file: string) => void) | undefined;
+  let closeHandler: (() => void) | undefined;
+  const server = {
+    config: { root },
+    watcher: {
+      add: vi.fn(),
+      on: vi.fn((event: string, handler: (file: string) => void) => {
+        if (event === "change") changeHandler = handler;
+      })
+    },
+    middlewares: { use: vi.fn() },
+    moduleGraph: {
+      onFileChange: vi.fn(),
+      getModuleById: vi.fn(),
+      getModulesByFile: vi.fn((file: string) => modulesByFile.get(file) ?? new Set()),
+      invalidateModule: vi.fn()
+    },
+    ws: { send: vi.fn() },
+    httpServer: {
+      once: vi.fn((event: string, handler: () => void) => {
+        if (event === "close") closeHandler = handler;
+      })
+    }
+  };
+  return {
+    server,
+    change(file: string) {
+      changeHandler?.(file);
+    },
+    close() {
+      closeHandler?.();
+    }
+  };
+}
+
 describe("wavex Vite plugin config", () => {
   it("dedupes Lit and keeps Web Awesome out of dependency prebundling", () => {
     const config = (wavex() as any).config();
@@ -145,35 +181,12 @@ describe("wavex Vite dev-server integration", () => {
       isSelfAccepting: false
     };
     componentModule.importers.add(pageModule);
-    let changeHandler: ((file: string) => void) | undefined;
-    let closeHandler: (() => void) | undefined;
-    const server = {
-      config: { root },
-      watcher: {
-        add: vi.fn(),
-        on: vi.fn((event: string, handler: (file: string) => void) => {
-          if (event === "change") changeHandler = handler;
-        })
-      },
-      middlewares: { use: vi.fn() },
-      moduleGraph: {
-        onFileChange: vi.fn(),
-        getModuleById: vi.fn(),
-        getModulesByFile: vi.fn((file: string) => (file === componentFile ? new Set([componentModule]) : new Set())),
-        invalidateModule: vi.fn()
-      },
-      ws: { send: vi.fn() },
-      httpServer: {
-        once: vi.fn((event: string, handler: () => void) => {
-          if (event === "close") closeHandler = handler;
-        })
-      }
-    };
+    const { server, change, close } = createDevServer(root, new Map([[componentFile, new Set([componentModule])]]));
     const plugin = configuredPlugin(root);
 
     plugin.configureServer(server);
-    changeHandler?.(componentFile);
-    closeHandler?.();
+    change(componentFile);
+    close();
 
     expect(server.watcher.add).toHaveBeenCalledWith([join(root, "src/pages"), join(root, "src/components")]);
     expect(server.moduleGraph.onFileChange).toHaveBeenCalledWith(componentFile);
@@ -184,6 +197,73 @@ describe("wavex Vite dev-server integration", () => {
           type: "js-update",
           path: "/src/pages/index.wx",
           acceptedPath: "/src/components/card.wx",
+          timestamp: expect.any(Number)
+        }
+      ]
+    });
+  });
+
+  it("emits a page self update for component edits that reach a generated page boundary", () => {
+    const root = fixtureRoot("wavex-vite-component-boundary-hmr-");
+    writeFixture(root, "src/pages/index.wx", "~~~\n@card\n");
+    const componentFile = writeFixture(root, "src/components/card.wx", "~~~\nsection Card\n");
+    const componentModule = {
+      url: "/src/components/card.wx",
+      importers: new Set<any>(),
+      acceptedHmrDeps: new Set<any>(),
+      isSelfAccepting: false
+    };
+    const pageModule = {
+      url: "/src/pages/index.wx",
+      importers: new Set<any>(),
+      acceptedHmrDeps: new Set<any>(),
+      isSelfAccepting: true
+    };
+    componentModule.importers.add(pageModule);
+    const { server, change, close } = createDevServer(root, new Map([[componentFile, new Set([componentModule])]]));
+    const plugin = configuredPlugin(root);
+
+    plugin.configureServer(server);
+    change(componentFile);
+    close();
+
+    expect(server.ws.send).toHaveBeenCalledWith({
+      type: "update",
+      updates: [
+        {
+          type: "js-update",
+          path: "/src/pages/index.wx",
+          acceptedPath: "/src/pages/index.wx",
+          timestamp: expect.any(Number)
+        }
+      ]
+    });
+  });
+
+  it("emits a self update for page edits accepted by generated page modules", () => {
+    const root = fixtureRoot("wavex-vite-page-hmr-");
+    const pageFile = writeFixture(root, "src/pages/index.wx", "~~~\nh1 Home\n");
+    const pageModule = {
+      url: "/src/pages/index.wx",
+      importers: new Set<any>(),
+      acceptedHmrDeps: new Set<any>(),
+      isSelfAccepting: true
+    };
+    const { server, change, close } = createDevServer(root, new Map([[pageFile, new Set([pageModule])]]));
+    const plugin = configuredPlugin(root);
+
+    plugin.configureServer(server);
+    change(pageFile);
+    close();
+
+    expect(server.moduleGraph.onFileChange).toHaveBeenCalledWith(pageFile);
+    expect(server.ws.send).toHaveBeenCalledWith({
+      type: "update",
+      updates: [
+        {
+          type: "js-update",
+          path: "/src/pages/index.wx",
+          acceptedPath: "/src/pages/index.wx",
           timestamp: expect.any(Number)
         }
       ]
