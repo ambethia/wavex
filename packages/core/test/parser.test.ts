@@ -167,6 +167,17 @@ describe("parseWavex", () => {
     ]);
   });
 
+  it("diagnoses utility groups in attribute-only heads without also treating them as attributes", () => {
+    const parsed = parseWavex(`~~~\n+head [stack gap-xl]\n$$tasks:list [stack]\n+for item in items key:item [stack]\n`);
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX006", severity: "error", line: 2, column: 7 },
+      { code: "WX006", severity: "error", line: 3, column: 14 },
+      { code: "WX006", severity: "error", line: 4, column: 29 }
+    ]);
+    expect(parsed.diagnostics).toHaveLength(3);
+  });
+
   it("accepts dash-form utility tokens without diagnostics", () => {
     const parsed = parseWavex(`~~~\nmain [stack gap-xl align-items-center]\n`);
 

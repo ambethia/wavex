@@ -259,15 +259,13 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange, diagno
   const nonHeadUtilityMessage = "Directive expressions cannot contain utility groups; bracket utility groups are only valid in element or component heads.";
 
   if (name === "for") {
-    diagnoseNonHeadUtilityGroups(tokens, range, diagnostics, nonHeadUtilityMessage);
-    const parsedFor = parseForDirective(tokens, range, diagnostics);
+    const parsedFor = parseForDirective(tokens, range, diagnostics, nonHeadUtilityMessage);
     forDirective = parsedFor.forDirective;
     attributes.push(...parsedFor.attributes);
     expression = tokens.map((token) => token.raw).join(" ") || undefined;
     expressionRange = rangeForTokenSpan(range, tokens);
   } else if (name === "head" || name === "boundary") {
-    diagnoseNonHeadUtilityGroups(tokens, range, diagnostics, nonHeadUtilityMessage);
-    attributes.push(...parseAttributeTokens(tokens, range, diagnostics));
+    attributes.push(...parseAttributeTokens(tokens, range, diagnostics, nonHeadUtilityMessage));
   } else if (name === "suspense") {
     const parsed = parseAttributesAndInlineText(tokens, range, diagnostics, nonHeadUtilityMessage);
     attributes.push(...parsed.attributes);
@@ -292,11 +290,17 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange, diagno
   };
 }
 
-function parseForDirective(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): { forDirective?: ForDirective; attributes: Attribute[] } {
+function parseForDirective(
+  tokens: TokenRecord[],
+  range: SourceRange,
+  diagnostics: Diagnostic[],
+  utilityGroupMessage: string
+): { forDirective?: ForDirective; attributes: Attribute[] } {
   const keyTokenIndex = tokens.findIndex((token) => token.raw.startsWith("key:"));
   const loopTokens = keyTokenIndex === -1 ? tokens : tokens.slice(0, keyTokenIndex);
   const attrTokens = keyTokenIndex === -1 ? [] : tokens.slice(keyTokenIndex);
-  const attributes = parseAttributeTokens(attrTokens, range, diagnostics);
+  diagnoseNonHeadUtilityGroups(loopTokens, range, diagnostics, utilityGroupMessage);
+  const attributes = parseAttributeTokens(attrTokens, range, diagnostics, utilityGroupMessage);
   const keyAttribute = attributes.find((attribute) => attribute.name === "key");
   const inTokenIndex = loopTokens.findIndex((token) => token.raw === "in");
   const itemToken = loopTokens[0];
@@ -329,7 +333,12 @@ function parseConvexReference(
   return {
     kind: "convex-reference",
     address,
-    attributes: parseAttributeTokens(tokens, range, diagnostics),
+    attributes: parseAttributeTokens(
+      tokens,
+      range,
+      diagnostics,
+      "Convex references cannot contain utility groups; bracket utility groups are only valid in element or component heads."
+    ),
     children: [],
     raw,
     range
@@ -346,7 +355,12 @@ function parseConvexCall(
   const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
   const head = headToken?.raw ?? "$$missing:missing";
   const address = parseConvexAddress(head, range, diagnostics);
-  const attributes = parseAttributeTokens(tokens, range, diagnostics);
+  const attributes = parseAttributeTokens(
+    tokens,
+    range,
+    diagnostics,
+    "Convex calls cannot contain utility groups; bracket utility groups are only valid in element or component heads."
+  );
   const asAttribute = attributes.find((attribute) => attribute.name === "as");
   const bindingName = attributeLiteralValue(asAttribute) ?? inferResourceBindingName(address.modulePath, address.functionName);
   const node: ConvexCallNode = {
@@ -488,14 +502,18 @@ function diagnoseInvalidAttributeToken(token: TokenRecord, range: SourceRange, d
 function diagnoseNonHeadUtilityGroups(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], message: string): void {
   for (const token of tokens) {
     if (!isLikelyUtilityGroupToken(token.raw)) continue;
-    diagnostics.push({
-      code: "WX006",
-      severity: "error",
-      line: range.start.line,
-      column: range.start.column + token.start,
-      message
-    });
+    diagnoseUtilityGroupToken(token, range, diagnostics, message);
   }
+}
+
+function diagnoseUtilityGroupToken(token: TokenRecord, range: SourceRange, diagnostics: Diagnostic[], message: string): void {
+  diagnostics.push({
+    code: "WX006",
+    severity: "error",
+    line: range.start.line,
+    column: range.start.column + token.start,
+    message
+  });
 }
 
 function isLikelyUtilityGroupToken(token: string): boolean {
@@ -631,9 +649,14 @@ function isAttributeLike(token: string): boolean {
   return /^[a-z][a-z0-9_-]*-[a-z0-9_-]+$/.test(token);
 }
 
-function parseAttributeTokens(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): Attribute[] {
+function parseAttributeTokens(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage?: string): Attribute[] {
   const attributes: Attribute[] = [];
   for (const token of tokens) {
+    if (utilityGroupMessage && isUtilityGroupToken(token.raw)) {
+      diagnoseUtilityGroupToken(token, range, diagnostics, utilityGroupMessage);
+      continue;
+    }
+
     const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end));
     if (attribute) attributes.push(attribute);
     else diagnoseInvalidAttributeToken(token, range, diagnostics);
