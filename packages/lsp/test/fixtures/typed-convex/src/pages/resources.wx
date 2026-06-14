@@ -1,0 +1,4 @@
+~~~
+$$talks:list
+  +for talk in talks
+    p {{ talk.title }} — {{ talk.minutes.toUpperCase() }}

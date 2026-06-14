@@ -9,6 +9,8 @@ import { createWavexLanguagePlugin, createWavexServicePlugin } from "../src/inde
 const fixturesDir = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures");
 const talkFixture = resolve(fixturesDir, "talk.wx");
 const badUtilityFixture = resolve(fixturesDir, "bad-utility.wx");
+const typedConvexFixture = resolve(fixturesDir, "typed-convex/src/pages/resources.wx");
+const typedConvexServerShim = resolve(fixturesDir, "typed-convex/convex-server.d.ts");
 
 function createChecker(files: string[]) {
   return createTypeScriptInferredChecker(
@@ -50,6 +52,17 @@ describe("@wavex/lsp", () => {
     expect(wx005!.source).toBe("wavex");
     expect(String(wx005!.message)).toContain("gap:xl");
     expect(wx005!.range.start.line).toBe(2);
+  });
+
+  it("types Convex resource bindings from generated api.d.ts and maps diagnostics to .wx expressions", async () => {
+    const checker = createChecker([typedConvexFixture, typedConvexServerShim]);
+    const diagnostics = await checker.check(typedConvexFixture);
+
+    const resourceTypeError = diagnostics.find((diagnostic) => String(diagnostic.message).includes("toUpperCase"));
+    expect(resourceTypeError).toBeDefined();
+    expect(resourceTypeError!.source).not.toBe("wavex");
+    expect(resourceTypeError!.range.start.line).toBe(3);
+    expect(diagnostics.filter((diagnostic) => diagnostic !== resourceTypeError)).toEqual([]);
   });
 
   it("offers component, directive, and Convex completions", async () => {
