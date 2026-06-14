@@ -32,6 +32,7 @@ describe("dependency hygiene", () => {
     const pluginPackage = readJson("packages/vite-plugin/package.json");
 
     expect(rootPackage.pnpm.overrides).toMatchObject({
+      "@types/node": nodeVersion,
       vite: vitePlusCoreSpecifier,
       vitest: vitePlusTestSpecifier
     });
@@ -70,6 +71,9 @@ describe("dependency hygiene", () => {
         for (const [name, specifier] of Object.entries(manifest[dependencyBlock] ?? {})) {
           expect({ package: relativePath, dependencyBlock, name, specifier }).not.toMatchObject({ specifier: "latest" });
           expect({ package: relativePath, dependencyBlock, name, specifier }).not.toMatchObject({ specifier: expect.stringContaining("@latest") });
+          if (name === "@types/node") {
+            expect({ package: relativePath, dependencyBlock, name, specifier }).toMatchObject({ specifier: nodeVersion });
+          }
         }
       }
     }
@@ -83,8 +87,12 @@ describe("dependency hygiene", () => {
     expect(Object.keys(todoPackage.dependencies)).not.toContain("@web.awesome.me/webawesome-pro");
     expect(Object.keys(swellPackage.dependencies)).not.toContain("@web.awesome.me/webawesome-pro");
 
+    const lockfile = readText("pnpm-lock.yaml");
+    const lockedNodeTypeVersions = new Set([...lockfile.matchAll(/@types\/node@([0-9]+\.[0-9]+\.[0-9]+)/g)].map((match) => match[1]));
+    expect(lockedNodeTypeVersions).toEqual(new Set([nodeVersion]));
+
     expect(readText(".npmrc")).not.toMatch(/NPM_TOKEN|npm\.fontawesome\.com|webawesome-pro/);
     expect(readText("README.md")).toMatch(/A fresh clone installs without Font Awesome or Web Awesome commercial registry\s+tokens/);
-    expect(readText("pnpm-lock.yaml")).not.toMatch(/@awesome\.me\/kit-bb4fac79fe|@web\.awesome\.me\/webawesome-pro/);
+    expect(lockfile).not.toMatch(/@awesome\.me\/kit-bb4fac79fe|@web\.awesome\.me\/webawesome-pro/);
   });
 });
