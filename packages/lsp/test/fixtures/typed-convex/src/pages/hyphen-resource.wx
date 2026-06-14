@@ -1,0 +1,3 @@
+~~~
+$$talks-bad:list as:talksBad
+  p Typo should be diagnosed for string-literal API path segments

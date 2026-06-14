@@ -227,20 +227,22 @@ function appendMappedConvexApiPath(source: string, resource: ResourceBinding, em
     throw new Error(`Convex resource address ${JSON.stringify(rawAddress)} did not match normalized API path.`);
   }
 
+  let requiresBracketAccess = false;
   for (const [index, expected] of expectedSegments.entries()) {
     const sourceSegment = sourceSegments[index]!;
     if (sourceSegment.text.replace(/:/g, "/") !== expected) {
       throw new Error(`Convex resource segment ${JSON.stringify(sourceSegment.text)} did not match ${JSON.stringify(expected)}.`);
     }
 
-    if (IDENTIFIER.test(expected)) {
+    if (IDENTIFIER.test(expected) && !requiresBracketAccess) {
       emitter.append(".");
       emitter.appendMapped(expected, sourceSegment.offset);
     } else {
+      requiresBracketAccess = true;
       emitter.append("[");
-      emitter.append(JSON.stringify(expected).slice(0, 1));
+      emitter.appendMapped(JSON.stringify(expected).slice(0, 1), sourceSegment.offset);
       emitter.appendMapped(expected, sourceSegment.offset);
-      emitter.append(JSON.stringify(expected).slice(-1));
+      emitter.appendMapped(JSON.stringify(expected).slice(-1), sourceSegment.offset + expected.length - 1);
       emitter.append("]");
     }
   }

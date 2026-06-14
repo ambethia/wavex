@@ -12,6 +12,7 @@ const badUtilityFixture = resolve(fixturesDir, "bad-utility.wx");
 const typedConvexFixture = resolve(fixturesDir, "typed-convex/src/pages/resources.wx");
 const missingConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/missing-resource.wx");
 const invalidConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/invalid-resource.wx");
+const hyphenConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/hyphen-resource.wx");
 const typedConvexServerShim = resolve(fixturesDir, "typed-convex/convex-server.d.ts");
 
 function createChecker(files: string[]) {
@@ -85,6 +86,17 @@ describe("@wavex/lsp", () => {
     const syntaxError = diagnostics.find((diagnostic) => diagnostic.code === "WX020");
     expect(syntaxError).toBeDefined();
     expect(syntaxError!.source).toBe("wavex");
+  });
+
+  it("reports typoed Convex resource references with string-literal API path segments", async () => {
+    const checker = createChecker([hyphenConvexResourceFixture, typedConvexServerShim]);
+    const diagnostics = await checker.check(hyphenConvexResourceFixture);
+
+    const missingResourceError = diagnostics.find((diagnostic) => String(diagnostic.message).includes("talks-bad"));
+    expect(missingResourceError).toBeDefined();
+    expect(missingResourceError!.source).not.toBe("wavex");
+    expect(missingResourceError!.range.start.line).toBe(1);
+    expect(missingResourceError!.range.start.character).toBe(2);
   });
 
   it("offers component, directive, and Convex completions", async () => {
