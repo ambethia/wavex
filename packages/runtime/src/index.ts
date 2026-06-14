@@ -82,6 +82,7 @@ export interface NavigationState {
   to?: RouteContext;
 }
 
+/** Computes resource args from the current render context before subscription. */
 export type ResourceArgsFactory<TArgs = unknown> = (context: RenderContext) => TArgs;
 
 /**
@@ -100,6 +101,7 @@ export interface ResourceDefinition<TArgs = unknown> {
   getArgs?: ResourceArgsFactory<TArgs>;
 }
 
+/** Resource definition after args have been resolved for the current render context. */
 export interface ResolvedResourceDefinition<TArgs = unknown> {
   name: string;
   modulePath: string;
@@ -109,11 +111,13 @@ export interface ResolvedResourceDefinition<TArgs = unknown> {
   args: TArgs;
 }
 
+/** Callbacks a ResourceClient uses to publish resource values or errors. */
 export interface ResourceSubscriptionHandlers<T = unknown> {
   next(value: T): void;
   error(error: unknown): void;
 }
 
+/** Teardown shape returned by a resource subscription; supports Convex and test-client conventions. */
 export type ResourceTeardown = void | (() => void) | { dispose?: () => void; unsubscribe?: () => void; getCurrentValue?: () => unknown };
 
 /**
@@ -135,6 +139,7 @@ export interface ResourceController {
   dispose(): void;
 }
 
+/** Options for resource subscription management. */
 export interface ResourceControllerOptions {
   client?: ResourceClient;
   onChange?: () => void;
@@ -150,6 +155,7 @@ export interface ActionDefinition<TArgs = unknown> {
   args?: TArgs;
 }
 
+/** Semantic action definition after kind and args are resolved for dispatch. */
 export interface ResolvedActionDefinition<TArgs = unknown> {
   target: string;
   modulePath: string;
@@ -171,6 +177,7 @@ export interface ActionClient {
  */
 export type ActionKindResolver = (definition: ActionDefinition, event: WavexActionEvent) => "mutation" | "action" | undefined;
 
+/** Dependencies and lifecycle hooks for the semantic action dispatcher. */
 export interface SemanticActionDispatcherOptions {
   actionClient?: ActionClient;
   dispatch?: (event: WavexActionEvent) => void | Promise<void>;
@@ -198,11 +205,13 @@ export interface ConvexActionClientLike {
   action(action: unknown, args: Record<string, unknown>): Promise<unknown>;
 }
 
+/** Function-resolution options for the Convex query resource adapter. */
 export interface ConvexResourceClientOptions {
   api?: unknown;
   resolveFunction?: (definition: ResolvedResourceDefinition) => unknown;
 }
 
+/** Function-resolution options for the Convex mutation/action adapter. */
 export interface ConvexActionClientOptions {
   api?: unknown;
   resolveFunction?: (definition: ResolvedActionDefinition) => unknown;

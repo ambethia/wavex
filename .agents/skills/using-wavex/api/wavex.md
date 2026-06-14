@@ -83,7 +83,7 @@ The standard WAVEx app layout (see [WavexConfig](@wavex/core/README.md#wavexconf
 function createRouteDefinition(file, pagesDir?): RouteDefinition | undefined;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:65](packages/core/dist/model.d.ts#L65)
+Defined in: [packages/core/dist/model.d.ts:68](packages/core/dist/model.d.ts#L68)
 
 Build a full [RouteDefinition](@wavex/core/README.md#routedefinition) from a page file path, or undefined if the file is not routable.
 
@@ -141,7 +141,7 @@ with errors still yields a best-effort AST for the LSP and compiler.
 function routePathFromPageFile(file, pagesDir?): string | undefined;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:61](packages/core/dist/model.d.ts#L61)
+Defined in: [packages/core/dist/model.d.ts:62](packages/core/dist/model.d.ts#L62)
 
 Derive a route path from a page file path, or undefined for non-routable
 files (`+layout.wx`, `+error.wx`, non-`.wx` files). `index.wx` maps to the

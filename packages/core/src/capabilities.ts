@@ -23,6 +23,7 @@ import type { ComponentNode, ConvexCallNode, ConvexReferenceNode, TemplateNode, 
 import type { Diagnostic } from "./model.js";
 import { toKebabCase } from "./model.js";
 
+/** Installed Web Awesome package details available to validation and code generation. */
 export interface WebAwesomeCapability {
   /** Installed package name, e.g. "@web.awesome.me/webawesome-pro" or "@awesome.me/webawesome". */
   packageName: string;
@@ -33,6 +34,7 @@ export interface WebAwesomeCapability {
   packageDir: string;
 }
 
+/** Installed Font Awesome kits and packages available to icon-related validation. */
 export interface FontAwesomeCapability {
   /** Installed kit packages (@awesome.me/kit-*). */
   kits: readonly string[];
@@ -40,6 +42,7 @@ export interface FontAwesomeCapability {
   packages: readonly string[];
 }
 
+/** Capability snapshot discovered from an app root. */
 export interface ProjectCapabilities {
   webAwesome?: WebAwesomeCapability;
   fontAwesome: FontAwesomeCapability;
@@ -179,6 +182,7 @@ function capabilityDiagnostic(node: ComponentNode, message: string): Diagnostic 
   };
 }
 
+/** Inputs for validating whether Convex references are client-template callable. */
 export interface ConvexValidationOptions {
   /** Map from normalized "module/path:function" references to detected Convex kind. */
   functionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
@@ -250,6 +254,7 @@ function referenceForNode(node: ConvexReferenceNode | ConvexCallNode): string {
   return `${node.address.modulePath}:${node.address.functionName}`;
 }
 
+/** Normalize a semantic `$$module:function` event target into a Convex function-kind lookup key. */
 export function convexSemanticEventTargetReference(target: string): string | undefined {
   if (!target.startsWith("$$")) return undefined;
   const withoutSigils = target.slice(2);
@@ -310,6 +315,7 @@ export function discoverLocalComponents(root: string): string[] {
   return components.sort();
 }
 
+/** Attribute metadata for one Web Awesome component attribute. */
 export interface WebAwesomeAttribute {
   name: string;
   description?: string;
@@ -317,6 +323,7 @@ export interface WebAwesomeAttribute {
   default?: string;
 }
 
+/** Manifest metadata for one Web Awesome component. */
 export interface WebAwesomeComponentDetail {
   /** Component name without the wa- prefix. */
   name: string;

@@ -20,7 +20,7 @@ Import from `@wavex/core/capabilities`.
 
 ### ComponentValidationOptions
 
-Defined in: [packages/core/src/capabilities.ts:117](packages/core/src/capabilities.ts#L117)
+Defined in: [packages/core/src/capabilities.ts:120](packages/core/src/capabilities.ts#L120)
 
 Detected capabilities to validate component/icon references against.
 
@@ -32,7 +32,7 @@ Detected capabilities to validate component/icon references against.
 optional fontAwesome?: FontAwesomeCapability;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:120](packages/core/src/capabilities.ts#L120)
+Defined in: [packages/core/src/capabilities.ts:123](packages/core/src/capabilities.ts#L123)
 
 ##### localComponents?
 
@@ -40,7 +40,7 @@ Defined in: [packages/core/src/capabilities.ts:120](packages/core/src/capabiliti
 optional localComponents?: readonly string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:118](packages/core/src/capabilities.ts#L118)
+Defined in: [packages/core/src/capabilities.ts:121](packages/core/src/capabilities.ts#L121)
 
 ##### webAwesome?
 
@@ -48,13 +48,15 @@ Defined in: [packages/core/src/capabilities.ts:118](packages/core/src/capabiliti
 optional webAwesome?: Pick<WebAwesomeCapability, "packageName" | "components">;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:119](packages/core/src/capabilities.ts#L119)
+Defined in: [packages/core/src/capabilities.ts:122](packages/core/src/capabilities.ts#L122)
 
 ***
 
 ### ConvexValidationOptions
 
-Defined in: [packages/core/src/capabilities.ts:182](packages/core/src/capabilities.ts#L182)
+Defined in: [packages/core/src/capabilities.ts:186](packages/core/src/capabilities.ts#L186)
+
+Inputs for validating whether Convex references are client-template callable.
 
 #### Properties
 
@@ -64,7 +66,7 @@ Defined in: [packages/core/src/capabilities.ts:182](packages/core/src/capabiliti
 optional functionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:184](packages/core/src/capabilities.ts#L184)
+Defined in: [packages/core/src/capabilities.ts:188](packages/core/src/capabilities.ts#L188)
 
 Map from normalized "module/path:function" references to detected Convex kind.
 
@@ -72,7 +74,9 @@ Map from normalized "module/path:function" references to detected Convex kind.
 
 ### FontAwesomeCapability
 
-Defined in: [packages/core/src/capabilities.ts:36](packages/core/src/capabilities.ts#L36)
+Defined in: [packages/core/src/capabilities.ts:38](packages/core/src/capabilities.ts#L38)
+
+Installed Font Awesome kits and packages available to icon-related validation.
 
 #### Properties
 
@@ -82,7 +86,7 @@ Defined in: [packages/core/src/capabilities.ts:36](packages/core/src/capabilitie
 kits: readonly string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:38](packages/core/src/capabilities.ts#L38)
+Defined in: [packages/core/src/capabilities.ts:40](packages/core/src/capabilities.ts#L40)
 
 Installed kit packages (@awesome.me/kit-*).
 
@@ -92,7 +96,7 @@ Installed kit packages (@awesome.me/kit-*).
 packages: readonly string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:40](packages/core/src/capabilities.ts#L40)
+Defined in: [packages/core/src/capabilities.ts:42](packages/core/src/capabilities.ts#L42)
 
 Installed @fortawesome/* packages.
 
@@ -100,7 +104,9 @@ Installed @fortawesome/* packages.
 
 ### ProjectCapabilities
 
-Defined in: [packages/core/src/capabilities.ts:43](packages/core/src/capabilities.ts#L43)
+Defined in: [packages/core/src/capabilities.ts:46](packages/core/src/capabilities.ts#L46)
+
+Capability snapshot discovered from an app root.
 
 #### Properties
 
@@ -110,7 +116,7 @@ Defined in: [packages/core/src/capabilities.ts:43](packages/core/src/capabilitie
 fontAwesome: FontAwesomeCapability;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:45](packages/core/src/capabilities.ts#L45)
+Defined in: [packages/core/src/capabilities.ts:48](packages/core/src/capabilities.ts#L48)
 
 ##### webAwesome?
 
@@ -118,13 +124,15 @@ Defined in: [packages/core/src/capabilities.ts:45](packages/core/src/capabilitie
 optional webAwesome?: WebAwesomeCapability;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:44](packages/core/src/capabilities.ts#L44)
+Defined in: [packages/core/src/capabilities.ts:47](packages/core/src/capabilities.ts#L47)
 
 ***
 
 ### WebAwesomeAttribute
 
-Defined in: [packages/core/src/capabilities.ts:313](packages/core/src/capabilities.ts#L313)
+Defined in: [packages/core/src/capabilities.ts:319](packages/core/src/capabilities.ts#L319)
+
+Attribute metadata for one Web Awesome component attribute.
 
 #### Properties
 
@@ -134,7 +142,7 @@ Defined in: [packages/core/src/capabilities.ts:313](packages/core/src/capabiliti
 optional default?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:317](packages/core/src/capabilities.ts#L317)
+Defined in: [packages/core/src/capabilities.ts:323](packages/core/src/capabilities.ts#L323)
 
 ##### description?
 
@@ -142,7 +150,7 @@ Defined in: [packages/core/src/capabilities.ts:317](packages/core/src/capabiliti
 optional description?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:315](packages/core/src/capabilities.ts#L315)
+Defined in: [packages/core/src/capabilities.ts:321](packages/core/src/capabilities.ts#L321)
 
 ##### name
 
@@ -150,7 +158,7 @@ Defined in: [packages/core/src/capabilities.ts:315](packages/core/src/capabiliti
 name: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:314](packages/core/src/capabilities.ts#L314)
+Defined in: [packages/core/src/capabilities.ts:320](packages/core/src/capabilities.ts#L320)
 
 ##### type?
 
@@ -158,13 +166,15 @@ Defined in: [packages/core/src/capabilities.ts:314](packages/core/src/capabiliti
 optional type?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:316](packages/core/src/capabilities.ts#L316)
+Defined in: [packages/core/src/capabilities.ts:322](packages/core/src/capabilities.ts#L322)
 
 ***
 
 ### WebAwesomeCapability
 
-Defined in: [packages/core/src/capabilities.ts:26](packages/core/src/capabilities.ts#L26)
+Defined in: [packages/core/src/capabilities.ts:27](packages/core/src/capabilities.ts#L27)
+
+Installed Web Awesome package details available to validation and code generation.
 
 #### Properties
 
@@ -174,7 +184,7 @@ Defined in: [packages/core/src/capabilities.ts:26](packages/core/src/capabilitie
 components: ReadonlySet<string>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:31](packages/core/src/capabilities.ts#L31)
+Defined in: [packages/core/src/capabilities.ts:32](packages/core/src/capabilities.ts#L32)
 
 Component names without the wa- prefix, from the package's custom-elements.json.
 
@@ -184,7 +194,7 @@ Component names without the wa- prefix, from the package's custom-elements.json.
 packageDir: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:33](packages/core/src/capabilities.ts#L33)
+Defined in: [packages/core/src/capabilities.ts:34](packages/core/src/capabilities.ts#L34)
 
 Installed package directory (for manifest details and stylesheet scans).
 
@@ -194,7 +204,7 @@ Installed package directory (for manifest details and stylesheet scans).
 packageName: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:28](packages/core/src/capabilities.ts#L28)
+Defined in: [packages/core/src/capabilities.ts:29](packages/core/src/capabilities.ts#L29)
 
 Installed package name, e.g. "@web.awesome.me/webawesome-pro" or "@awesome.me/webawesome".
 
@@ -204,13 +214,15 @@ Installed package name, e.g. "@web.awesome.me/webawesome-pro" or "@awesome.me/we
 pro: boolean;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:29](packages/core/src/capabilities.ts#L29)
+Defined in: [packages/core/src/capabilities.ts:30](packages/core/src/capabilities.ts#L30)
 
 ***
 
 ### WebAwesomeComponentDetail
 
-Defined in: [packages/core/src/capabilities.ts:320](packages/core/src/capabilities.ts#L320)
+Defined in: [packages/core/src/capabilities.ts:327](packages/core/src/capabilities.ts#L327)
+
+Manifest metadata for one Web Awesome component.
 
 #### Properties
 
@@ -220,7 +232,7 @@ Defined in: [packages/core/src/capabilities.ts:320](packages/core/src/capabiliti
 attributes: WebAwesomeAttribute[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:324](packages/core/src/capabilities.ts#L324)
+Defined in: [packages/core/src/capabilities.ts:331](packages/core/src/capabilities.ts#L331)
 
 ##### name
 
@@ -228,7 +240,7 @@ Defined in: [packages/core/src/capabilities.ts:324](packages/core/src/capabiliti
 name: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:322](packages/core/src/capabilities.ts#L322)
+Defined in: [packages/core/src/capabilities.ts:329](packages/core/src/capabilities.ts#L329)
 
 Component name without the wa- prefix.
 
@@ -238,7 +250,7 @@ Component name without the wa- prefix.
 slots: object[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:325](packages/core/src/capabilities.ts#L325)
+Defined in: [packages/core/src/capabilities.ts:332](packages/core/src/capabilities.ts#L332)
 
 ###### description?
 
@@ -258,7 +270,7 @@ name: string;
 optional summary?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:323](packages/core/src/capabilities.ts#L323)
+Defined in: [packages/core/src/capabilities.ts:330](packages/core/src/capabilities.ts#L330)
 
 ## Type Aliases
 
@@ -268,7 +280,7 @@ Defined in: [packages/core/src/capabilities.ts:323](packages/core/src/capabiliti
 type ConvexFunctionKind = "query" | "mutation" | "action" | "internal" | "httpAction";
 ```
 
-Defined in: [packages/core/src/capabilities.ts:49](packages/core/src/capabilities.ts#L49)
+Defined in: [packages/core/src/capabilities.ts:52](packages/core/src/capabilities.ts#L52)
 
 Convex function kinds relevant to client template validation.
 
@@ -280,7 +292,9 @@ Convex function kinds relevant to client template validation.
 function convexSemanticEventTargetReference(target): string | undefined;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:253](packages/core/src/capabilities.ts#L253)
+Defined in: [packages/core/src/capabilities.ts:258](packages/core/src/capabilities.ts#L258)
+
+Normalize a semantic `$$module:function` event target into a Convex function-kind lookup key.
 
 #### Parameters
 
@@ -300,7 +314,7 @@ Defined in: [packages/core/src/capabilities.ts:253](packages/core/src/capabiliti
 function detectCapabilities(root): ProjectCapabilities;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:57](packages/core/src/capabilities.ts#L57)
+Defined in: [packages/core/src/capabilities.ts:60](packages/core/src/capabilities.ts#L60)
 
 Detect installed Web Awesome / Font Awesome capabilities from an app root.
 
@@ -322,7 +336,7 @@ Detect installed Web Awesome / Font Awesome capabilities from an app root.
 function discoverConvexFunctionKinds(root): Record<string, ConvexFunctionKind>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:270](packages/core/src/capabilities.ts#L270)
+Defined in: [packages/core/src/capabilities.ts:275](packages/core/src/capabilities.ts#L275)
 
 Classify Convex functions by scanning convex/ sources ("module/path:fn" ->
 kind). Public functions keep their concrete query/mutation/action kind;
@@ -347,7 +361,7 @@ Shared by the compiler, Vite plugin, CLI, and LSP.
 function discoverLocalComponents(root): string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:295](packages/core/src/capabilities.ts#L295)
+Defined in: [packages/core/src/capabilities.ts:300](packages/core/src/capabilities.ts#L300)
 
 Local component references discovered from src/components (e.g. "talk-card", "tasks/item").
 
@@ -369,7 +383,7 @@ Local component references discovered from src/components (e.g. "talk-card", "ta
 function readManifestComponentDetails(manifestPath): Map<string, WebAwesomeComponentDetail>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:329](packages/core/src/capabilities.ts#L329)
+Defined in: [packages/core/src/capabilities.ts:336](packages/core/src/capabilities.ts#L336)
 
 Full component metadata (descriptions, attributes, slots) from custom-elements.json.
 
@@ -391,7 +405,7 @@ Full component metadata (descriptions, attributes, slots) from custom-elements.j
 function readManifestComponents(manifestPath): ReadonlySet<string>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:91](packages/core/src/capabilities.ts#L91)
+Defined in: [packages/core/src/capabilities.ts:94](packages/core/src/capabilities.ts#L94)
 
 Parse component names (without wa- prefix) from a custom-elements.json manifest.
 
@@ -413,7 +427,7 @@ Parse component names (without wa- prefix) from a custom-elements.json manifest.
 function readUtilityClasses(packageDir): string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:366](packages/core/src/capabilities.ts#L366)
+Defined in: [packages/core/src/capabilities.ts:373](packages/core/src/capabilities.ts#L373)
 
 Utility class suffixes (wa-stack -> "stack") scraped from the installed package's stylesheets.
 
@@ -435,7 +449,7 @@ Utility class suffixes (wa-stack -> "stack") scraped from the installed package'
 function validateComponentReferences(file, options): Diagnostic[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:124](packages/core/src/capabilities.ts#L124)
+Defined in: [packages/core/src/capabilities.ts:127](packages/core/src/capabilities.ts#L127)
 
 Capability diagnostics for component/icon references in a parsed .wx file.
 
@@ -461,7 +475,7 @@ Capability diagnostics for component/icon references in a parsed .wx file.
 function validateConvexReferences(file, options): Diagnostic[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:188](packages/core/src/capabilities.ts#L188)
+Defined in: [packages/core/src/capabilities.ts:192](packages/core/src/capabilities.ts#L192)
 
 Capability diagnostics for Convex references and bare $$ resource bindings.
 
@@ -487,7 +501,7 @@ Capability diagnostics for Convex references and bare $$ resource bindings.
 function walkTemplateNodes(nodes, visit): void;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:109](packages/core/src/capabilities.ts#L109)
+Defined in: [packages/core/src/capabilities.ts:112](packages/core/src/capabilities.ts#L112)
 
 Depth-first visit of a template node tree.
 

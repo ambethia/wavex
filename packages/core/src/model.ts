@@ -87,6 +87,7 @@ export function createDefaultConfig(): WavexConfig {
   };
 }
 
+/** Normalize Windows path separators to the POSIX-style slash form used by route and component IDs. */
 export function normalizeSlashes(path: string): string {
   return path.replace(/\\/g, "/");
 }
@@ -121,6 +122,7 @@ export function routePathFromPageFile(file: string, pagesDir = "src/pages"): str
   return `/${routeParts.join("/")}`.replace(/\/+/g, "/");
 }
 
+/** Convert a route path (`/tasks/:id`) into matchable route segment records. */
 export function routeSegmentsFromPath(path: string): RouteSegment[] {
   return path
     .split("/")
@@ -132,6 +134,7 @@ export function routeSegmentsFromPath(path: string): RouteSegment[] {
     });
 }
 
+/** Convert a page file path into the stable dotted route id used by generated modules. */
 export function routeIdFromFile(file: string): string {
   return normalizeSlashes(file)
     .replace(/\.wx$/, "")
@@ -151,6 +154,7 @@ export function createRouteDefinition(file: string, pagesDir = "src/pages"): Rou
   };
 }
 
+/** Successful route match result, including the matched route definition and decoded params. */
 export interface RouteMatch {
   route: RouteDefinition;
   params: Record<string, string>;
@@ -256,10 +260,12 @@ export function inferResourceBindingName(modulePath: string, functionName: strin
   return lastPathSegment(modulePath);
 }
 
+/** Return the final non-empty slash-delimited segment from a module or file path. */
 export function lastPathSegment(path: string): string {
   return path.split("/").filter(Boolean).at(-1) ?? path;
 }
 
+/** Lightweight English singularization used for inferred Convex resource binding names. */
 export function singularize(name: string): string {
   if (name.endsWith("ies")) return `${name.slice(0, -3)}y`;
   if (name.endsWith("ses")) return name.slice(0, -2);
@@ -267,6 +273,7 @@ export function singularize(name: string): string {
   return name;
 }
 
+/** Lightweight English pluralization used for inferred Convex resource binding names. */
 export function pluralize(name: string): string {
   if (name.endsWith("s")) return name;
   if (/[^aeiou]y$/i.test(name)) return `${name.slice(0, -1)}ies`;
@@ -284,10 +291,12 @@ export function expandUtilityToken(token: string): string {
   return normalized.startsWith("wa-") ? normalized : `wa-${normalized}`;
 }
 
+/** Expand `[utility]` tokens into concrete `wa-*` class names, dropping empty tokens. */
 export function expandUtilityClassList(tokens: readonly string[]): string[] {
   return tokens.map(expandUtilityToken).filter(Boolean);
 }
 
+/** Join whitespace-separated class name fragments while ignoring falsey values. */
 export function mergeClassNames(...values: Array<string | undefined | false | null>): string {
   return values
     .flatMap((value) => (value ? value.split(/\s+/) : []))
@@ -295,6 +304,7 @@ export function mergeClassNames(...values: Array<string | undefined | false | nu
     .join(" ");
 }
 
+/** Convert component and property identifiers to kebab-case custom-element names. */
 export function toKebabCase(value: string): string {
   return value
     .replace(/([a-z0-9])([A-Z])/g, "$1-$2")

@@ -7,6 +7,7 @@ export interface SourceLocation {
   offset: number;
 }
 
+/** Half-open source range spanning from the first character to the character after the node or token. */
 export interface SourceRange {
   start: SourceLocation;
   end: SourceLocation;
@@ -41,6 +42,7 @@ export type TemplateNode =
   | ConvexReferenceNode
   | ConvexCallNode;
 
+/** Fields shared by every template AST node. */
 export interface BaseNode {
   kind: string;
   range: SourceRange;
@@ -48,6 +50,7 @@ export interface BaseNode {
   raw: string;
 }
 
+/** Native HTML/custom-element template node, including parsed attributes and utility shorthands. */
 export interface ElementNode extends BaseNode {
   kind: "element";
   tag: string;
@@ -57,6 +60,7 @@ export interface ElementNode extends BaseNode {
   inlineTextRange?: SourceRange;
 }
 
+/** Local/Web Awesome component reference written with WAVEx `@component` syntax. */
 export interface ComponentNode extends BaseNode {
   kind: "component";
   reference: string;
@@ -85,6 +89,7 @@ export type DirectiveName =
   | "mutation-error"
   | string;
 
+/** `+directive` template node with its expression, attributes, and directive-specific metadata. */
 export interface DirectiveNode extends BaseNode {
   kind: "directive";
   name: DirectiveName;
@@ -94,6 +99,7 @@ export interface DirectiveNode extends BaseNode {
   for?: ForDirective;
 }
 
+/** Parsed control variables for `+for item of collection` directives. */
 export interface ForDirective {
   itemName: string;
   itemNameRange?: SourceRange;
@@ -103,12 +109,14 @@ export interface ForDirective {
   keyExpressionRange?: SourceRange;
 }
 
+/** Literal text node emitted from `|` lines or inline text. */
 export interface TextNode extends BaseNode {
   kind: "text";
   text: string;
   textRange?: SourceRange;
 }
 
+/** Interpolation node for `={{ expression }}`-style template output. */
 export interface ExpressionNode extends BaseNode {
   kind: "expression";
   expression: string;
@@ -128,12 +136,14 @@ export interface ConvexFunctionAddress {
   raw: string;
 }
 
+/** Inline `$module:function` Convex reference node used as an expression value. */
 export interface ConvexReferenceNode extends BaseNode {
   kind: "convex-reference";
   address: ConvexFunctionAddress;
   attributes: Attribute[];
 }
 
+/** Bare `$$module:function` query binding node that becomes a runtime resource. */
 export interface ConvexCallNode extends BaseNode {
   kind: "convex-call";
   address: ConvexFunctionAddress;
@@ -174,6 +184,7 @@ export type Attribute =
   | SemanticEventAttribute
   | RawEventAttribute;
 
+/** Fields shared by all parsed attribute tokens, including source ranges for editor tooling. */
 export interface BaseAttribute {
   kind: Attribute["kind"];
   name: string;
@@ -184,31 +195,37 @@ export interface BaseAttribute {
   expressionRange?: SourceRange;
 }
 
+/** Boolean attribute token such as `disabled` or `with-footer`. */
 export interface BooleanAttribute extends BaseAttribute {
   kind: "boolean";
 }
 
+/** Static string attribute token parsed from quoted or literal `name:value` syntax. */
 export interface LiteralAttribute extends BaseAttribute {
   kind: "literal";
   value: string;
   quoted: boolean;
 }
 
+/** Dynamic attribute token whose value is a TypeScript expression. */
 export interface ExpressionAttribute extends BaseAttribute {
   kind: "expression";
   expression: string;
 }
 
+/** Shorthand `name:` attribute that passes the in-scope value with the same name. */
 export interface SameNameAttribute extends BaseAttribute {
   kind: "same-name";
 }
 
+/** WAVEx semantic action attribute parsed from `:event:target` syntax. */
 export interface SemanticEventAttribute extends BaseAttribute {
   kind: "semantic-event";
   event: string;
   target: string;
 }
 
+/** Raw event-listener escape hatch parsed from `on:event:handler` syntax. */
 export interface RawEventAttribute extends BaseAttribute {
   kind: "raw-event";
   event: string;

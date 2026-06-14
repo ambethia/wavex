@@ -8,6 +8,7 @@ import type {
   RouteContext
 } from "./index.js";
 
+/** Runtime shape of a lazily loaded page or layout module. */
 export interface RoutePageModule<Result = unknown> {
   default?: RenderFunction<Result>;
   render?: RenderFunction<Result>;
@@ -74,6 +75,7 @@ export interface RouterPageHost {
   setNavigation?(navigation: NavigationState): void;
 }
 
+/** Options for creating the progressive-enhancement client router. */
 export interface ClientRouterOptions {
   routes: readonly ClientRoute[];
   host: RouterPageHost;
@@ -89,6 +91,7 @@ export interface ClientRouterOptions {
   onNavigate?: (route: RouteContext) => void;
 }
 
+/** Imperative router controller returned by createClientRouter. */
 export interface ClientRouter {
   navigate(to: string, options?: { replace?: boolean }): Promise<void>;
   /** Swap the module for a route or layout file in place (HMR), keeping route state. */

@@ -1,7 +1,9 @@
+/** Minimal analytics sink used by semantic action dispatchers. */
 export interface AnalyticsClient {
   capture(event: string, properties?: Record<string, unknown>): void;
 }
 
+/** Configuration for the built-in PostHog `/capture` bridge. */
 export interface PostHogCaptureOptions {
   apiKey: string;
   /** PostHog instance origin, default https://us.i.posthog.com */

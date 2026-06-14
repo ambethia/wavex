@@ -6,11 +6,12 @@
   "description": "WAVEx TypeScript-first framework workspace.",
   "scripts": {
     "build": "pnpm -r build",
-    "check": "pnpm typecheck && pnpm test && pnpm docs:check",
+    "check": "pnpm typecheck && pnpm test && pnpm docs:check && pnpm api-docs:check",
     "typecheck": "pnpm -r typecheck",
     "test": "vp test run",
     "docs:skill": "node scripts/build-docs-skill.mjs",
-    "docs:check": "node scripts/build-docs-skill.mjs --check"
+    "docs:check": "node scripts/build-docs-skill.mjs --check",
+    "api-docs:check": "node scripts/check-api-doc-comments.mjs"
   },
   "keywords": [
     "wavex",
