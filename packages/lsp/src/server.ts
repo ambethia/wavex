@@ -62,10 +62,9 @@ function optionsForDocument(documentUri: string): WavexServiceOptions {
     if (!root) return {};
 
     const cached = optionsCache.get(root);
-    if (cached) return cached;
+    if (cached) return { ...cached, ...discoverConvexServiceOptions(root) };
 
     const capabilities = detectCapabilities(root);
-    const convexFunctionKinds = discoverConvexFunctionKinds(root);
     const options: WavexServiceOptions = {
       localComponents: discoverLocalComponents(root),
       webAwesomeComponents: capabilities.webAwesome ? [...capabilities.webAwesome.components].sort() : [],
@@ -73,19 +72,26 @@ function optionsForDocument(documentUri: string): WavexServiceOptions {
         ? readManifestComponentDetails(join(capabilities.webAwesome.packageDir, "dist", "custom-elements.json"))
         : undefined,
       utilityClasses: capabilities.webAwesome ? readUtilityClasses(capabilities.webAwesome.packageDir) : [],
-      convexFunctions: Object.keys(convexFunctionKinds)
-        .filter((reference) => {
-          const kind = convexFunctionKinds[reference];
-          return kind === "query" || kind === "mutation" || kind === "action";
-        })
-        .sort(),
-      convexFunctionKinds
+      ...discoverConvexServiceOptions(root)
     };
     optionsCache.set(root, options);
     return options;
   } catch {
     return {};
   }
+}
+
+function discoverConvexServiceOptions(root: string): Pick<WavexServiceOptions, "convexFunctions" | "convexFunctionKinds"> {
+  const convexFunctionKinds = discoverConvexFunctionKinds(root);
+  return {
+    convexFunctions: Object.keys(convexFunctionKinds)
+      .filter((reference) => {
+        const kind = convexFunctionKinds[reference];
+        return kind === "query" || kind === "mutation" || kind === "action";
+      })
+      .sort(),
+    convexFunctionKinds
+  };
 }
 
 function findAppRoot(startDir: string): string | undefined {
