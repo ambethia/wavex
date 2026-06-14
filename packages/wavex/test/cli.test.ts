@@ -144,6 +144,15 @@ describe("wavex prerender", () => {
     expect(second).toContain("<main>client app</main>");
     expect(second).not.toContain("First route");
   });
+
+  it("preserves an intentionally empty managed title", () => {
+    const shell = "<!doctype html><html><head><title>App</title></head><body></body></html>";
+
+    const html = injectPrerender(shell, "", [{ tag: "title", text: "" }]);
+
+    expect(html).toContain("<title data-wx-head></title>");
+    expect(html).not.toContain("<title>App</title>");
+  });
 });
 
 describe("viteArgsForWavexCommand", () => {

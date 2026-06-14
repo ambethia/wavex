@@ -87,9 +87,9 @@ export async function prerender(rootInput: string): Promise<void> {
 export function injectPrerender(shell: string, body: string, head: HeadEntryLike[]): string {
   let html = stripPrerenderArtifacts(shell).replace(/(<body[^>]*>)/i, `$1<div data-wx-prerender>${body}</div>`);
 
-  const title = head.find((entry) => entry.tag === "title")?.text;
-  if (title) {
-    const titleTag = `<title data-wx-head>${escapeHtml(title)}</title>`;
+  const titleEntry = head.find((entry) => entry.tag === "title");
+  if (titleEntry) {
+    const titleTag = `<title data-wx-head>${escapeHtml(titleEntry.text ?? "")}</title>`;
     html = /<title\b[^>]*>[\s\S]*?<\/title>/i.test(html)
       ? html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, titleTag)
       : html.replace(/<\/head>/i, `${titleTag}</head>`);
