@@ -7,7 +7,7 @@ points.
 wavex check       # parse + capability diagnostics across the app (agent/CI gate)
 wavex routes      # print the file-convention route table
 wavex compile     # compile a .wx file and print the generated module
-wavex dev         # start the Vite+ dev server
+wavex dev         # start the Vite+ dev server on Vite's default host; pass --host to expose it
 wavex build       # production build
 wavex prerender   # Tier-1 prerender: emit dist/<path>/index.html per route
 ```
