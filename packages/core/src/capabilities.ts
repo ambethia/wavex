@@ -19,7 +19,7 @@
  */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import type { ComponentNode, TemplateNode, WavexFile } from "./ast.js";
+import type { ComponentNode, ConvexCallNode, ConvexReferenceNode, TemplateNode, WavexFile } from "./ast.js";
 import type { Diagnostic } from "./model.js";
 import { toKebabCase } from "./model.js";
 
@@ -44,6 +44,9 @@ export interface ProjectCapabilities {
   webAwesome?: WebAwesomeCapability;
   fontAwesome: FontAwesomeCapability;
 }
+
+/** Convex function kinds relevant to client template validation. */
+export type ConvexFunctionKind = "query" | "mutation" | "action" | "internal" | "httpAction";
 
 const WEB_AWESOME_PACKAGES = [
   { name: "@web.awesome.me/webawesome-pro", pro: true },
@@ -176,14 +179,84 @@ function capabilityDiagnostic(node: ComponentNode, message: string): Diagnostic 
   };
 }
 
+export interface ConvexValidationOptions {
+  /** Map from normalized "module/path:function" references to detected Convex kind. */
+  functionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
+}
+
+/** Capability diagnostics for Convex references and bare $$ resource bindings. */
+export function validateConvexReferences(file: WavexFile, options: ConvexValidationOptions): Diagnostic[] {
+  const diagnostics: Diagnostic[] = [];
+  const kinds = options.functionKinds ?? {};
+  walkTemplateNodes(file.nodes, (node) => {
+    if ("attributes" in node) {
+      for (const attribute of node.attributes) {
+        if (attribute.kind !== "semantic-event") continue;
+        const reference = convexSemanticEventTargetReference(attribute.target);
+        if (!reference) continue;
+        diagnoseDisallowedConvexKind(diagnostics, node, attribute.target, reference, kinds[reference]);
+      }
+    }
+    if (node.kind === "convex-reference") {
+      diagnoseDisallowedConvexKind(diagnostics, node, node.address.raw, referenceForNode(node), kinds[referenceForNode(node)]);
+      return;
+    }
+    if (node.kind !== "convex-call") return;
+    const reference = referenceForNode(node);
+    const kind = kinds[reference];
+    diagnoseDisallowedConvexKind(diagnostics, node, node.address.raw, reference, kind);
+    if (kind === "mutation" || kind === "action") {
+      diagnostics.push({
+        code: "WX102",
+        severity: "error",
+        line: node.range.start.line,
+        column: node.range.start.column,
+        message: `Bare ${node.address.raw} cannot bind a Convex ${kind}; use an explicit event or form trigger instead.`
+      });
+    }
+  });
+  return diagnostics;
+}
+
+function diagnoseDisallowedConvexKind(
+  diagnostics: Diagnostic[],
+  node: { range: ConvexReferenceNode["range"] },
+  rawTarget: string,
+  reference: string,
+  kind: ConvexFunctionKind | undefined
+): void {
+  if (kind !== "internal" && kind !== "httpAction") return;
+  const label = kind === "internal" ? "internal function" : "httpAction";
+  diagnostics.push({
+    code: "WX102",
+    severity: "error",
+    line: node.range.start.line,
+    column: node.range.start.column,
+    message: `${rawTarget} refers to a Convex ${label} (${reference}), which is not client-template callable.`
+  });
+}
+
+function referenceForNode(node: ConvexReferenceNode | ConvexCallNode): string {
+  return `${node.address.modulePath}:${node.address.functionName}`;
+}
+
+export function convexSemanticEventTargetReference(target: string): string | undefined {
+  if (!target.startsWith("$$")) return undefined;
+  const address = target.slice(2).replace(/\([^)]*\)$/, "");
+  const splitIndex = address.lastIndexOf(":");
+  if (splitIndex === -1) return undefined;
+  return `${address.slice(0, splitIndex).replace(/:/g, "/")}:${address.slice(splitIndex + 1)}`;
+}
+
 /**
- * Classify public Convex functions by scanning convex/ sources
- * ("module/path:fn" -> kind). Shared by the Vite plugin (semantic event
- * dispatch) and the LSP (completions).
+ * Classify Convex functions by scanning convex/ sources ("module/path:fn" ->
+ * kind). Public functions keep their concrete query/mutation/action kind;
+ * internal functions and httpAction exports are marked as non-template-callable.
+ * Shared by the compiler, Vite plugin, CLI, and LSP.
  */
-export function discoverConvexFunctionKinds(root: string): Record<string, "query" | "mutation" | "action"> {
+export function discoverConvexFunctionKinds(root: string): Record<string, ConvexFunctionKind> {
   const convexDir = join(root, "convex");
-  const kinds: Record<string, "query" | "mutation" | "action"> = {};
+  const kinds: Record<string, ConvexFunctionKind> = {};
   const walk = (dir: string) => {
     if (!existsSync(dir)) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -195,8 +268,9 @@ export function discoverConvexFunctionKinds(root: string): Record<string, "query
       if (!entry.name.endsWith(".ts") || entry.name.endsWith(".d.ts")) continue;
       const modulePath = path.slice(convexDir.length + 1).replace(/\\/g, "/").replace(/\.ts$/, "");
       const source = readFileSync(path, "utf8");
-      for (const match of source.matchAll(/export\s+const\s+(\w+)\s*=\s*(query|mutation|action)\s*\(/g)) {
-        kinds[`${modulePath}:${match[1]}`] = match[2] as "query" | "mutation" | "action";
+      for (const match of source.matchAll(/export\s+const\s+(\w+)\s*=\s*(query|mutation|action|internalQuery|internalMutation|internalAction|httpAction)\s*\(/g)) {
+        const kind = match[2] === "httpAction" ? "httpAction" : match[2]!.startsWith("internal") ? "internal" : match[2];
+        kinds[`${modulePath}:${match[1]}`] = kind as ConvexFunctionKind;
       }
     }
   };

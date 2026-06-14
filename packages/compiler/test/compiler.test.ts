@@ -36,6 +36,17 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain("data-wx-click=\"selectTask\"");
   });
 
+  it("diagnoses and omits bare $$ resources that are not public Convex queries", () => {
+    const compiled = compileWavexModule(`~~~\n$$tasks:list\n$$tasks:create\n`, {
+      id: "src/pages/index.wx",
+      convexFunctionKinds: { "tasks:list": "query", "tasks:create": "mutation" }
+    });
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX102", severity: "error", line: 3, column: 1 }]);
+    expect(compiled.code).toContain(`functionName: "list"`);
+    expect(compiled.code).not.toContain(`functionName: "create"`);
+  });
+
   it("compiles resource-state directives conditionally inside $$ blocks", () => {
     const compiled = compileWavexModule(
       `~~~\n$$tasks:list\n  +loading\n    p Loading…\n  +empty\n    p No tasks yet.\n  +error problem\n    p {{ String(problem) }}\n  +for task in tasks\n    p {{ task.text }}\n`,

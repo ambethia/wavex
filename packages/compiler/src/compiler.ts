@@ -1,5 +1,6 @@
 import { componentReferenceToTag, expandUtilityClassList, extractAttrsTypeKeys, toKebabCase } from "@wavex/core";
 import { parseWavex } from "@wavex/core";
+import { validateConvexReferences, type ConvexFunctionKind } from "@wavex/core/capabilities";
 import type {
   Attribute,
   ComponentNode,
@@ -19,6 +20,8 @@ export interface CompileWavexOptions {
   localComponents?: readonly string[];
   /** Web Awesome component names (without `wa-`) detected from the installed package. */
   webAwesomeComponents?: readonly string[];
+  /** Detected Convex function kind map keyed by normalized `module/path:function`. */
+  convexFunctionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 }
 
 /** Result of {@link compileWavexModule}: the parsed AST plus the generated module source. */
@@ -57,9 +60,12 @@ const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "i
  */
 export function compileWavexModule(source: string, options: CompileWavexOptions = {}): CompileWavexResult {
   const ast = parseWavex(source, { fileName: options.id });
+  ast.diagnostics.push(...validateConvexReferences(ast, { functionKinds: options.convexFunctionKinds }));
   const renderNodes = ast.nodes.filter((node) => !(node.kind === "directive" && node.name === "head"));
   const headNodes = ast.nodes.filter((node): node is DirectiveNode => node.kind === "directive" && node.name === "head");
-  const resourceNames = [...new Set(ast.resources.map((resource) => resource.name).filter(isIdentifierName))];
+  const resourceNames = [
+    ...new Set(ast.resources.filter((resource) => isQueryResource(resource, options.convexFunctionKinds)).map((resource) => resource.name).filter(isIdentifierName))
+  ];
   const prelude = ast.prelude.trim() ? `${ast.prelude.trim()}\n\n` : "";
   const localComponents = options.localComponents ?? [];
   const usedLocalComponents = new Set<string>();
@@ -74,7 +80,7 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     attrsKeys.length > 0
       ? `  const { ${attrsKeys.join(", ")} } = attrs as Attrs;\n  void ${attrsKeys.join("; void ")};`
       : "";
-  const resourceDefinitions = compileResourceDefinitions(ast.resources, resourceNames);
+  const resourceDefinitions = compileResourceDefinitions(ast.resources, resourceNames, options.convexFunctionKinds);
   const renderBody = compileNodes(renderNodes, compileOptions);
   const headEntriesBody = compileHeadEntries(headNodes.flatMap((node) => node.children));
   const componentImports = [...usedLocalComponents]
@@ -123,10 +129,15 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   return { ast, code, usedWebAwesomeComponents: [...usedWebAwesomeComponents].sort() };
 }
 
-function compileResourceDefinitions(resources: readonly ResourceBinding[], resourceNames: readonly string[]): string {
-  if (resources.length === 0) return `export const resources = [] as const satisfies readonly ResourceDefinition[];`;
+function compileResourceDefinitions(
+  resources: readonly ResourceBinding[],
+  resourceNames: readonly string[],
+  convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined
+): string {
+  const queryResources = resources.filter((resource) => isQueryResource(resource, convexFunctionKinds));
+  if (queryResources.length === 0) return `export const resources = [] as const satisfies readonly ResourceDefinition[];`;
 
-  const entries = resources.map((resource) => {
+  const entries = queryResources.map((resource) => {
     const argsGetter = compileResourceArgsGetter(resource.attributes, resourceNames);
     return [
       `  {`,
@@ -147,6 +158,11 @@ function compileResourceDefinitions(resources: readonly ResourceBinding[], resou
 
 /** Args names reserved for WAVEx itself on $$ calls. */
 const RESERVED_RESOURCE_ATTRIBUTES = new Set(["as", "args"]);
+
+function isQueryResource(resource: ResourceBinding, convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined): boolean {
+  const kind = convexFunctionKinds?.[`${resource.address.modulePath}:${resource.address.functionName}`];
+  return kind === undefined || kind === "query";
+}
 
 function compileResourceArgsGetter(attributes: readonly Attribute[], resourceNames: readonly string[]): string {
   const parts: string[] = [];

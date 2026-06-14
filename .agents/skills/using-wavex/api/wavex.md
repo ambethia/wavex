@@ -33,7 +33,7 @@ re-exports of the most common compiler and core entry points.
 function compileWavexModule(source, options?): CompileWavexResult;
 ```
 
-Defined in: [packages/compiler/dist/compiler.d.ts:30](packages/compiler/dist/compiler.d.ts#L30)
+Defined in: [packages/compiler/dist/compiler.d.ts:33](packages/compiler/dist/compiler.d.ts#L33)
 
 Compile `.wx` source into a Lit render module.
 

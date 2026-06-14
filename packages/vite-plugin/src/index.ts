@@ -49,7 +49,9 @@ const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
 export function wavex(options: WavexVitePluginOptions = {}): Plugin {
   let projectRoot = process.cwd();
   let capabilities: ProjectCapabilities | undefined;
+  let convexFunctionKinds: ReturnType<typeof discoverConvexFunctionKinds> | undefined;
   const projectCapabilities = () => (capabilities ??= detectCapabilities(projectRoot));
+  const projectConvexFunctionKinds = () => (convexFunctionKinds ??= discoverConvexFunctionKinds(projectRoot));
 
   return {
     name: "wavex",
@@ -171,7 +173,8 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         localComponents,
         webAwesomeComponents:
           options.webAwesomeComponents ??
-          (detected.webAwesome ? [...detected.webAwesome.components] : undefined)
+          (detected.webAwesome ? [...detected.webAwesome.components] : undefined),
+        convexFunctionKinds: projectConvexFunctionKinds()
       });
 
       const error = compiled.ast.diagnostics.find((diagnostic) => diagnostic.severity === "error");

@@ -141,6 +141,16 @@ Project context for completions/diagnostics, usually detected via `@wavex/core/c
 
 #### Properties
 
+##### convexFunctionKinds?
+
+```ts
+optional convexFunctionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
+```
+
+Defined in: [packages/lsp/src/service.ts:21](packages/lsp/src/service.ts#L21)
+
+Detected Convex function kinds keyed by normalized `module/path:function`.
+
 ##### convexFunctions?
 
 ```ts
@@ -201,7 +211,7 @@ type WavexServiceOptionsResolver =
   | ((documentUri) => WavexServiceOptions);
 ```
 
-Defined in: [packages/lsp/src/service.ts:23](packages/lsp/src/service.ts#L23)
+Defined in: [packages/lsp/src/service.ts:25](packages/lsp/src/service.ts#L25)
 
 Static options, or a per-document resolver so multi-project workspaces get the right context.
 
@@ -244,7 +254,7 @@ expressions are type-checked by the real TS language service.
 function createWavexServicePlugin(optionsOrResolver?): LanguageServicePlugin;
 ```
 
-Defined in: [packages/lsp/src/service.ts:45](packages/lsp/src/service.ts#L45)
+Defined in: [packages/lsp/src/service.ts:47](packages/lsp/src/service.ts#L47)
 
 Volar service plugin providing the WAVEx-specific editor features that
 aren't plain TypeScript: parser diagnostics, completions for `@` components

@@ -1,3 +1,6 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createRouteDefinition, matchRoutePath, parseAttributeToken, parseQueryString, parseWavex } from "../src/index.js";
 
@@ -347,6 +350,50 @@ describe("validateComponentReferences", () => {
       fontAwesome: { kits: [], packages: [] }
     });
     expect(diagnostics).toMatchObject([{ code: "WX101", severity: "info" }]);
+  });
+});
+
+describe("validateConvexReferences", () => {
+  it("flags bare mutation/action resources and non-template-callable Convex functions", async () => {
+    const { validateConvexReferences } = await import("../src/capabilities.js");
+    const parsed = parseWavex(`~~~\n$$tasks:list\n$$tasks:create\n$secret:read\n@button :click:$$webhook:receive Handle\n`);
+
+    const diagnostics = validateConvexReferences(parsed, {
+      functionKinds: {
+        "tasks:list": "query",
+        "tasks:create": "mutation",
+        "secret:read": "internal",
+        "webhook:receive": "httpAction"
+      }
+    });
+
+    expect(diagnostics).toMatchObject([
+      { code: "WX102", severity: "error", line: 3, column: 1 },
+      { code: "WX102", severity: "error", line: 4, column: 1 },
+      { code: "WX102", severity: "error", line: 5, column: 1 }
+    ]);
+    expect(diagnostics[0]!.message).toContain("Bare $$tasks:create cannot bind a Convex mutation");
+    expect(diagnostics[1]!.message).toContain("internal function");
+    expect(diagnostics[2]!.message).toContain("httpAction");
+  });
+
+  it("discovers public and reserved Convex function kinds from source files", async () => {
+    const { discoverConvexFunctionKinds } = await import("../src/capabilities.js");
+    const root = mkdtempSync(join(tmpdir(), "wavex-convex-"));
+    mkdirSync(join(root, "convex", "admin"), { recursive: true });
+    writeFileSync(
+      join(root, "convex", "tasks.ts"),
+      `export const list = query({});\nexport const create = mutation({});\nexport const run = action({});\nexport const secret = internalQuery({});\n`
+    );
+    writeFileSync(join(root, "convex", "admin", "hooks.ts"), `export const receive = httpAction(async () => new Response());\n`);
+
+    expect(discoverConvexFunctionKinds(root)).toMatchObject({
+      "tasks:list": "query",
+      "tasks:create": "mutation",
+      "tasks:run": "action",
+      "tasks:secret": "internal",
+      "admin/hooks:receive": "httpAction"
+    });
   });
 });
 

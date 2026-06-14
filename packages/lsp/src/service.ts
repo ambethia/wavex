@@ -1,6 +1,6 @@
 import type { LanguageServicePlugin } from "@volar/language-service";
 import { formatDiagnostic, parseWavex, type Diagnostic as WavexDiagnostic } from "@wavex/core";
-import type { WebAwesomeComponentDetail } from "@wavex/core/capabilities";
+import { validateConvexReferences, type ConvexFunctionKind, type WebAwesomeComponentDetail } from "@wavex/core/capabilities";
 import type * as vscode from "vscode-languageserver-protocol";
 import { URI } from "vscode-uri";
 import { WAVEX_LANGUAGE_ID } from "./language.js";
@@ -17,6 +17,8 @@ export interface WavexServiceOptions {
   utilityClasses?: readonly string[];
   /** Convex function references (e.g. "tasks:list"). */
   convexFunctions?: readonly string[];
+  /** Detected Convex function kinds keyed by normalized `module/path:function`. */
+  convexFunctionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 }
 
 /** Static options, or a per-document resolver so multi-project workspaces get the right context. */
@@ -64,7 +66,12 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
         provideDiagnostics(document) {
           if (document.languageId !== WAVEX_LANGUAGE_ID) return undefined;
           const parsed = parseWavex(document.getText());
-          return parsed.diagnostics.map((diagnostic) => toLspDiagnostic(document.getText(), diagnostic));
+          const options = sourceOptions(document.uri);
+          const diagnostics = [
+            ...parsed.diagnostics,
+            ...validateConvexReferences(parsed, { functionKinds: options.convexFunctionKinds })
+          ];
+          return diagnostics.map((diagnostic) => toLspDiagnostic(document.getText(), diagnostic));
         },
 
         provideCompletionItems(document, position) {

@@ -18,7 +18,7 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2), vi
       routes(args[0] ?? process.cwd());
       break;
     case "compile":
-      compile(args[0]);
+      await compile(args[0]);
       break;
     case "dev":
       viteRunner(viteArgsForWavexCommand("dev", args));
@@ -69,10 +69,11 @@ async function check(rootInput: string) {
   let errorCount = 0;
 
   // Capability context: the app root holds node_modules and src/components.
-  const { detectCapabilities, discoverLocalComponents, validateComponentReferences } = await import("@wavex/core/capabilities");
+  const { detectCapabilities, discoverConvexFunctionKinds, discoverLocalComponents, validateComponentReferences, validateConvexReferences } = await import("@wavex/core/capabilities");
   const appRoot = resolveWavexAppRoot(root);
   const capabilities = detectCapabilities(appRoot);
   const localComponents = discoverLocalComponents(appRoot);
+  const convexFunctionKinds = discoverConvexFunctionKinds(appRoot);
 
   for (const file of files) {
     const parsed = parseWavex(readFileSync(file, "utf8"), { fileName: file });
@@ -81,7 +82,8 @@ async function check(rootInput: string) {
       webAwesome: capabilities.webAwesome,
       fontAwesome: capabilities.fontAwesome
     });
-    for (const diagnostic of [...parsed.diagnostics, ...capabilityDiagnostics]) {
+    const convexDiagnostics = validateConvexReferences(parsed, { functionKinds: convexFunctionKinds });
+    for (const diagnostic of [...parsed.diagnostics, ...capabilityDiagnostics, ...convexDiagnostics]) {
       if (diagnostic.severity === "error") errorCount += 1;
       console.log(`${normalizeSlashes(relative(root, file))}: ${formatDiagnostic(diagnostic)}`);
     }
@@ -110,7 +112,7 @@ function routes(rootInput: string) {
   for (const route of routeDefs) console.log(`${route.path}\t${route.file}`);
 }
 
-function compile(fileInput: string | undefined) {
+async function compile(fileInput: string | undefined) {
   if (!fileInput) {
     console.error("Usage: wavex compile <file.wx>");
     process.exitCode = 1;
@@ -118,7 +120,11 @@ function compile(fileInput: string | undefined) {
   }
   const file = resolve(fileInput);
   const source = readFileSync(file, "utf8");
-  const compiled = compileWavexModule(source, { id: normalizeSlashes(file) });
+  const { discoverConvexFunctionKinds } = await import("@wavex/core/capabilities");
+  const compiled = compileWavexModule(source, {
+    id: normalizeSlashes(file),
+    convexFunctionKinds: discoverConvexFunctionKinds(resolveWavexAppRoot(dirname(file)))
+  });
   for (const diagnostic of compiled.ast.diagnostics) console.error(formatDiagnostic(diagnostic));
   if (compiled.ast.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
     process.exitCode = 1;
