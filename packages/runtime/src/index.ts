@@ -498,7 +498,7 @@ export function applyHead(entries: readonly HeadEntry[], documentRef: Document =
       continue;
     }
 
-    const selector = headSelector(entry);
+    const selector = managedHeadSelector(entry);
     const existing = selector ? (documentRef.head.querySelector(selector) as HTMLElement | null) : null;
     const element = existing ?? documentRef.createElement(entry.tag);
 
@@ -717,7 +717,7 @@ function isObjectLike(value: unknown): value is object {
   return (typeof value === "object" && value !== null) || typeof value === "function";
 }
 
-function headSelector(entry: HeadEntry): string | undefined {
+function managedHeadSelector(entry: HeadEntry): string | undefined {
   if (entry.tag === "meta") {
     const name = entry.attributes?.["name"];
     const property = entry.attributes?.["property"];

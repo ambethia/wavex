@@ -104,12 +104,16 @@ describe("applyHead", () => {
     expect(documentRef.head.children).toEqual([]);
   });
 
-  it("reconciles managed meta and link nodes while leaving static head content alone", () => {
+  it("reconciles only managed meta and link nodes that collide with static index.html head content", () => {
     const documentRef = new FakeDocument();
     const staticMeta = documentRef.createElement("meta");
     staticMeta.setAttribute("name", "description");
-    staticMeta.setAttribute("content", "Static");
+    staticMeta.setAttribute("content", "Static description");
     documentRef.head.append(staticMeta);
+    const staticCanonical = documentRef.createElement("link");
+    staticCanonical.setAttribute("rel", "canonical");
+    staticCanonical.setAttribute("href", "/static");
+    documentRef.head.append(staticCanonical);
 
     applyHead(
       [
@@ -122,16 +126,21 @@ describe("applyHead", () => {
     const description = documentRef.head.children.find((element) => {
       return element !== staticMeta && element.attributes.get("name") === "description";
     });
-    const canonical = documentRef.head.children.find((element) => element.attributes.get("rel") === "canonical");
-    expect(staticMeta.attributes.get("content")).toBe("Static");
+    const canonical = documentRef.head.children.find((element) => {
+      return element !== staticCanonical && element.attributes.get("rel") === "canonical";
+    });
+    expect(staticMeta.attributes.get("content")).toBe("Static description");
+    expect(staticCanonical.attributes.get("href")).toBe("/static");
     expect(description?.attributes.get("content")).toBe("First");
     expect(canonical?.attributes.get("href")).toBe("/first");
 
     applyHead([{ tag: "meta", attributes: { name: "description", content: "Second" } }], documentRef as never);
 
     expect(documentRef.head.children).toContain(staticMeta);
+    expect(documentRef.head.children).toContain(staticCanonical);
     expect(documentRef.head.children).toContain(description);
-    expect(staticMeta.attributes.get("content")).toBe("Static");
+    expect(staticMeta.attributes.get("content")).toBe("Static description");
+    expect(staticCanonical.attributes.get("href")).toBe("/static");
     expect(description?.attributes.get("content")).toBe("Second");
     expect(documentRef.head.children).not.toContain(canonical);
   });
