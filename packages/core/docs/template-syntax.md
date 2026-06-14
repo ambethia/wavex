@@ -116,9 +116,10 @@ attributes concise.
 ```
 
 Dynamic values use expression-shaped TypeScript: member paths, calls,
-object/array literals, operators, or one of the built-in roots (`route`, `attrs`,
-`state`, `api`, `ctx`, `context`). `{{ ... }}` may be used to mark any value
-explicitly as an expression.
+object/array literals, unambiguous operators, or one of the built-in roots
+(`route`, `attrs`, `state`, `api`, `ctx`, `context`). Ambiguous hyphenated bare
+values remain static strings; use `{{ ... }}` to mark them explicitly as
+expressions.
 
 ```wx
 @checkbox checked:task.isCompleted
