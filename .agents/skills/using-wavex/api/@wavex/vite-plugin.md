@@ -11,8 +11,8 @@ owns the WAVEx-specific dev/build surface:
   mount div; the bootstrap renders the app directly under `<body>` so the
   app's root element (conventionally `<wa-page>` from the root layout) is the
   first element in the body. Prerendered HTML emits the same shape.
-- Targeted `wavex:update` HMR events for `.wx` edits, so the client can hot
-  swap a page/component render without losing Convex client state.
+- Targeted Vite HMR updates for `.wx` edits, so the client can hot swap a
+  page/component render without losing Convex client state.
 - Lit dedupe and Web Awesome dep-optimizer exclusions, so custom elements are
   served as native ESM and never registered twice.
 
@@ -86,8 +86,8 @@ Defined in: [packages/vite-plugin/src/index.ts:49](packages/vite-plugin/src/inde
 The WAVEx Vite plugin. Compiles `.wx` files to Lit render modules on
 demand, serves `virtual:wavex/routes` (the file-convention route table with
 lazy per-route loaders, layouts, and error pages) and the
-`/@wavex/bootstrap` entry, dedupes Lit, and sends targeted `wavex:update`
-HMR events for template edits so Convex client state survives `.wx` edits.
+`/@wavex/bootstrap` entry, dedupes Lit, and sends targeted Vite HMR
+updates for template edits so Convex client state survives `.wx` edits.
 
 #### Parameters
 
