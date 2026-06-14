@@ -40,6 +40,8 @@ describe("parseWavex", () => {
     expect(parseAttributeToken("task:task")).toMatchObject({ kind: "literal", value: "task" });
     expect(parseAttributeToken("mode:api-client")).toMatchObject({ kind: "literal", value: "api-client" });
     expect(parseAttributeToken("status:state-open")).toMatchObject({ kind: "literal", value: "state-open" });
+    expect(parseAttributeToken("label:api?")).toMatchObject({ kind: "literal", value: "api?" });
+    expect(parseAttributeToken("item:api?.client")).toMatchObject({ kind: "expression", expression: "api?.client" });
     expect(parseAttributeToken("checked:{{ task.isCompleted }}")).toMatchObject({
       kind: "expression",
       expression: "task.isCompleted"
