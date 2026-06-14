@@ -211,9 +211,9 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
     emitter.append(");\n");
   };
 
-  const emitExpressionRange = (range: SourceRange | undefined, fallbackText: string | undefined) => {
+  const emitExpressionRange = (range: SourceRange | undefined) => {
     if (!range) return;
-    emitExpressionAt(sourceForRange(range) ?? fallbackText, range.start.offset);
+    emitExpressionAt(sourceForRange(range), range.start.offset);
   };
 
   const errorBinding = (expression: string | undefined): string =>
@@ -237,7 +237,7 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
     if (node.kind === "text") emitInterpolations(node.textRange);
 
     if (node.kind === "expression") {
-      emitExpressionRange(node.expressionRange, node.expression);
+      emitExpressionRange(node.expressionRange);
     }
 
     if (node.kind === "element" || node.kind === "component" || node.kind === "convex-reference" || node.kind === "convex-call") {
@@ -245,25 +245,25 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
         emitInterpolations(attribute.range);
         // Bare expression attributes (checked:todo.completed) outside mustaches.
         if (attribute.kind === "expression" && !attribute.raw?.includes("{{")) {
-          emitExpressionRange(attribute.expressionRange, attribute.expression);
+          emitExpressionRange(attribute.expressionRange);
         }
         // Same-name shorthand (task:) references the in-scope value.
         if (attribute.kind === "same-name" && IDENTIFIER.test(attribute.name)) {
-          emitExpressionRange(attribute.expressionRange, attribute.name);
+          emitExpressionRange(attribute.expressionRange);
         }
         // Raw-event handlers (on:wa-show:faqOpened) compile to identifier
         // references, so they count as prelude usage. Semantic-event targets
         // (:click:openMenu, :track:todos_cleared) are dispatched by name at
         // runtime and are NOT module identifiers.
         if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
-          emitExpressionRange(attribute.expressionRange, attribute.handler);
+          emitExpressionRange(attribute.expressionRange);
         }
       }
     }
 
     if (node.kind === "directive") {
       if (node.name === "if" && node.expression && node.expressionRange) {
-        emitExpressionRange(node.expressionRange, node.expression);
+        emitExpressionRange(node.expressionRange);
       }
 
       if (node.name === "for" && node.for) {
@@ -277,7 +277,7 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
         } else emitter.append(collectionExpression);
         emitter.append(`) ?? []).forEach((${itemName}, index) => {\n  void index;\n`);
         if (keyExpression && node.for.keyExpressionRange) {
-          emitExpressionRange(node.for.keyExpressionRange, keyExpression);
+          emitExpressionRange(node.for.keyExpressionRange);
         }
         for (const child of node.children) visit(child);
         emitter.append("  });\n");
