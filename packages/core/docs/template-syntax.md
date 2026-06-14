@@ -119,13 +119,17 @@ attributes concise.
 ```
 
 Dynamic values use expression-shaped TypeScript: member paths, calls,
-object/array literals, unambiguous operators, or one of the built-in roots
-(`route`, `attrs`, `state`, `api`, `ctx`, `context`). Ambiguous hyphenated bare
-values remain static strings; use `{{ ... }}` to mark them explicitly as
-expressions.
+object/array literals, numeric literals, unambiguous operators, or one of the
+built-in roots (`route`, `attrs`, `state`, `api`, `ctx`, `context`). Bare
+identifier values on boolean attributes are also expressions so
+`checked:isDone` binds the boolean value instead of the string `"isDone"`.
+Ambiguous hyphenated bare values remain static strings; use `{{ ... }}` to mark
+them explicitly as expressions.
 
 ```wx
+@checkbox checked:isDone
 @checkbox checked:task.isCompleted
+@input maxlength:42
 @button disabled:createTask.pending
 $$tasks:get args:{ id: route.params.id }
 @input value:{{ task }}

@@ -18,7 +18,7 @@ guides under `packages/core/docs/`.
 
 ### BaseAttribute
 
-Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
+Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
 
 #### Extended by
 
@@ -37,7 +37,7 @@ Defined in: [packages/core/src/ast.ts:176](packages/core/src/ast.ts#L176)
 optional expressionRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ##### kind
 
@@ -51,7 +51,7 @@ kind:
   | "raw-event";
 ```
 
-Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
+Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 
 ##### name
 
@@ -59,7 +59,7 @@ Defined in: [packages/core/src/ast.ts:177](packages/core/src/ast.ts#L177)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ##### nameRange?
 
@@ -67,7 +67,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 optional nameRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ##### range?
 
@@ -75,7 +75,7 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 optional range?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 
 ##### raw
 
@@ -83,7 +83,7 @@ Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ##### valueRange?
 
@@ -91,7 +91,7 @@ Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 optional valueRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 ***
 
@@ -147,7 +147,7 @@ Defined in: [packages/core/src/ast.ts:48](packages/core/src/ast.ts#L48)
 
 ### BooleanAttribute
 
-Defined in: [packages/core/src/ast.ts:186](packages/core/src/ast.ts#L186)
+Defined in: [packages/core/src/ast.ts:187](packages/core/src/ast.ts#L187)
 
 #### Extends
 
@@ -161,7 +161,7 @@ Defined in: [packages/core/src/ast.ts:186](packages/core/src/ast.ts#L186)
 optional expressionRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ###### Inherited from
 
@@ -173,7 +173,7 @@ Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 kind: "boolean";
 ```
 
-Defined in: [packages/core/src/ast.ts:187](packages/core/src/ast.ts#L187)
+Defined in: [packages/core/src/ast.ts:188](packages/core/src/ast.ts#L188)
 
 ###### Overrides
 
@@ -185,7 +185,7 @@ Defined in: [packages/core/src/ast.ts:187](packages/core/src/ast.ts#L187)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ###### Inherited from
 
@@ -197,7 +197,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 optional nameRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ###### Inherited from
 
@@ -209,7 +209,7 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 optional range?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 
 ###### Inherited from
 
@@ -221,7 +221,7 @@ Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ###### Inherited from
 
@@ -233,7 +233,7 @@ Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 optional valueRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 ###### Inherited from
 
@@ -822,7 +822,7 @@ Defined in: [packages/core/src/ast.ts:55](packages/core/src/ast.ts#L55)
 
 ### ExpressionAttribute
 
-Defined in: [packages/core/src/ast.ts:196](packages/core/src/ast.ts#L196)
+Defined in: [packages/core/src/ast.ts:197](packages/core/src/ast.ts#L197)
 
 #### Extends
 
@@ -836,7 +836,7 @@ Defined in: [packages/core/src/ast.ts:196](packages/core/src/ast.ts#L196)
 expression: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:198](packages/core/src/ast.ts#L198)
+Defined in: [packages/core/src/ast.ts:199](packages/core/src/ast.ts#L199)
 
 ##### expressionRange?
 
@@ -844,7 +844,7 @@ Defined in: [packages/core/src/ast.ts:198](packages/core/src/ast.ts#L198)
 optional expressionRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ###### Inherited from
 
@@ -856,7 +856,7 @@ Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 kind: "expression";
 ```
 
-Defined in: [packages/core/src/ast.ts:197](packages/core/src/ast.ts#L197)
+Defined in: [packages/core/src/ast.ts:198](packages/core/src/ast.ts#L198)
 
 ###### Overrides
 
@@ -868,7 +868,7 @@ Defined in: [packages/core/src/ast.ts:197](packages/core/src/ast.ts#L197)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ###### Inherited from
 
@@ -880,7 +880,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 optional nameRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ###### Inherited from
 
@@ -892,7 +892,7 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 optional range?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 
 ###### Inherited from
 
@@ -904,7 +904,7 @@ Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ###### Inherited from
 
@@ -916,7 +916,7 @@ Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 optional valueRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 ###### Inherited from
 
@@ -1058,7 +1058,7 @@ Defined in: [packages/core/src/ast.ts:103](packages/core/src/ast.ts#L103)
 
 ### LiteralAttribute
 
-Defined in: [packages/core/src/ast.ts:190](packages/core/src/ast.ts#L190)
+Defined in: [packages/core/src/ast.ts:191](packages/core/src/ast.ts#L191)
 
 #### Extends
 
@@ -1072,7 +1072,7 @@ Defined in: [packages/core/src/ast.ts:190](packages/core/src/ast.ts#L190)
 optional expressionRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ###### Inherited from
 
@@ -1084,7 +1084,7 @@ Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 kind: "literal";
 ```
 
-Defined in: [packages/core/src/ast.ts:191](packages/core/src/ast.ts#L191)
+Defined in: [packages/core/src/ast.ts:192](packages/core/src/ast.ts#L192)
 
 ###### Overrides
 
@@ -1096,7 +1096,7 @@ Defined in: [packages/core/src/ast.ts:191](packages/core/src/ast.ts#L191)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ###### Inherited from
 
@@ -1108,7 +1108,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 optional nameRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ###### Inherited from
 
@@ -1120,7 +1120,7 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 quoted: boolean;
 ```
 
-Defined in: [packages/core/src/ast.ts:193](packages/core/src/ast.ts#L193)
+Defined in: [packages/core/src/ast.ts:194](packages/core/src/ast.ts#L194)
 
 ##### range?
 
@@ -1128,7 +1128,7 @@ Defined in: [packages/core/src/ast.ts:193](packages/core/src/ast.ts#L193)
 optional range?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 
 ###### Inherited from
 
@@ -1140,7 +1140,7 @@ Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ###### Inherited from
 
@@ -1152,7 +1152,7 @@ Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 value: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:192](packages/core/src/ast.ts#L192)
+Defined in: [packages/core/src/ast.ts:193](packages/core/src/ast.ts#L193)
 
 ##### valueRange?
 
@@ -1160,7 +1160,7 @@ Defined in: [packages/core/src/ast.ts:192](packages/core/src/ast.ts#L192)
 optional valueRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 ###### Inherited from
 
@@ -1188,7 +1188,7 @@ Defined in: [packages/core/src/parser.ts:20](packages/core/src/parser.ts#L20)
 
 ### RawEventAttribute
 
-Defined in: [packages/core/src/ast.ts:211](packages/core/src/ast.ts#L211)
+Defined in: [packages/core/src/ast.ts:212](packages/core/src/ast.ts#L212)
 
 #### Extends
 
@@ -1202,7 +1202,7 @@ Defined in: [packages/core/src/ast.ts:211](packages/core/src/ast.ts#L211)
 event: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:213](packages/core/src/ast.ts#L213)
+Defined in: [packages/core/src/ast.ts:214](packages/core/src/ast.ts#L214)
 
 ##### expressionRange?
 
@@ -1210,7 +1210,7 @@ Defined in: [packages/core/src/ast.ts:213](packages/core/src/ast.ts#L213)
 optional expressionRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ###### Inherited from
 
@@ -1222,7 +1222,7 @@ Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 handler: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:214](packages/core/src/ast.ts#L214)
+Defined in: [packages/core/src/ast.ts:215](packages/core/src/ast.ts#L215)
 
 ##### kind
 
@@ -1230,7 +1230,7 @@ Defined in: [packages/core/src/ast.ts:214](packages/core/src/ast.ts#L214)
 kind: "raw-event";
 ```
 
-Defined in: [packages/core/src/ast.ts:212](packages/core/src/ast.ts#L212)
+Defined in: [packages/core/src/ast.ts:213](packages/core/src/ast.ts#L213)
 
 ###### Overrides
 
@@ -1242,7 +1242,7 @@ Defined in: [packages/core/src/ast.ts:212](packages/core/src/ast.ts#L212)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ###### Inherited from
 
@@ -1254,7 +1254,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 optional nameRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ###### Inherited from
 
@@ -1266,7 +1266,7 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 optional range?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 
 ###### Inherited from
 
@@ -1278,7 +1278,7 @@ Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ###### Inherited from
 
@@ -1290,7 +1290,7 @@ Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 optional valueRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 ###### Inherited from
 
@@ -1416,7 +1416,7 @@ Defined in: [packages/core/src/model.ts:155](packages/core/src/model.ts#L155)
 
 ### SameNameAttribute
 
-Defined in: [packages/core/src/ast.ts:201](packages/core/src/ast.ts#L201)
+Defined in: [packages/core/src/ast.ts:202](packages/core/src/ast.ts#L202)
 
 #### Extends
 
@@ -1430,7 +1430,7 @@ Defined in: [packages/core/src/ast.ts:201](packages/core/src/ast.ts#L201)
 optional expressionRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ###### Inherited from
 
@@ -1442,7 +1442,7 @@ Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 kind: "same-name";
 ```
 
-Defined in: [packages/core/src/ast.ts:202](packages/core/src/ast.ts#L202)
+Defined in: [packages/core/src/ast.ts:203](packages/core/src/ast.ts#L203)
 
 ###### Overrides
 
@@ -1454,7 +1454,7 @@ Defined in: [packages/core/src/ast.ts:202](packages/core/src/ast.ts#L202)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ###### Inherited from
 
@@ -1466,7 +1466,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 optional nameRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ###### Inherited from
 
@@ -1478,7 +1478,7 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 optional range?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 
 ###### Inherited from
 
@@ -1490,7 +1490,7 @@ Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ###### Inherited from
 
@@ -1502,7 +1502,7 @@ Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 optional valueRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 ###### Inherited from
 
@@ -1512,7 +1512,7 @@ Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ### SemanticEventAttribute
 
-Defined in: [packages/core/src/ast.ts:205](packages/core/src/ast.ts#L205)
+Defined in: [packages/core/src/ast.ts:206](packages/core/src/ast.ts#L206)
 
 #### Extends
 
@@ -1526,7 +1526,7 @@ Defined in: [packages/core/src/ast.ts:205](packages/core/src/ast.ts#L205)
 event: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:207](packages/core/src/ast.ts#L207)
+Defined in: [packages/core/src/ast.ts:208](packages/core/src/ast.ts#L208)
 
 ##### expressionRange?
 
@@ -1534,7 +1534,7 @@ Defined in: [packages/core/src/ast.ts:207](packages/core/src/ast.ts#L207)
 optional expressionRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
+Defined in: [packages/core/src/ast.ts:184](packages/core/src/ast.ts#L184)
 
 ###### Inherited from
 
@@ -1546,7 +1546,7 @@ Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 kind: "semantic-event";
 ```
 
-Defined in: [packages/core/src/ast.ts:206](packages/core/src/ast.ts#L206)
+Defined in: [packages/core/src/ast.ts:207](packages/core/src/ast.ts#L207)
 
 ###### Overrides
 
@@ -1558,7 +1558,7 @@ Defined in: [packages/core/src/ast.ts:206](packages/core/src/ast.ts#L206)
 name: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
+Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 
 ###### Inherited from
 
@@ -1570,7 +1570,7 @@ Defined in: [packages/core/src/ast.ts:178](packages/core/src/ast.ts#L178)
 optional nameRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
+Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
 
 ###### Inherited from
 
@@ -1582,7 +1582,7 @@ Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 optional range?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
+Defined in: [packages/core/src/ast.ts:181](packages/core/src/ast.ts#L181)
 
 ###### Inherited from
 
@@ -1594,7 +1594,7 @@ Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 raw: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
+Defined in: [packages/core/src/ast.ts:180](packages/core/src/ast.ts#L180)
 
 ###### Inherited from
 
@@ -1606,7 +1606,7 @@ Defined in: [packages/core/src/ast.ts:179](packages/core/src/ast.ts#L179)
 target: string;
 ```
 
-Defined in: [packages/core/src/ast.ts:208](packages/core/src/ast.ts#L208)
+Defined in: [packages/core/src/ast.ts:209](packages/core/src/ast.ts#L209)
 
 ##### valueRange?
 
@@ -1614,7 +1614,7 @@ Defined in: [packages/core/src/ast.ts:208](packages/core/src/ast.ts#L208)
 optional valueRange?: SourceRange;
 ```
 
-Defined in: [packages/core/src/ast.ts:182](packages/core/src/ast.ts#L182)
+Defined in: [packages/core/src/ast.ts:183](packages/core/src/ast.ts#L183)
 
 ###### Inherited from
 
@@ -1881,12 +1881,13 @@ type Attribute =
   | RawEventAttribute;
 ```
 
-Defined in: [packages/core/src/ast.ts:168](packages/core/src/ast.ts#L168)
+Defined in: [packages/core/src/ast.ts:169](packages/core/src/ast.ts#L169)
 
 One parsed attribute token. The colon grammar is the language's backbone:
 bare names are booleans in attribute contexts (element and component heads
 only promote recognized bare names before inline text), unquoted
 `name:value` is a static string unless the value is expression-shaped,
+numeric, or a bare identifier on a boolean attribute,
 `name:{{ expr }}` is an explicit TypeScript
 expression, `name:` passes the in-scope value of the same name,
 `:event:target` is a semantic WAVEx action, and `on:event:handler` is the
@@ -2258,7 +2259,7 @@ Defined in: [packages/core/src/parser.ts:611](packages/core/src/parser.ts#L611)
 
 Parse one attribute token into its [Attribute](#attribute) form: boolean
 (`required`), literal (`variant:brand`), expression-shaped value
-(`checked:task.done` or `checked:{{ task.done }}`), same-name shorthand
+(`checked:task.done`, `checked:isDone`, `count:42`, or `checked:{{ task.done }}`), same-name shorthand
 (`task:`), semantic event (`:click:save`), or raw DOM event
 (`on:wa-show:opened`).
 

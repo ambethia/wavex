@@ -160,6 +160,7 @@ export interface ResourceBinding {
  * bare names are booleans in attribute contexts (element and component heads
  * only promote recognized bare names before inline text), unquoted
  * `name:value` is a static string unless the value is expression-shaped,
+ * numeric, or a bare identifier on a boolean attribute,
  * `name:{{ expr }}` is an explicit TypeScript
  * expression, `name:` passes the in-scope value of the same name,
  * `:event:target` is a semantic WAVEx action, and `on:event:handler` is the

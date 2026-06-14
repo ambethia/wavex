@@ -97,6 +97,19 @@ describe("compileWavexModule", () => {
     expect(() => render({})).not.toThrow();
   });
 
+  it("compiles boolean identifier and numeric attribute values as expressions", () => {
+    const compiled = compileWavexModule(`const isDone = false;\n~~~\ninput checked:isDone count:42 value:3.14\n`, {
+      id: "src/pages/index.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("<input .checked=${isDone} .count=${42} .value=${3.14}>");
+    expect(compiled.code).not.toContain('checked="isDone"');
+
+    const render = evaluateGeneratedRender(compiled.code);
+    expect(() => render({})).not.toThrow();
+  });
+
   it("compiles colon-bearing prose as inline text instead of a same-name property binding", () => {
     const compiled = compileWavexModule(`const n = 3;\n~~~\np Total: {{ n }}\n`, {
       id: "src/pages/index.wx"

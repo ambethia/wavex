@@ -604,7 +604,7 @@ function isLikelyUtilityGroupValues(value: string): boolean {
 /**
  * Parse one attribute token into its {@link Attribute} form: boolean
  * (`required`), literal (`variant:brand`), expression-shaped value
- * (`checked:task.done` or `checked:{{ task.done }}`), same-name shorthand
+ * (`checked:task.done`, `checked:isDone`, `count:42`, or `checked:{{ task.done }}`), same-name shorthand
  * (`task:`), semantic event (`:click:save`), or raw DOM event
  * (`on:wa-show:opened`).
  */
@@ -691,7 +691,7 @@ export function parseAttributeToken(token: string, range?: SourceRange): Attribu
     };
   }
 
-  if (looksLikeExpression(value)) {
+  if (looksLikeExpression(value, name)) {
     return {
       kind: "expression",
       name,
@@ -773,10 +773,12 @@ function unwrapQuotedString(value: string): string | undefined {
   return value.slice(1, -1).replace(/\\(["'\\])/g, "$1");
 }
 
-function looksLikeExpression(value: string): boolean {
+function looksLikeExpression(value: string, attributeName: string): boolean {
   if (value.startsWith("{") || value.startsWith("[")) return true;
   if (/^(true|false|null|undefined)$/.test(value)) return true;
+  if (/^[+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?$/i.test(value)) return true;
   if (/^(route|attrs|state|api|ctx|context)(?:$|[.(\[]|\?\.)/.test(value)) return true;
+  if (BOOLEAN_ATTRIBUTE_NAMES.has(attributeName) && /^[A-Za-z_$][\w$]*$/.test(value)) return true;
   // URL/URI values like href:/tasks, href:https://example.com, or href:tel:+123 are literals.
   if (/^\/[\w\-./:?=&%#~]*$/.test(value)) return false;
   if (/^[a-z][a-z0-9+.-]*:\S+$/i.test(value)) return false;
