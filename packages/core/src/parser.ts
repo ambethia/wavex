@@ -408,6 +408,16 @@ function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: Sou
       continue;
     }
 
+    if (isLikelyUnclosedUtilityGroupToken(token.raw)) {
+      diagnostics.push({
+        code: "WX005",
+        severity: "error",
+        line: range.start.line,
+        column: range.start.column + token.start,
+        message: `Utility group "${token.raw}" is invalid: missing closing "]".`
+      });
+    }
+
     if (!isAttributeLike(token.raw)) {
       const inlineTokens = tokens.slice(index);
       diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics, "Utility groups must appear in the element or component head before inline text.");
@@ -518,11 +528,20 @@ function diagnoseUtilityGroupToken(token: TokenRecord, range: SourceRange, diagn
 
 function isLikelyUtilityGroupToken(token: string): boolean {
   if (!isUtilityGroupToken(token)) return false;
-  const values = token.slice(1, -1).trim().split(/\s+/).filter(Boolean);
+  return isLikelyUtilityGroupValues(token.slice(1, -1));
+}
+
+function isLikelyUnclosedUtilityGroupToken(token: string): boolean {
+  if (!token.startsWith("[") || token.endsWith("]")) return false;
+  return isLikelyUtilityGroupValues(token.slice(1));
+}
+
+function isLikelyUtilityGroupValues(value: string): boolean {
+  const values = value.trim().split(/\s+/).filter(Boolean);
   return (
     values.length > 0 &&
-    (values.length > 1 || values.some((value) => value.includes("-") || value.includes(":"))) &&
-    values.every((value) => /^[A-Za-z][A-Za-z0-9_:-]*$/.test(value))
+    (values.length > 1 || values.some((entry) => entry.includes("-") || entry.includes(":"))) &&
+    values.every((entry) => /^[A-Za-z][A-Za-z0-9_:-]*$/.test(entry))
   );
 }
 

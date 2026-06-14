@@ -148,13 +148,15 @@ describe("parseWavex", () => {
     ]);
   });
 
-  it("rejects colon-form utility tokens with WX005", () => {
-    const parsed = parseWavex(`~~~\nmain [stack gap:xl]\n  p Hello\n`);
+  it("rejects invalid utility groups with WX005", () => {
+    const parsed = parseWavex(`~~~\nmain [stack gap:xl]\nsection [stack gap-xl\n`);
 
     expect(parsed.diagnostics).toMatchObject([
-      { code: "WX005", severity: "error", line: 2, column: 13 }
+      { code: "WX005", severity: "error", line: 2, column: 13 },
+      { code: "WX005", severity: "error", line: 3, column: 9 }
     ]);
     expect(parsed.diagnostics[0]!.message).toContain("gap:xl");
+    expect(parsed.diagnostics[1]!.message).toContain("missing closing");
   });
 
   it("diagnoses invalid attribute tokens in directive and Convex heads", () => {
