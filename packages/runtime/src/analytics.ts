@@ -28,12 +28,19 @@ export function createPostHogCaptureClient(options: PostHogCaptureOptions): Anal
         properties: { ...properties, $lib: "wavex" },
         timestamp: new Date().toISOString()
       };
-      void fetchFn(`${host}/capture/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        keepalive: true
-      }).catch(() => undefined);
+      try {
+        void Promise.resolve(
+          fetchFn(`${host}/capture/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            keepalive: true
+          })
+        ).catch(() => undefined);
+      } catch {
+        // PostHog telemetry is optional; synchronous client/fetch failures must
+        // never bubble into app actions or rendering.
+      }
     }
   };
 }
@@ -41,12 +48,25 @@ export function createPostHogCaptureClient(options: PostHogCaptureOptions): Anal
 function distinctId(storage: Pick<Storage, "getItem" | "setItem"> | undefined): string {
   const store = storage ?? (typeof localStorage !== "undefined" ? localStorage : undefined);
   if (!store) return "wavex-anonymous";
-  const existing = store.getItem("wx_distinct_id");
-  if (existing) return existing;
-  const id =
-    typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `wx-${Date.now().toString(36)}`;
-  store.setItem("wx_distinct_id", id);
+  try {
+    const existing = store.getItem("wx_distinct_id");
+    if (existing) return existing;
+  } catch {
+    return createVolatileDistinctId();
+  }
+
+  const id = createVolatileDistinctId();
+  try {
+    store.setItem("wx_distinct_id", id);
+  } catch {
+    // Safari private mode can throw on setItem. Keep capture non-blocking by
+    // using this event's generated id without attempting persistence fallback.
+  }
   return id;
+}
+
+function createVolatileDistinctId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `wx-${Date.now().toString(36)}`;
 }
 
 /** Conventional analytics event name for a semantic Convex action target, e.g. "$$tasks:create" -> "tasks:create". */

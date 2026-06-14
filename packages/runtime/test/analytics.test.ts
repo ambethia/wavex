@@ -60,6 +60,30 @@ describe("analytics", () => {
     expect(JSON.parse(String(requests[0]?.body))).toMatchObject({ distinct_id: "wavex-anonymous" });
   });
 
+  it("captures without throwing when storage persistence fails", () => {
+    const requests: RequestInit[] = [];
+    const client = createPostHogCaptureClient({
+      apiKey: "ph_test",
+      storage: {
+        getItem: () => null,
+        setItem: () => {
+          throw new Error("QuotaExceededError");
+        }
+      },
+      fetchFn: vi.fn((_url: string | URL | Request, init?: RequestInit) => {
+        requests.push(init ?? {});
+        return Promise.resolve(new Response(null, { status: 200 }));
+      }) as typeof fetch
+    });
+
+    expect(() => client.capture("private-mode")).not.toThrow();
+    expect(JSON.parse(String(requests[0]?.body))).toMatchObject({
+      api_key: "ph_test",
+      event: "private-mode",
+      properties: { $lib: "wavex" }
+    });
+  });
+
   it("derives conventional event names from semantic action targets", () => {
     expect(analyticsEventNameForTarget("$$tasks:create")).toBe("tasks:create");
     expect(analyticsEventNameForTarget("$pageview")).toBe("pageview");

@@ -406,17 +406,7 @@ export function createSemanticActionDispatcher(
     };
 
     markActionPending(context, definition.target);
-
-    if (options.analytics) {
-      const trackOverride = event.element.getAttribute?.("data-wx-track") ?? undefined;
-      options.analytics.capture(trackOverride ?? analyticsEventNameForTarget(definition.target), {
-        wx_event_type: event.type,
-        wx_target: definition.target,
-        wx_kind: definition.kind,
-        wx_module: definition.modulePath,
-        wx_function: definition.functionName
-      });
-    }
+    captureActionAnalytics(options, event, definition);
 
     try {
       const result = options.actionClient ? await options.actionClient.invoke(definition) : undefined;
@@ -429,6 +419,28 @@ export function createSemanticActionDispatcher(
       if (options.throwActionErrors) throw error;
     }
   };
+}
+
+function captureActionAnalytics(
+  options: SemanticActionDispatcherOptions,
+  event: WavexActionEvent,
+  definition: ResolvedActionDefinition
+): void {
+  if (!options.analytics) return;
+
+  try {
+    const trackOverride = event.element.getAttribute?.("data-wx-track") ?? undefined;
+    options.analytics.capture(trackOverride ?? analyticsEventNameForTarget(definition.target), {
+      wx_event_type: event.type,
+      wx_target: definition.target,
+      wx_kind: definition.kind,
+      wx_module: definition.modulePath,
+      wx_function: definition.functionName
+    });
+  } catch {
+    // Analytics is best-effort telemetry. A broken analytics sink must not
+    // prevent the Convex action from running or leave its actionState pending.
+  }
 }
 
 /**

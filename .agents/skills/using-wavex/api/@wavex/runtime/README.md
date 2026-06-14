@@ -1720,7 +1720,7 @@ Defined in: [packages/runtime/src/index.ts:117](packages/runtime/src/index.ts#L1
 function analyticsEventNameForTarget(target): string;
 ```
 
-Defined in: [packages/runtime/src/analytics.ts:53](packages/runtime/src/analytics.ts#L53)
+Defined in: [packages/runtime/src/analytics.ts:73](packages/runtime/src/analytics.ts#L73)
 
 Conventional analytics event name for a semantic Convex action target, e.g. "$$tasks:create" -> "tasks:create".
 
@@ -1742,7 +1742,7 @@ Conventional analytics event name for a semantic Convex action target, e.g. "$$t
 function applyHead(entries, documentRef?): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:472](packages/runtime/src/index.ts#L472)
+Defined in: [packages/runtime/src/index.ts:484](packages/runtime/src/index.ts#L484)
 
 Reconcile `document.title` and `data-wx-head`-managed meta/link nodes with
 the given entries. Only nodes the runtime created are touched, so static
@@ -2044,7 +2044,7 @@ fall through to `options.dispatch` (app-defined handlers).
 function installSemanticEventDelegation(root, context): () => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:440](packages/runtime/src/index.ts#L440)
+Defined in: [packages/runtime/src/index.ts:452](packages/runtime/src/index.ts#L452)
 
 Listen for click/submit/change at the root (capture phase) and route
 `data-wx-*` action attributes — the compiled form of `:event:target` — to
