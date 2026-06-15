@@ -90,6 +90,7 @@ Rules:
 - Collection-style functions such as `list`, `all`, `search`, and paginated queries bind to plural names.
 - Singleton-style functions such as `get`, `one`, `load`, `byId`, and `me` bind to singular names.
 - If two resources collide, use `as:name`.
+- Resource binding names must be safe JavaScript binding identifiers and must not reuse compiler-provided render locals (`actionStates`, `attrs`, `context`, `html`, `navigation`, `nothing`, `repeat`, `resourceStates`, `route`, `state`). The compiler reports a diagnostic instead of emitting a local that would shadow or break template scope.
 
 ```wx
 $$tasks:list as:openTasks status:"open"
