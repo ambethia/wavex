@@ -50,6 +50,56 @@ interface CompileScope {
 const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 
 const RESERVED_RENDER_LOCALS = new Set(["actionStates", "attrs", "context", "html", "navigation", "nothing", "repeat", "resourceStates", "route", "state"]);
+const RESERVED_BINDING_NAMES = new Set([
+  "arguments",
+  "await",
+  "break",
+  "case",
+  "catch",
+  "class",
+  "const",
+  "continue",
+  "debugger",
+  "default",
+  "delete",
+  "do",
+  "else",
+  "enum",
+  "eval",
+  "export",
+  "extends",
+  "false",
+  "finally",
+  "for",
+  "function",
+  "if",
+  "implements",
+  "import",
+  "in",
+  "instanceof",
+  "interface",
+  "let",
+  "new",
+  "null",
+  "package",
+  "private",
+  "protected",
+  "public",
+  "return",
+  "static",
+  "super",
+  "switch",
+  "this",
+  "throw",
+  "true",
+  "try",
+  "typeof",
+  "var",
+  "void",
+  "while",
+  "with",
+  "yield"
+]);
 
 interface AttrsKeyEntry {
   name: string;
@@ -143,16 +193,30 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
 }
 
 function diagnoseResourceLocalCollision(ast: WavexFile, name: string): boolean {
-  if (!RESERVED_RENDER_LOCALS.has(name)) return false;
   const resource = ast.resources.find((candidate) => candidate.name === name);
-  ast.diagnostics.push({
-    code: "WX202",
-    severity: "error",
-    line: resource?.range.start.line ?? 1,
-    column: resource?.range.start.column ?? 1,
-    message: `Resource binding name "${name}" collides with a WAVEx render local. Rename the $$ call with as:${name}Value or another unique binding name.`
-  });
-  return true;
+  if (RESERVED_RENDER_LOCALS.has(name)) {
+    ast.diagnostics.push({
+      code: "WX202",
+      severity: "error",
+      line: resource?.range.start.line ?? 1,
+      column: resource?.range.start.column ?? 1,
+      message: `Resource binding name "${name}" collides with a WAVEx render local. Rename the $$ call with as:${name}Value or another unique binding name.`
+    });
+    return true;
+  }
+
+  if (!isBindingIdentifierName(name)) {
+    ast.diagnostics.push({
+      code: "WX202",
+      severity: "error",
+      line: resource?.range.start.line ?? 1,
+      column: resource?.range.start.column ?? 1,
+      message: `Resource binding name "${name}" is reserved by JavaScript and cannot be emitted as a template local. Rename the $$ call with as:${name}Value or another unique binding name.`
+    });
+    return true;
+  }
+
+  return false;
 }
 
 function diagnoseAttrsLocalCollision(
@@ -181,6 +245,17 @@ function diagnoseAttrsLocalCollision(
       line: key.line,
       column: key.column,
       message: `Attrs key "${key.name}" collides with a WAVEx render local. Rename the attribute to avoid shadowing compiler-provided template scope.`
+    });
+    return true;
+  }
+
+  if (!isBindingIdentifierName(key.name)) {
+    ast.diagnostics.push({
+      code: "WX202",
+      severity: "error",
+      line: key.line,
+      column: key.column,
+      message: `Attrs key "${key.name}" is reserved by JavaScript and cannot be emitted as a template local. Rename the attribute to a safe identifier.`
     });
     return true;
   }
@@ -834,6 +909,10 @@ function escapeTemplateStatic(value: string): string {
 
 function isIdentifierName(name: string): boolean {
   return /^[A-Za-z_$][\w$]*$/.test(name);
+}
+
+function isBindingIdentifierName(name: string): boolean {
+  return isIdentifierName(name) && !RESERVED_BINDING_NAMES.has(name);
 }
 
 /**

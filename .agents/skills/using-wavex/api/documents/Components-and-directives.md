@@ -49,7 +49,7 @@ type Attrs = { talk: Doc<"talks"> }
   p {{ talk.speaker }}
 ```
 
-Without an `Attrs` declaration, attributes are available on an untyped `attrs` record (`attrs.talk`). Typed `Attrs` keys must not reuse compiler-provided render locals (`actionStates`, `attrs`, `context`, `html`, `navigation`, `nothing`, `repeat`, `resourceStates`, `route`, `state`) or a `$$` resource binding name; the compiler reports a diagnostic instead of generating an ambiguous local.
+Without an `Attrs` declaration, attributes are available on an untyped `attrs` record (`attrs.talk`). Typed `Attrs` keys must be safe JavaScript binding identifiers and must not reuse compiler-provided render locals (`actionStates`, `attrs`, `context`, `html`, `navigation`, `nothing`, `repeat`, `resourceStates`, `route`, `state`) or a `$$` resource binding name; the compiler reports a diagnostic instead of generating an ambiguous local.
 
 ### Slots
 

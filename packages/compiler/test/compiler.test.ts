@@ -229,6 +229,23 @@ describe("compileWavexModule", () => {
     expect(compiled.code).not.toContain('const route = context.resources?.["route"];');
   });
 
+  it("diagnoses typed Attrs and $$ resource locals that are reserved JavaScript bindings", () => {
+    const compiled = compileWavexModule(
+      `type Attrs = {\n  const: string;\n  ok: string;\n}\n~~~\n$$items:list as:class\np {{ ok }}\n`,
+      { id: "src/pages/reserved.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toMatchObject([
+      { code: "WX202", severity: "error", line: 6, column: 1 },
+      { code: "WX202", severity: "error", line: 2, column: 3 }
+    ]);
+    expect(compiled.ast.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain('Attrs key "const" is reserved');
+    expect(compiled.ast.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain('Resource binding name "class" is reserved');
+    expect(compiled.code).toContain("const { ok } = attrs as Attrs;");
+    expect(compiled.code).not.toContain("const { const");
+    expect(compiled.code).not.toContain('const class = context.resources?.["class"];');
+  });
+
   it("compiles bare slot elements to semantic projection with fallback", () => {
     const compiled = compileWavexModule(`~~~\nmain\n  slot\n  slot name:title\n    h2 Default title\n`, {
       id: "src/components/page-shell.wx"
