@@ -140,7 +140,7 @@ Web Awesome component names (without the wa- prefix) referenced by this template
 function compileWavexModule(source, options?): CompileWavexResult;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:63](packages/compiler/src/compiler.ts#L63)
+Defined in: [packages/compiler/src/compiler.ts:71](packages/compiler/src/compiler.ts#L71)
 
 Compile `.wx` source into a Lit render module.
 
@@ -174,7 +174,7 @@ on `result.ast.diagnostics`, not thrown.
 function componentTagForReference(reference, options?): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:719](packages/compiler/src/compiler.ts#L719)
+Defined in: [packages/compiler/src/compiler.ts:843](packages/compiler/src/compiler.ts#L843)
 
 Resolve an `@name` reference to its custom-element tag using the compile
 options' component sets (local components shadow Web Awesome).
@@ -201,7 +201,7 @@ options' component sets (local components shadow Web Awesome).
 function utilityClassForToken(token): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:724](packages/compiler/src/compiler.ts#L724)
+Defined in: [packages/compiler/src/compiler.ts:848](packages/compiler/src/compiler.ts#L848)
 
 Expand one `[utility]` token to its `wa-` class (plain prefix expansion, no mapping table).
 

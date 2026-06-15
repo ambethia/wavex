@@ -1,4 +1,4 @@
-import { componentReferenceToTag, expandUtilityClassList, extractAttrsTypeKeys, toKebabCase } from "@wavex/core";
+import { componentReferenceToTag, expandUtilityClassList, toKebabCase } from "@wavex/core";
 import { parseWavex } from "@wavex/core";
 import { convexSemanticEventTargetReference, validateConvexReferences, type ConvexFunctionKind } from "@wavex/core/capabilities";
 import type {
@@ -49,6 +49,14 @@ interface CompileScope {
 
 const VOID_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
 
+const RESERVED_RENDER_LOCALS = new Set(["actionStates", "attrs", "context", "html", "navigation", "nothing", "repeat", "resourceStates", "route", "state"]);
+
+interface AttrsKeyEntry {
+  name: string;
+  line: number;
+  column: number;
+}
+
 /**
  * Compile `.wx` source into a Lit render module.
  *
@@ -70,20 +78,22 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
     ...new Set(ast.resources.filter((resource) => isQueryResource(resource, options.convexFunctionKinds)).map((resource) => resource.name).filter(isIdentifierName))
   ];
   const prelude = ast.prelude.trim() ? `${ast.prelude.trim()}\n\n` : "";
+  const attrsKeys = extractAttrsTypeKeyEntries(ast.prelude).filter((key) => isIdentifierName(key.name));
+  const safeResourceNames = resourceNames.filter((name) => !diagnoseResourceLocalCollision(ast, name));
+  const safeAttrsKeys = attrsKeys.filter((key, index) => !diagnoseAttrsLocalCollision(ast, key, attrsKeys, index, safeResourceNames));
   const localComponents = options.localComponents ?? [];
   const usedLocalComponents = new Set<string>();
   const usedWebAwesomeComponents = new Set<string>();
   const compileOptions: InternalCompileOptions = { ...options, diagnostics: ast.diagnostics, usedLocalComponents, usedWebAwesomeComponents };
-  const resourceDeclarations = resourceNames
+  const resourceDeclarations = safeResourceNames
     .map((name) => `  const ${name} = context.resources?.[${JSON.stringify(name)}];`)
     .join("\n");
-  // Components declaring `type Attrs = { ... }` get each attribute as a bare local.
-  const attrsKeys = (extractAttrsTypeKeys(ast.prelude) ?? []).filter(isIdentifierName);
+  // Components declaring `type Attrs = { ... }` get each non-conflicting attribute as a bare local.
   const attrsDeclarations =
-    attrsKeys.length > 0
-      ? `  const { ${attrsKeys.join(", ")} } = attrs as Attrs;\n  void ${attrsKeys.join("; void ")};`
+    safeAttrsKeys.length > 0
+      ? `  const { ${safeAttrsKeys.map((key) => key.name).join(", ")} } = attrs as Attrs;\n  void ${safeAttrsKeys.map((key) => key.name).join("; void ")};`
       : "";
-  const resourceDefinitions = compileResourceDefinitions(ast.resources, resourceNames, options.convexFunctionKinds);
+  const resourceDefinitions = compileResourceDefinitions(ast.resources, safeResourceNames, options.convexFunctionKinds);
   const renderBody = compileNodes(renderNodes, compileOptions);
   const headEntriesBody = compileHeadEntries(headNodes.flatMap((node) => node.children));
   const componentImports = [...usedLocalComponents]
@@ -130,6 +140,120 @@ export function compileWavexModule(source: string, options: CompileWavexOptions 
   ].join("\n");
 
   return { ast, code, usedWebAwesomeComponents: [...usedWebAwesomeComponents].sort() };
+}
+
+function diagnoseResourceLocalCollision(ast: WavexFile, name: string): boolean {
+  if (!RESERVED_RENDER_LOCALS.has(name)) return false;
+  const resource = ast.resources.find((candidate) => candidate.name === name);
+  ast.diagnostics.push({
+    code: "WX202",
+    severity: "error",
+    line: resource?.range.start.line ?? 1,
+    column: resource?.range.start.column ?? 1,
+    message: `Resource binding name "${name}" collides with a WAVEx render local. Rename the $$ call with as:${name}Value or another unique binding name.`
+  });
+  return true;
+}
+
+function diagnoseAttrsLocalCollision(
+  ast: WavexFile,
+  key: AttrsKeyEntry,
+  keys: readonly AttrsKeyEntry[],
+  index: number,
+  resourceNames: readonly string[]
+): boolean {
+  const firstIndex = keys.findIndex((candidate) => candidate.name === key.name);
+  if (firstIndex !== index) {
+    ast.diagnostics.push({
+      code: "WX202",
+      severity: "error",
+      line: key.line,
+      column: key.column,
+      message: `Attrs key "${key.name}" is declared more than once; duplicate typed locals would make the generated module invalid.`
+    });
+    return true;
+  }
+
+  if (RESERVED_RENDER_LOCALS.has(key.name)) {
+    ast.diagnostics.push({
+      code: "WX202",
+      severity: "error",
+      line: key.line,
+      column: key.column,
+      message: `Attrs key "${key.name}" collides with a WAVEx render local. Rename the attribute to avoid shadowing compiler-provided template scope.`
+    });
+    return true;
+  }
+
+  if (resourceNames.includes(key.name)) {
+    ast.diagnostics.push({
+      code: "WX202",
+      severity: "error",
+      line: key.line,
+      column: key.column,
+      message: `Attrs key "${key.name}" collides with a $$ resource binding local. Rename the attribute or the $$ binding with as: to keep template scope unambiguous.`
+    });
+    return true;
+  }
+
+  return false;
+}
+
+function extractAttrsTypeKeyEntries(prelude: string): AttrsKeyEntry[] {
+  const head = /(?:type\s+Attrs\s*=\s*|interface\s+Attrs\s*(?:extends\s+[^{{]+)?)\{/.exec(prelude);
+  if (!head) return [];
+
+  let depth = 1;
+  let body = "";
+  const bodyStart = head.index + head[0].length;
+  for (let index = bodyStart; index < prelude.length && depth > 0; index += 1) {
+    const char = prelude[index]!;
+    if (char === "{") depth += 1;
+    else if (char === "}") depth -= 1;
+    if (depth > 0) body += char;
+  }
+
+  const keys: AttrsKeyEntry[] = [];
+  let nested = 0;
+  let segment = "";
+  let segmentStart = bodyStart;
+  const flush = (endOffset: number) => {
+    const match = /^\s*(?:readonly\s+)?([A-Za-z_$][\w$]*)\??\s*:/.exec(segment);
+    if (match?.index !== undefined) {
+      const name = match[1]!;
+      const nameOffset = segmentStart + match[0].indexOf(name);
+      keys.push({ name, ...lineColumnAt(prelude, nameOffset) });
+    }
+    segment = "";
+    segmentStart = endOffset + 1;
+  };
+
+  for (let offset = 0; offset < body.length; offset += 1) {
+    const char = body[offset]!;
+    if (char === "{" || char === "(" || char === "[" || char === "<") nested += 1;
+    else if (char === "}" || char === ")" || char === "]" || char === ">") nested = Math.max(0, nested - 1);
+    if (nested === 0 && (char === ";" || char === "\n" || char === ",")) {
+      flush(bodyStart + offset);
+      continue;
+    }
+    segment += char;
+  }
+  flush(bodyStart + body.length);
+  return keys;
+}
+
+function lineColumnAt(source: string, offset: number): { line: number; column: number } {
+  let line = 1;
+  let column = 1;
+  for (let index = 0; index < offset; index += 1) {
+    if (source[index] === "\n") {
+      line += 1;
+      column = 1;
+    } else {
+      column += 1;
+    }
+  }
+  return { line, column };
 }
 
 function diagnoseDuplicateResourceBindings(

@@ -53,7 +53,7 @@ type Attrs = { talk: Doc<"talks"> }
   p {{ talk.speaker }}
 ```
 
-Without an `Attrs` declaration, attributes are available on an untyped `attrs` record (`attrs.talk`).
+Without an `Attrs` declaration, attributes are available on an untyped `attrs` record (`attrs.talk`). Typed `Attrs` keys must not reuse WAVEx-provided template locals (`route`, `attrs`, `state`, `resourceStates`, `actionStates`, `navigation`) or a `$$` resource binding name; the compiler reports a diagnostic instead of generating an ambiguous local.
 
 ### Slots
 

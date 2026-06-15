@@ -191,6 +191,44 @@ describe("compileWavexModule", () => {
     expect(() => render({ attrs: { talk: { title: "Keynote" }, featured: true } })).not.toThrow();
   });
 
+  it("diagnoses typed Attrs keys that collide with WAVEx render locals", () => {
+    const compiled = compileWavexModule(
+      `type Attrs = {\n  route: string;\n  state: string;\n  talk: { title: string };\n}\n~~~\np {{ talk.title }}\n`,
+      { id: "src/components/bad-card.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toMatchObject([
+      { code: "WX202", severity: "error", line: 2, column: 3 },
+      { code: "WX202", severity: "error", line: 3, column: 3 }
+    ]);
+    expect(compiled.ast.diagnostics.map((diagnostic) => diagnostic.message).join("\n")).toContain('Attrs key "route" collides');
+    expect(compiled.code).toContain("const { talk } = attrs as Attrs;");
+    expect(compiled.code).not.toContain("const { route");
+  });
+
+  it("diagnoses typed Attrs keys that collide with $$ resource binding locals", () => {
+    const compiled = compileWavexModule(
+      `type Attrs = {\n  talks: string;\n  selected: string;\n}\n~~~\n$$talks:list\np {{ selected }}\n`,
+      { id: "src/components/resource-card.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX202", severity: "error", line: 2, column: 3 }]);
+    expect(compiled.ast.diagnostics[0]!.message).toContain('Attrs key "talks" collides with a $$ resource binding local');
+    expect(compiled.code).toContain('const talks = context.resources?.["talks"];');
+    expect(compiled.code).toContain("const { selected } = attrs as Attrs;");
+    expect(compiled.code).not.toContain("const { talks");
+  });
+
+  it("diagnoses $$ resource binding names that collide with WAVEx render locals", () => {
+    const compiled = compileWavexModule(`~~~\n$$navigation:list as:route\n`, {
+      id: "src/pages/bad.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toMatchObject([{ code: "WX202", severity: "error", line: 2, column: 1 }]);
+    expect(compiled.ast.diagnostics[0]!.message).toContain('Resource binding name "route" collides');
+    expect(compiled.code).not.toContain('const route = context.resources?.["route"];');
+  });
+
   it("compiles bare slot elements to semantic projection with fallback", () => {
     const compiled = compileWavexModule(`~~~\nmain\n  slot\n  slot name:title\n    h2 Default title\n`, {
       id: "src/components/page-shell.wx"
