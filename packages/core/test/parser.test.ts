@@ -2,7 +2,33 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createRouteDefinition, matchRoutePath, parseAttributeToken, parseQueryString, parseWavex } from "../src/index.js";
+import { createRouteDefinition, extractAttrsTypeKeys, matchRoutePath, parseAttributeToken, parseQueryString, parseWavex } from "../src/index.js";
+
+describe("extractAttrsTypeKeys", () => {
+  it("extracts top-level type Attrs keys without nested type noise", () => {
+    expect(
+      extractAttrsTypeKeys(`
+        type Attrs = {
+          readonly talk: { title: string; speaker: { name: string } };
+          featured?: boolean;
+          render: (talk: { title: string }) => string;
+          items: Array<{ id: string }>;
+        }
+      `)
+    ).toEqual(["talk", "featured", "render", "items"]);
+  });
+
+  it("extracts interface Attrs keys", () => {
+    expect(
+      extractAttrsTypeKeys(`
+        interface Attrs extends BaseAttrs {
+          task: { text: string }
+          selected?: boolean
+        }
+      `)
+    ).toEqual(["task", "selected"]);
+  });
+});
 
 describe("parseWavex", () => {
   it("splits the TypeScript prelude and parses core MVP syntax", () => {

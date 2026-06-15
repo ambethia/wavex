@@ -1,10 +1,29 @@
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { compileWavexModule } from "../src/index.js";
+import { compileWavexModule as compileWavexModuleRaw, type CompileWavexOptions, type CompileWavexResult } from "../src/index.js";
 
 type GeneratedRender = (context?: Record<string, unknown>) => unknown;
 
+function compileWavexModule(source: string, options?: CompileWavexOptions): CompileWavexResult {
+  const compiled = compileWavexModuleRaw(source, options);
+  assertGeneratedModuleParses(compiled.code);
+  return compiled;
+}
+
+function assertGeneratedModuleParses(code: string): void {
+  const result = ts.transpileModule(code, {
+    compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 },
+    reportDiagnostics: true
+  });
+  const diagnostics = result.diagnostics?.filter((diagnostic) => diagnostic.category === ts.DiagnosticCategory.Error) ?? [];
+  expect(
+    diagnostics.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")),
+    code
+  ).toEqual([]);
+}
+
 function evaluateGeneratedRender(code: string): GeneratedRender {
+  assertGeneratedModuleParses(code);
   const javascript = ts.transpileModule(code, {
     compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 }
   }).outputText;
@@ -156,6 +175,20 @@ describe("compileWavexModule", () => {
 
     const render = evaluateGeneratedRender(compiled.code);
     expect(() => render({})).not.toThrow();
+  });
+
+  it("parses generated modules for typed Attrs locals and text interpolations", () => {
+    const compiled = compileWavexModule(
+      `type Attrs = {\n  talk: { title: string };\n  featured?: boolean;\n}\nconst suffix = "Swell";\n~~~\narticle\n  h1 {{ talk.title }} | {{ suffix }}\n  +if featured\n    p Featured: {{ talk.title }}\n`,
+      { id: "src/components/talk-card.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("const { talk, featured } = attrs as Attrs;");
+    expect(compiled.code).toContain("<h1>${talk.title} | ${suffix}</h1>");
+
+    const render = evaluateGeneratedRender(compiled.code);
+    expect(() => render({ attrs: { talk: { title: "Keynote" }, featured: true } })).not.toThrow();
   });
 
   it("compiles bare slot elements to semantic projection with fallback", () => {
