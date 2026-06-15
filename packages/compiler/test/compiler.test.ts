@@ -177,6 +177,18 @@ describe("compileWavexModule", () => {
     expect(() => render({})).not.toThrow();
   });
 
+  it("escapes literal template interpolation starts in inline prose", () => {
+    const compiled = compileWavexModule(`~~~\np Costs \${price} today and \`uses \${code}\`.\n`, {
+      id: "src/pages/index.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("<p>Costs \\${price} today and <code>uses \\${code}</code>.</p>");
+
+    const render = evaluateGeneratedRender(compiled.code);
+    expect(() => render({})).not.toThrow();
+  });
+
   it("parses generated modules for typed Attrs locals and text interpolations", () => {
     const compiled = compileWavexModule(
       `type Attrs = {\n  talk: { title: string };\n  featured?: boolean;\n}\nconst suffix = "Swell";\n~~~\narticle\n  h1 {{ talk.title }} | {{ suffix }}\n  +if featured\n    p Featured: {{ talk.title }}\n`,

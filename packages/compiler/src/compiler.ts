@@ -864,7 +864,12 @@ function compileStaticInlineProse(text: string): string {
     const char = text[index]!;
     const tag = inlineTagForDelimiter(char);
     if (!tag) {
-      output += escapeTemplateStatic(escapeHtml(char));
+      if (char === "$" && text[index + 1] === "{") {
+        output += "\\${";
+        index += 1;
+      } else {
+        output += escapeTemplateStatic(escapeHtml(char));
+      }
       continue;
     }
 
