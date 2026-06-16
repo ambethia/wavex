@@ -3,9 +3,12 @@
 declare module "*.wx" {
   import type { HeadEntry, RenderContext, RenderFunction, ResourceDefinition } from "@wavex/runtime";
 
+  export const wxFile: {
+    readonly id: string;
+    readonly localComponents: readonly string[];
+  };
   export const resources: readonly ResourceDefinition[];
   export function headEntries(context?: RenderContext): HeadEntry[];
-
-  const render: RenderFunction;
+  export const render: RenderFunction;
   export default render;
 }
