@@ -174,7 +174,7 @@ on `result.ast.diagnostics`, not thrown.
 function componentTagForReference(reference, options?): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:927](packages/compiler/src/compiler.ts#L927)
+Defined in: [packages/compiler/src/compiler.ts:967](packages/compiler/src/compiler.ts#L967)
 
 Resolve an `@name` reference to its custom-element tag using the compile
 options' component sets (local components shadow Web Awesome).
@@ -201,7 +201,7 @@ options' component sets (local components shadow Web Awesome).
 function utilityClassForToken(token): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:932](packages/compiler/src/compiler.ts#L932)
+Defined in: [packages/compiler/src/compiler.ts:972](packages/compiler/src/compiler.ts#L972)
 
 Expand one `[utility]` token to its `wa-` class (plain prefix expansion, no mapping table).
 

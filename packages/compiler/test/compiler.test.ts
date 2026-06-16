@@ -119,6 +119,20 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain('{ tag: "link", attributes: { "rel": "canonical", "href": "https://swell.example/talks" } }');
   });
 
+  it("keeps nested object braces inside text interpolations", () => {
+    const compiled = compileWavexModule(
+      `~~~\n+head\n  title {{ ({a:{b:1}}).a.b }} | WAVEx\np Value: {{ ({a:{b:1}}).a.b }}.\n`,
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain('{ tag: "title", text: `${({a:{b:1}}).a.b} | WAVEx` }');
+    expect(compiled.code).toContain("<p>Value: ${({a:{b:1}}).a.b}.</p>");
+
+    const render = evaluateGeneratedRender(compiled.code);
+    expect(() => render({})).not.toThrow();
+  });
+
   it("compiles local components as render-function composition with attrs and slots", () => {
     const compiled = compileWavexModule(
       `~~~\n@page-shell layout:"wide"\n  h1 slot:title Tasks\n  @tasks/item task: required\n  p Body content\n`,

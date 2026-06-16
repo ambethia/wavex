@@ -464,14 +464,10 @@ function compileHeadEntries(nodes: readonly TemplateNode[]): string {
 /** Inline text with {{ interpolations }} as a plain JS template literal (no HTML escaping or prose spans). */
 function compileTextToStringLiteral(text: string): string {
   let output = "";
-  let cursor = 0;
-  const interpolation = /{{([\s\S]*?)}}/g;
-  for (const match of text.matchAll(interpolation)) {
-    output += escapeTemplateStatic(text.slice(cursor, match.index));
-    output += `\${${(match[1] ?? "").trim()}}`;
-    cursor = (match.index ?? 0) + match[0].length;
+  for (const segment of textInterpolationSegments(text)) {
+    if (segment.kind === "static") output += escapeTemplateStatic(segment.value);
+    else output += `\${${segment.value}}`;
   }
-  output += escapeTemplateStatic(text.slice(cursor));
   return `\`${output}\``;
 }
 
@@ -847,15 +843,59 @@ function compileExpressionAttribute(name: string, expression: string): string {
 
 function compileInlineText(text: string): string {
   let output = "";
-  let cursor = 0;
-  const interpolation = /{{([\s\S]*?)}}/g;
-  for (const match of text.matchAll(interpolation)) {
-    output += compileStaticInlineProse(text.slice(cursor, match.index));
-    output += `\${${(match[1] ?? "").trim()}}`;
-    cursor = (match.index ?? 0) + match[0].length;
+  for (const segment of textInterpolationSegments(text)) {
+    if (segment.kind === "static") output += compileStaticInlineProse(segment.value);
+    else output += `\${${segment.value}}`;
   }
-  output += compileStaticInlineProse(text.slice(cursor));
   return output;
+}
+
+type TextInterpolationSegment = { kind: "static"; value: string } | { kind: "expression"; value: string };
+
+function textInterpolationSegments(text: string): TextInterpolationSegment[] {
+  const segments: TextInterpolationSegment[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const open = text.indexOf("{{", cursor);
+    if (open === -1) break;
+
+    const close = findTextInterpolationClose(text, open + 2);
+    if (close === undefined) break;
+
+    if (open > cursor) segments.push({ kind: "static", value: text.slice(cursor, open) });
+    segments.push({ kind: "expression", value: text.slice(open + 2, close).trim() });
+    cursor = close + 2;
+  }
+
+  if (cursor < text.length) segments.push({ kind: "static", value: text.slice(cursor) });
+  return segments;
+}
+
+function findTextInterpolationClose(text: string, expressionStart: number): number | undefined {
+  let curlyDepth = 0;
+  let quote: string | undefined;
+
+  for (let index = expressionStart; index < text.length; index += 1) {
+    const char = text[index]!;
+
+    if (quote) {
+      if (char === "\\") index += 1;
+      else if (char === quote) quote = undefined;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === "`") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "}" && text[index + 1] === "}" && curlyDepth === 0) return index;
+    if (char === "{") curlyDepth += 1;
+    else if (char === "}" && curlyDepth > 0) curlyDepth -= 1;
+  }
+
+  return undefined;
 }
 
 function compileStaticInlineProse(text: string): string {
