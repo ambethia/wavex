@@ -371,7 +371,7 @@ describe("parseWavex", () => {
   });
 
   it("trims trailing whitespace from node ranges and keeps source columns with tabbed indentation", () => {
-    const source = "const marker = true\r~~~\rmain [stack]   \r  p Hello\t \r \t@button Bad\r";
+    const source = "const marker = true\r~~~\rmain [stack]   \r  p Hello\t \r \t@button Bad\rfooter\r\t\t@button Skipped\r";
     const parsed = parseWavex(source);
     const main = parsed.nodes[0];
     const paragraph = main?.children[0];
@@ -382,7 +382,9 @@ describe("parseWavex", () => {
     expect(source.slice(paragraph!.range.start.offset, paragraph!.range.end.offset)).toBe("p Hello");
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX002", severity: "error", line: 5, column: 2 },
-      { code: "WX003", severity: "error", line: 5, column: 3 }
+      { code: "WX003", severity: "error", line: 5, column: 3 },
+      { code: "WX002", severity: "error", line: 7, column: 1 },
+      { code: "WX004", severity: "error", line: 7, column: 3 }
     ]);
   });
 

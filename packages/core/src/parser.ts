@@ -195,7 +195,7 @@ function parseTemplateLines(
         code: "WX004",
         severity: "error",
         line: line.sourceLine,
-        column: indentSpaces + 1,
+        column: leadingWhitespace.length + 1,
         message: "Indentation cannot skip a nesting level."
       });
     }
