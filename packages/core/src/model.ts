@@ -267,9 +267,11 @@ export function lastPathSegment(path: string): string {
 
 /** Lightweight English singularization used for inferred Convex resource binding names. */
 export function singularize(name: string): string {
-  if (name.endsWith("ies")) return `${name.slice(0, -3)}y`;
-  if (name.endsWith("ses")) return name.slice(0, -2);
-  if (name.endsWith("s") && name.length > 1) return name.slice(0, -1);
+  if (name.length <= 1 || name.endsWith("ss")) return name;
+  if (/[^aeiou]ies$/i.test(name)) return `${name.slice(0, -3)}y`;
+  if (/ies$/i.test(name)) return name.slice(0, -1);
+  if (/(ches|shes|sses|xes|zes)$/i.test(name)) return name.slice(0, -2);
+  if (name.endsWith("s")) return name.slice(0, -1);
   return name;
 }
 
@@ -354,13 +356,14 @@ function toSet(values: ReadonlySet<string> | readonly string[] | undefined): Rea
  * typed local in their template. Returns undefined when no Attrs is declared.
  */
 export function extractAttrsTypeKeys(prelude: string): string[] | undefined {
-  const head = /(?:type\s+Attrs\s*=\s*|interface\s+Attrs\s*(?:extends\s+[^{]+)?)\{/.exec(prelude);
+  const structuralPrelude = maskTypeScriptNonCode(prelude);
+  const head = /(?:type\s+Attrs\s*=\s*|interface\s+Attrs\s*(?:extends\s+[^{]+)?)\{/.exec(structuralPrelude);
   if (!head) return undefined;
 
   let depth = 1;
   let body = "";
-  for (let index = head.index + head[0].length; index < prelude.length && depth > 0; index += 1) {
-    const char = prelude[index]!;
+  for (let index = head.index + head[0].length; index < structuralPrelude.length && depth > 0; index += 1) {
+    const char = structuralPrelude[index]!;
     if (char === "{") depth += 1;
     else if (char === "}") depth -= 1;
     if (depth > 0) body += char;
@@ -385,4 +388,57 @@ export function extractAttrsTypeKeys(prelude: string): string[] | undefined {
   }
   flush();
   return keys;
+}
+
+function maskTypeScriptNonCode(source: string): string {
+  const output = source.split("");
+  const maskRange = (start: number, end: number) => {
+    for (let index = start; index < end; index += 1) {
+      if (output[index] !== "\n") output[index] = " ";
+    }
+  };
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index]!;
+    const next = source[index + 1];
+
+    if (char === "/" && next === "/") {
+      const start = index;
+      index += 2;
+      while (index < source.length && source[index] !== "\n") index += 1;
+      maskRange(start, index);
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      const start = index;
+      index += 2;
+      while (index < source.length && !(source[index] === "*" && source[index + 1] === "/")) index += 1;
+      index = Math.min(source.length, index + 2);
+      maskRange(start, index);
+      index -= 1;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === "`") {
+      const quote = char;
+      const start = index;
+      index += 1;
+      while (index < source.length) {
+        if (source[index] === "\\") {
+          index += 2;
+          continue;
+        }
+        if (source[index] === quote) {
+          index += 1;
+          break;
+        }
+        index += 1;
+      }
+      maskRange(start, index);
+      index -= 1;
+    }
+  }
+
+  return output.join("");
 }

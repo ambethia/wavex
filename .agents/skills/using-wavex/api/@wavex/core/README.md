@@ -2008,7 +2008,7 @@ shorthand: native elements, `@` components, `+` directives, text,
 function componentReferenceToTag(reference, options?): string;
 ```
 
-Defined in: [packages/core/src/model.ts:326](packages/core/src/model.ts#L326)
+Defined in: [packages/core/src/model.ts:328](packages/core/src/model.ts#L328)
 
 Resolve an `@name` component reference to a custom-element tag.
 
@@ -2082,7 +2082,7 @@ Build a full [RouteDefinition](#routedefinition) from a page file path, or undef
 function expandUtilityClassList(tokens): string[];
 ```
 
-Defined in: [packages/core/src/model.ts:295](packages/core/src/model.ts#L295)
+Defined in: [packages/core/src/model.ts:297](packages/core/src/model.ts#L297)
 
 Expand `[utility]` tokens into concrete `wa-*` class names, dropping empty tokens.
 
@@ -2104,7 +2104,7 @@ readonly `string`[]
 function expandUtilityToken(token): string;
 ```
 
-Defined in: [packages/core/src/model.ts:288](packages/core/src/model.ts#L288)
+Defined in: [packages/core/src/model.ts:290](packages/core/src/model.ts#L290)
 
 Expand one `[utility]` token to its class name. This is plain `wa-` prefix
 expansion by design — there is no semantic mapping table or `name:value`
@@ -2128,7 +2128,7 @@ utility grammar, so `[stack gap-xl]` is exactly `wa-stack wa-gap-xl`.
 function extractAttrsTypeKeys(prelude): string[] | undefined;
 ```
 
-Defined in: [packages/core/src/model.ts:356](packages/core/src/model.ts#L356)
+Defined in: [packages/core/src/model.ts:358](packages/core/src/model.ts#L358)
 
 Top-level keys of a component's `type Attrs = { ... }` (or `interface Attrs`)
 prelude declaration. Components declaring Attrs get each attribute as a bare,
@@ -2152,7 +2152,7 @@ typed local in their template. Returns undefined when no Attrs is declared.
 function formatDiagnostic(diagnostic): string;
 ```
 
-Defined in: [packages/core/src/model.ts:343](packages/core/src/model.ts#L343)
+Defined in: [packages/core/src/model.ts:345](packages/core/src/model.ts#L345)
 
 Render a diagnostic as a single `SEVERITY code line:column message` line for CLI/log output.
 
@@ -2255,7 +2255,7 @@ readonly [`RouteDefinition`](#routedefinition)[]
 function mergeClassNames(...values): string;
 ```
 
-Defined in: [packages/core/src/model.ts:300](packages/core/src/model.ts#L300)
+Defined in: [packages/core/src/model.ts:302](packages/core/src/model.ts#L302)
 
 Join whitespace-separated class name fragments while ignoring falsey values.
 
@@ -2383,7 +2383,7 @@ with errors still yields a best-effort AST for the LSP and compiler.
 function pluralize(name): string;
 ```
 
-Defined in: [packages/core/src/model.ts:277](packages/core/src/model.ts#L277)
+Defined in: [packages/core/src/model.ts:279](packages/core/src/model.ts#L279)
 
 Lightweight English pluralization used for inferred Convex resource binding names.
 
@@ -2499,7 +2499,7 @@ Lightweight English singularization used for inferred Convex resource binding na
 function toKebabCase(value): string;
 ```
 
-Defined in: [packages/core/src/model.ts:308](packages/core/src/model.ts#L308)
+Defined in: [packages/core/src/model.ts:310](packages/core/src/model.ts#L310)
 
 Convert component and property identifiers to kebab-case custom-element names.
 

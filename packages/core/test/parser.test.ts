@@ -2,7 +2,24 @@ import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createRouteDefinition, extractAttrsTypeKeys, matchRoutePath, parseAttributeToken, parseQueryString, parseWavex } from "../src/index.js";
+import {
+  createRouteDefinition,
+  extractAttrsTypeKeys,
+  matchRoutePath,
+  parseAttributeToken,
+  parseQueryString,
+  parseWavex,
+  singularize
+} from "../src/index.js";
+
+describe("singularize", () => {
+  it("preserves singular words ending in s and handles common es plurals", () => {
+    expect(singularize("address")).toBe("address");
+    expect(singularize("houses")).toBe("house");
+    expect(singularize("addresses")).toBe("address");
+    expect(singularize("boxes")).toBe("box");
+  });
+});
 
 describe("extractAttrsTypeKeys", () => {
   it("extracts top-level type Attrs keys without nested type noise", () => {
@@ -27,6 +44,23 @@ describe("extractAttrsTypeKeys", () => {
         }
       `)
     ).toEqual(["task", "selected"]);
+  });
+
+  it("ignores Attrs declarations inside comments and string literals", () => {
+    expect(
+      extractAttrsTypeKeys(`
+        // type Attrs = { commented: string }
+        const example = "interface Attrs { quoted: string }";
+        /*
+          interface Attrs {
+            blocked: boolean
+          }
+        */
+        type Attrs = {
+          actual: string;
+        }
+      `)
+    ).toEqual(["actual"]);
   });
 });
 
