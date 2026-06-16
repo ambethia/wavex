@@ -47,6 +47,17 @@ describe("extractAttrsTypeKeys", () => {
     ).toEqual(["task", "selected"]);
   });
 
+  it("ignores braces in interface Attrs generic constraints", () => {
+    expect(
+      extractAttrsTypeKeys(`
+        interface Attrs extends BaseAttrs<{ inherited: string }> {
+          task: { text: string }
+          selected?: boolean
+        }
+      `)
+    ).toEqual(["task", "selected"]);
+  });
+
   it("ignores Attrs declarations inside comments, strings, and regex literals", () => {
     expect(
       extractAttrsTypeKeys(`

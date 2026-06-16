@@ -276,12 +276,11 @@ function diagnoseAttrsLocalCollision(
 
 function extractAttrsTypeKeyEntries(prelude: string): AttrsKeyEntry[] {
   const structuralPrelude = maskTypeScriptNonCode(prelude);
-  const head = /(?:type\s+Attrs\s*=\s*|interface\s+Attrs\s*(?:extends\s+[^{]+)?)\{/.exec(structuralPrelude);
-  if (!head) return [];
+  const bodyStart = findAttrsBodyStart(structuralPrelude);
+  if (bodyStart === undefined) return [];
 
   let depth = 1;
   let body = "";
-  const bodyStart = head.index + head[0].length;
   for (let index = bodyStart; index < structuralPrelude.length && depth > 0; index += 1) {
     const char = structuralPrelude[index]!;
     if (char === "{") depth += 1;
@@ -316,6 +315,30 @@ function extractAttrsTypeKeyEntries(prelude: string): AttrsKeyEntry[] {
   }
   flush(bodyStart + body.length);
   return keys;
+}
+
+function findAttrsBodyStart(source: string): number | undefined {
+  const typeHead = /type\s+Attrs\s*=\s*\{/.exec(source);
+  if (typeHead) return typeHead.index + typeHead[0].length;
+
+  const interfaceHead = /interface\s+Attrs\b/.exec(source);
+  if (!interfaceHead) return undefined;
+
+  let angleDepth = 0;
+  let bracketDepth = 0;
+  let parenDepth = 0;
+  for (let index = interfaceHead.index + interfaceHead[0].length; index < source.length; index += 1) {
+    const char = source[index]!;
+    if (char === "<") angleDepth += 1;
+    else if (char === ">") angleDepth = Math.max(0, angleDepth - 1);
+    else if (char === "[") bracketDepth += 1;
+    else if (char === "]") bracketDepth = Math.max(0, bracketDepth - 1);
+    else if (char === "(") parenDepth += 1;
+    else if (char === ")") parenDepth = Math.max(0, parenDepth - 1);
+    else if (char === "{" && angleDepth === 0 && bracketDepth === 0 && parenDepth === 0) return index + 1;
+  }
+
+  return undefined;
 }
 
 function maskTypeScriptNonCode(source: string): string {
