@@ -2299,7 +2299,7 @@ Normalize Windows path separators to the POSIX-style slash form used by route an
 function parseAttributeToken(token, range?): Attribute | undefined;
 ```
 
-Defined in: [packages/core/src/parser.ts:652](packages/core/src/parser.ts#L652)
+Defined in: [packages/core/src/parser.ts:656](packages/core/src/parser.ts#L656)
 
 Parse one attribute token into its [Attribute](#attribute) form: boolean
 (`required`), literal (`variant:brand`), expression-shaped value

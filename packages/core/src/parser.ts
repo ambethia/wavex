@@ -384,19 +384,21 @@ function parseConvexReference(
   raw: string,
   range: SourceRange,
   diagnostics: Diagnostic[]
-): ConvexReferenceNode {
+): ConvexReferenceNode | undefined {
   const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
-  const head = headToken?.raw ?? "$missing:missing";
+  const head = headToken?.raw ?? "$";
   const address = parseConvexAddress(head, range, diagnostics);
+  const attributes = parseAttributeTokens(
+    tokens,
+    range,
+    diagnostics,
+    "Convex references cannot contain utility groups; bracket utility groups are only valid in element or component heads."
+  );
+  if (!address) return undefined;
   return {
     kind: "convex-reference",
     address,
-    attributes: parseAttributeTokens(
-      tokens,
-      range,
-      diagnostics,
-      "Convex references cannot contain utility groups; bracket utility groups are only valid in element or component heads."
-    ),
+    attributes,
     children: [],
     raw,
     range
@@ -409,9 +411,9 @@ function parseConvexCall(
   range: SourceRange,
   diagnostics: Diagnostic[],
   resources: ResourceBinding[]
-): ConvexCallNode {
+): ConvexCallNode | undefined {
   const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
-  const head = headToken?.raw ?? "$$missing:missing";
+  const head = headToken?.raw ?? "$$";
   const address = parseConvexAddress(head, range, diagnostics);
   const attributes = parseAttributeTokens(
     tokens,
@@ -419,6 +421,8 @@ function parseConvexCall(
     diagnostics,
     "Convex calls cannot contain utility groups; bracket utility groups are only valid in element or component heads."
   );
+  if (!address) return undefined;
+
   const asAttribute = attributes.find((attribute) => attribute.name === "as");
   const bindingName = attributeLiteralValue(asAttribute) ?? inferResourceBindingName(address.modulePath, address.functionName);
   const node: ConvexCallNode = {
@@ -434,7 +438,7 @@ function parseConvexCall(
   return node;
 }
 
-function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Diagnostic[]): ConvexFunctionAddress {
+function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Diagnostic[]): ConvexFunctionAddress | undefined {
   const withoutSigils = rawHead.replace(/^\$\$?/, "");
   const splitIndex = withoutSigils.lastIndexOf(":");
   const rawModulePath = splitIndex === -1 ? "" : withoutSigils.slice(0, splitIndex);
@@ -449,7 +453,7 @@ function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Di
       column: range.start.column,
       message: `Invalid Convex function address '${rawHead}'. Expected $module:function or $$module:function.`
     });
-    return { modulePath: "missing", functionName: "missing", raw: rawHead };
+    return undefined;
   }
   return { modulePath, functionName, raw: rawHead };
 }

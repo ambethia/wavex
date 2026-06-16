@@ -135,8 +135,8 @@ describe("parseWavex", () => {
     expect(parsed.diagnostics[2]!.message).toContain("cannot skip a nesting level");
   });
 
-  it("diagnoses invalid Convex addresses with WX020", () => {
-    const parsed = parseWavex(`~~~\n$$foo//bar:list\n$$foo/:list\n$tasks\n$$tasks:list?\n`);
+  it("diagnoses invalid Convex addresses with WX020 without sentinel AST resources", () => {
+    const parsed = parseWavex(`~~~\n$$foo//bar:list\n$$foo/:list\n$tasks\n$$tasks:list?\n$$tasks:list\n`);
 
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX020", severity: "error", line: 2, column: 1 },
@@ -145,6 +145,13 @@ describe("parseWavex", () => {
       { code: "WX020", severity: "error", line: 5, column: 1 }
     ]);
     expect(parsed.diagnostics).toHaveLength(4);
+    expect(parsed.nodes).toMatchObject([
+      { kind: "convex-call", address: { modulePath: "tasks", functionName: "list", raw: "$$tasks:list" } }
+    ]);
+    expect(parsed.resources).toMatchObject([
+      { name: "tasks", address: { modulePath: "tasks", functionName: "list", raw: "$$tasks:list" } }
+    ]);
+    expect(JSON.stringify({ nodes: parsed.nodes, resources: parsed.resources })).not.toContain("missing");
     for (const diagnostic of parsed.diagnostics) expect(diagnostic.message).toContain("Expected $module:function or $$module:function");
   });
 
