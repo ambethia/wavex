@@ -110,6 +110,31 @@ describe("Swell validation app", () => {
 });
 
 describe("wavex check", () => {
+  it("fails clearly when the root does not exist", async () => {
+    const missingRoot = join(fixtureRoot("wavex-cli-check-missing-"), "missing");
+    const { logs, errors } = captureConsole();
+
+    await runCli(["check", missingRoot]);
+
+    expect(logs).toEqual([]);
+    expect(errors).toEqual([`wavex check root does not exist: ${missingRoot}`]);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("prints diagnostics on stderr and the summary on stdout", async () => {
+    const root = fixtureRoot("wavex-cli-check-streams-");
+    writeFixture(root, "src/pages/index.wx", "~~~\n@missing-widget\n");
+    const { logs, errors } = captureConsole();
+
+    await runCli(["check", root]);
+
+    expect(logs).toEqual(["Checked 1 .wx file. Web Awesome: not installed; Font Awesome: none installed."]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("src/pages/index.wx: ");
+    expect(errors[0]).toContain("WX101");
+    expect(process.exitCode).toBe(1);
+  });
+
   it("resolves the app root when checking a nested src directory", async () => {
     const workspace = fixtureRoot("wavex-cli-check-");
     const appRoot = join(workspace, "apps", "swell");
@@ -135,6 +160,17 @@ describe("wavex check", () => {
 });
 
 describe("wavex routes", () => {
+  it("fails clearly when the root does not exist", async () => {
+    const missingRoot = join(fixtureRoot("wavex-cli-routes-missing-"), "missing");
+    const { logs, errors } = captureConsole();
+
+    await runCli(["routes", missingRoot]);
+
+    expect(logs).toEqual([]);
+    expect(errors).toEqual([`wavex routes root does not exist: ${missingRoot}`]);
+    expect(process.exitCode).toBe(1);
+  });
+
   it("prints file-convention page routes and skips layout files", async () => {
     const root = fixtureRoot("wavex-cli-routes-");
     writeFixture(root, "src/pages/+layout.wx", "~~~\nslot\n");
@@ -156,6 +192,23 @@ describe("wavex routes", () => {
 });
 
 describe("wavex compile", () => {
+  it("fails clearly when the input file does not exist", async () => {
+    const missingFile = join(fixtureRoot("wavex-cli-compile-missing-"), "missing.wx");
+    const writes: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    }) as never);
+    const { logs, errors } = captureConsole();
+
+    await runCli(["compile", missingFile]);
+
+    expect(writes).toEqual([]);
+    expect(logs).toEqual([]);
+    expect(errors).toEqual([`wavex compile input does not exist: ${missingFile}`]);
+    expect(process.exitCode).toBe(1);
+  });
+
   it("compiles a .wx file to a Lit render module on stdout", async () => {
     const root = fixtureRoot("wavex-cli-compile-");
     const file = writeFixture(root, "src/pages/index.wx", "~~~\nh1 Hello\n");

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
 import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes, parseWavex } from "@wavex/core";
@@ -64,7 +64,9 @@ Commands:
 }
 
 async function check(rootInput: string) {
-  const root = resolve(rootInput);
+  const root = requireExistingDirectory(rootInput, "check root");
+  if (!root) return;
+
   const files = walkWxFiles(root);
   let errorCount = 0;
 
@@ -85,7 +87,7 @@ async function check(rootInput: string) {
     const convexDiagnostics = validateConvexReferences(parsed, { functionKinds: convexFunctionKinds });
     for (const diagnostic of [...parsed.diagnostics, ...capabilityDiagnostics, ...convexDiagnostics]) {
       if (diagnostic.severity === "error") errorCount += 1;
-      console.log(`${normalizeSlashes(relative(root, file))}: ${formatDiagnostic(diagnostic)}`);
+      console.error(`${normalizeSlashes(relative(root, file))}: ${formatDiagnostic(diagnostic)}`);
     }
   }
 
@@ -102,7 +104,9 @@ async function check(rootInput: string) {
 }
 
 function routes(rootInput: string) {
-  const root = resolve(rootInput);
+  const root = requireExistingDirectory(rootInput, "routes root");
+  if (!root) return;
+
   const pagesDir = resolve(root, createDefaultConfig().pagesDir);
   const relativePagesDir = normalizeSlashes(relative(root, pagesDir));
   const routeDefs = walkWxFiles(pagesDir)
@@ -118,7 +122,9 @@ async function compile(fileInput: string | undefined) {
     process.exitCode = 1;
     return;
   }
-  const file = resolve(fileInput);
+  const file = requireExistingFile(fileInput, "compile input");
+  if (!file) return;
+
   const source = readFileSync(file, "utf8");
   const { discoverConvexFunctionKinds } = await import("@wavex/core/capabilities");
   const compiled = compileWavexModule(source, {
@@ -131,6 +137,42 @@ async function compile(fileInput: string | undefined) {
     return;
   }
   process.stdout.write(compiled.code);
+}
+
+function requireExistingDirectory(pathInput: string, label: string): string | undefined {
+  return requireExistingPath(pathInput, label, "directory");
+}
+
+function requireExistingFile(pathInput: string, label: string): string | undefined {
+  return requireExistingPath(pathInput, label, "file");
+}
+
+function requireExistingPath(pathInput: string, label: string, kind: "directory" | "file"): string | undefined {
+  const path = resolve(pathInput);
+  let stats;
+  try {
+    stats = statSync(path);
+  } catch (error) {
+    if (isNodeErrorWithCode(error, "ENOENT")) {
+      console.error(`wavex ${label} does not exist: ${path}`);
+      process.exitCode = 1;
+      return undefined;
+    }
+    throw error;
+  }
+
+  const matchesKind = kind === "directory" ? stats.isDirectory() : stats.isFile();
+  if (!matchesKind) {
+    console.error(`wavex ${label} is not a ${kind}: ${path}`);
+    process.exitCode = 1;
+    return undefined;
+  }
+
+  return path;
+}
+
+function isNodeErrorWithCode(error: unknown, code: string): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error && error.code === code;
 }
 
 function proxyVite(args: string[]) {
