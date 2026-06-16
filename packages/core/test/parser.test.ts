@@ -47,11 +47,13 @@ describe("extractAttrsTypeKeys", () => {
     ).toEqual(["task", "selected"]);
   });
 
-  it("ignores Attrs declarations inside comments and string literals", () => {
+  it("ignores Attrs declarations inside comments, strings, and regex literals", () => {
     expect(
       extractAttrsTypeKeys(`
         // type Attrs = { commented: string }
         const example = "interface Attrs { quoted: string }";
+        const matcher = /type Attrs = { regex: string }/g;
+        const makeMatcher = () => /interface Attrs { arrow: string }/;
         /*
           interface Attrs {
             blocked: boolean

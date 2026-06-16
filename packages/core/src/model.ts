@@ -420,6 +420,29 @@ function maskTypeScriptNonCode(source: string): string {
       continue;
     }
 
+    if (char === "/" && canStartRegexLiteral(source, index)) {
+      const start = index;
+      index += 1;
+      let inCharacterClass = false;
+      while (index < source.length) {
+        if (source[index] === "\\") {
+          index += 2;
+          continue;
+        }
+        if (source[index] === "[") inCharacterClass = true;
+        else if (source[index] === "]") inCharacterClass = false;
+        else if (source[index] === "/" && !inCharacterClass) {
+          index += 1;
+          while (/[$A-Za-z]/.test(source[index] ?? "")) index += 1;
+          break;
+        }
+        index += 1;
+      }
+      maskRange(start, index);
+      index -= 1;
+      continue;
+    }
+
     if (char === '"' || char === "'" || char === "`") {
       const quote = char;
       const start = index;
@@ -441,4 +464,18 @@ function maskTypeScriptNonCode(source: string): string {
   }
 
   return output.join("");
+}
+
+function canStartRegexLiteral(source: string, slashIndex: number): boolean {
+  let index = slashIndex - 1;
+  while (index >= 0 && /\s/.test(source[index]!)) index -= 1;
+  if (index < 0) return true;
+
+  const previous = source[index]!;
+  if (/[=(:,[!&|?{};~*%^<>+-]/.test(previous)) return true;
+  if (!/[A-Za-z_$]/.test(previous)) return false;
+
+  let wordStart = index;
+  while (wordStart > 0 && /[\w$]/.test(source[wordStart - 1]!)) wordStart -= 1;
+  return /^(return|throw|case|delete|void|typeof|yield|await|in|of)$/.test(source.slice(wordStart, index + 1));
 }

@@ -217,9 +217,9 @@ describe("compileWavexModule", () => {
     expect(() => render({ attrs: { talk: { title: "Keynote" }, featured: true } })).not.toThrow();
   });
 
-  it("ignores Attrs declarations inside comments and string literals when compiling typed locals", () => {
+  it("ignores Attrs declarations inside comments, strings, and regex literals when compiling typed locals", () => {
     const compiled = compileWavexModule(
-      `// type Attrs = { commented: string }\nconst example = "interface Attrs { quoted: string }";\n/*\n  interface Attrs {\n    blocked: boolean\n  }\n*/\ntype Attrs = {\n  actual: string;\n}\n~~~\np {{ actual }}\n`,
+      `// type Attrs = { commented: string }\nconst example = "interface Attrs { quoted: string }";\nconst matcher = /type Attrs = { regex: string }/g;\nconst makeMatcher = () => /interface Attrs { arrow: string }/;\n/*\n  interface Attrs {\n    blocked: boolean\n  }\n*/\ntype Attrs = {\n  actual: string;\n}\n~~~\np {{ actual }}\n`,
       { id: "src/components/actual-card.wx" }
     );
 
@@ -227,6 +227,8 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain("const { actual } = attrs as Attrs;");
     expect(compiled.code).not.toContain("const { commented");
     expect(compiled.code).not.toContain("const { quoted");
+    expect(compiled.code).not.toContain("const { regex");
+    expect(compiled.code).not.toContain("const { arrow");
     expect(compiled.code).not.toContain("const { blocked");
   });
 
