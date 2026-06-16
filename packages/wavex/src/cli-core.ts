@@ -153,7 +153,7 @@ function requireExistingPath(pathInput: string, label: string, kind: "directory"
   try {
     stats = statSync(path);
   } catch (error) {
-    if (isNodeErrorWithCode(error, "ENOENT")) {
+    if (isNodeErrorWithCode(error, "ENOENT") || isNodeErrorWithCode(error, "ENOTDIR")) {
       console.error(`wavex ${label} does not exist: ${path}`);
       process.exitCode = 1;
       return undefined;

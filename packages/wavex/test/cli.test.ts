@@ -209,6 +209,25 @@ describe("wavex compile", () => {
     expect(process.exitCode).toBe(1);
   });
 
+  it("fails clearly when an input path traverses through a file", async () => {
+    const root = fixtureRoot("wavex-cli-compile-enotdir-");
+    const parentFile = writeFixture(root, "not-a-dir", "plain file");
+    const input = join(parentFile, "missing.wx");
+    const writes: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
+      writes.push(String(chunk));
+      return true;
+    }) as never);
+    const { logs, errors } = captureConsole();
+
+    await runCli(["compile", input]);
+
+    expect(writes).toEqual([]);
+    expect(logs).toEqual([]);
+    expect(errors).toEqual([`wavex compile input does not exist: ${input}`]);
+    expect(process.exitCode).toBe(1);
+  });
+
   it("compiles a .wx file to a Lit render module on stdout", async () => {
     const root = fixtureRoot("wavex-cli-compile-");
     const file = writeFixture(root, "src/pages/index.wx", "~~~\nh1 Hello\n");
