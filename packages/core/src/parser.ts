@@ -161,7 +161,7 @@ function parseTemplateLines(
 ): TemplateNode[] {
   const roots: TemplateNode[] = [];
   const stack: Array<{ level: number; node: TemplateNode }> = [];
-  let skippedSubtreeLevel: number | undefined;
+  let skippedSubtreeIndentSpaces: number | undefined;
 
   for (const line of lines) {
     if (line.raw.trim() === "" || line.raw.trimStart().startsWith("//")) continue;
@@ -189,9 +189,9 @@ function parseTemplateLines(
     }
 
     const level = Math.floor(indentSpaces / 2);
-    if (skippedSubtreeLevel !== undefined) {
-      if (level > skippedSubtreeLevel) continue;
-      skippedSubtreeLevel = undefined;
+    if (skippedSubtreeIndentSpaces !== undefined) {
+      if (indentSpaces > skippedSubtreeIndentSpaces) continue;
+      skippedSubtreeIndentSpaces = undefined;
     }
 
     while (stack.length > 0 && stack[stack.length - 1]!.level >= level) stack.pop();
@@ -210,7 +210,7 @@ function parseTemplateLines(
     const range = makeRange(line, leadingWhitespace.length);
     const node = parseLine(content, range, diagnostics, resources);
     if (!node) {
-      skippedSubtreeLevel = level;
+      skippedSubtreeIndentSpaces = indentSpaces;
       continue;
     }
 

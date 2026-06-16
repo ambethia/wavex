@@ -155,6 +155,18 @@ describe("parseWavex", () => {
     for (const diagnostic of parsed.diagnostics) expect(diagnostic.message).toContain("Expected $module:function or $$module:function");
   });
 
+  it("does not promote oddly indented descendants of invalid Convex addresses", () => {
+    const parsed = parseWavex("~~~\n$$tasks\n p Odd indentation should stay under the invalid resource\nmain\n");
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX020", severity: "error", line: 2, column: 1 },
+      { code: "WX003", severity: "error", line: 3, column: 2 }
+    ]);
+    expect(parsed.diagnostics).toHaveLength(2);
+    expect(parsed.nodes).toMatchObject([{ kind: "element", tag: "main" }]);
+    expect(parsed.nodes).toHaveLength(1);
+  });
+
   it("parses attribute value forms", () => {
     expect(parseAttributeToken("required")).toMatchObject({ kind: "boolean", name: "required" });
     expect(parseAttributeToken("task:")).toMatchObject({ kind: "same-name", name: "task" });
