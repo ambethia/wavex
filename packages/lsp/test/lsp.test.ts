@@ -1,10 +1,14 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createTypeScriptInferredChecker } from "@volar/kit";
 import ts from "typescript";
 import { create as createTypeScriptServices } from "volar-service-typescript";
+import { URI } from "vscode-uri";
 import { createWavexLanguagePlugin, createWavexServicePlugin } from "../src/index.js";
+import { optionsForDocument } from "../src/project-context.js";
 
 const fixturesDir = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures");
 const talkFixture = resolve(fixturesDir, "talk.wx");
@@ -168,7 +172,7 @@ describe("@wavex/lsp", () => {
       version: 1
     });
 
-    // Attribute + slot completions on a component line
+    // Attribute + slot completions on bare and explicit Web Awesome component lines.
     const attrList = instance.provideCompletionItems?.(
       documentFor("  @button ") as never,
       { line: 0, character: 10 },
@@ -176,6 +180,14 @@ describe("@wavex/lsp", () => {
       {} as never
     ) as { items: Array<{ label: string; detail?: string }> };
     expect(attrList.items.map((item) => item.label)).toEqual(expect.arrayContaining(["variant", "size", "slot:start"]));
+
+    const prefixedAttrList = instance.provideCompletionItems?.(
+      documentFor("  @wa/button ") as never,
+      { line: 0, character: 13 },
+      {} as never,
+      {} as never
+    ) as { items: Array<{ label: string; detail?: string }> };
+    expect(prefixedAttrList.items.map((item) => item.label)).toEqual(expect.arrayContaining(["variant", "size", "slot:start"]));
 
     // Utility completions inside an unclosed bracket group
     const utilityList = instance.provideCompletionItems?.(
@@ -203,6 +215,35 @@ describe("@wavex/lsp", () => {
     ) as { contents: { value: string } };
     expect(attributeHover.contents.value).toContain("variant");
     expect(attributeHover.contents.value).toContain("theme variant");
+
+    const prefixedHoverDoc = documentFor("  @wa/button variant:brand Go");
+    const prefixedAttributeHover = instance.provideHover?.(
+      { ...prefixedHoverDoc, offsetAt: () => 15 } as never,
+      { line: 0, character: 15 },
+      {} as never
+    ) as { contents: { value: string } };
+    expect(prefixedAttributeHover.contents.value).toContain("theme variant");
+  });
+
+  it("refreshes project context after local component files change", () => {
+    const root = mkdtempSync(join(tmpdir(), "wavex-lsp-context-"));
+    try {
+      writeFileSync(join(root, "package.json"), '{"type":"module"}\n');
+      const page = join(root, "src", "pages", "index.wx");
+      mkdirSync(dirname(page), { recursive: true });
+      writeFileSync(page, "~~~\nmain\n");
+
+      const documentUri = URI.file(page).toString();
+      expect(optionsForDocument(documentUri).localComponents).toEqual([]);
+
+      const component = join(root, "src", "components", "new-card.wx");
+      mkdirSync(dirname(component), { recursive: true });
+      writeFileSync(component, "~~~\nsection\n");
+
+      expect(optionsForDocument(documentUri).localComponents).toContain("new-card");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

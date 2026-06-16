@@ -146,7 +146,7 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
 
           // Attribute completions for the line's Web Awesome component head.
           const componentHead = /^\s*@([\w/-]+)\s/.exec(text.slice(lineStart, text.indexOf("\n", lineStart) === -1 ? text.length : text.indexOf("\n", lineStart)));
-          const detail = componentHead ? options.webAwesomeDetails?.get(componentHead[1]!) : undefined;
+          const detail = componentHead ? options.webAwesomeDetails?.get(webAwesomeDetailName(componentHead[1]!)) : undefined;
           if (detail && /\s[\w-]*$/.test(linePrefix)) {
             const items: vscode.CompletionItem[] = [
               ...detail.attributes.map((attribute) => ({
@@ -190,7 +190,7 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
             if (options.localComponents?.includes(name)) {
               return hover(`**@${name}** — local component \`src/components/${name}.wx\``);
             }
-            const detail = options.webAwesomeDetails?.get(name.replace(/^wa\//, ""));
+            const detail = options.webAwesomeDetails?.get(webAwesomeDetailName(name));
             if (detail) {
               const attrs = detail.attributes
                 .slice(0, 10)
@@ -207,7 +207,7 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
 
           // attribute name on a component line
           const componentHead = /^\s*@([\w/-]+)/.exec(line);
-          const headDetail = componentHead ? options.webAwesomeDetails?.get(componentHead[1]!) : undefined;
+          const headDetail = componentHead ? options.webAwesomeDetails?.get(webAwesomeDetailName(componentHead[1]!)) : undefined;
           if (headDetail) {
             for (const match of line.matchAll(/(?<=\s)([\w-]+)(?=:|\s|$)/g)) {
               const start = match.index ?? 0;
@@ -234,6 +234,10 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
       };
     }
   };
+}
+
+function webAwesomeDetailName(componentReference: string): string {
+  return componentReference.replace(/^wa\//, "");
 }
 
 function hover(markdown: string): vscode.Hover {
