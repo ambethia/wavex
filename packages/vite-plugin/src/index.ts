@@ -14,7 +14,7 @@
  *
  * @module @wavex/vite-plugin
  */
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
 import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes } from "@wavex/core";
@@ -87,12 +87,6 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     configureServer(server) {
       const config = resolveDirs(server.config.root);
       server.watcher.add([config.pagesDir, config.componentsDir, config.convexDir].filter(existsSync));
-      server.middlewares.use((request, _response, next) => {
-        const file = fileFromRequestUrl(request.url, server.config.root);
-        if (file && isWavexTemplateFile(file, config)) invalidateWavexFile(server, file);
-        next();
-      });
-      const mtimes = snapshotWavexMtimes(config);
       server.watcher.on("change", (file) => {
         if (isConvexSourceFile(file, config)) {
           convexFunctionKinds = undefined;
@@ -100,8 +94,6 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
           return;
         }
         if (!isWavexTemplateFile(file, config)) return;
-        const mtime = safeMtime(file);
-        if (mtime !== undefined) mtimes.set(file, mtime);
         sendWavexHotUpdate(server, file);
       });
       server.watcher.on("add", (file) => {
@@ -111,8 +103,6 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
           return;
         }
         if (!isWavexTemplateFile(file, config)) return;
-        const mtime = safeMtime(file);
-        if (mtime !== undefined) mtimes.set(file, mtime);
         sendWavexFullReload(server, file);
       });
       server.watcher.on("unlink", (file) => {
@@ -122,29 +112,8 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
           return;
         }
         if (!isWavexTemplateFile(file, config)) return;
-        mtimes.delete(file);
         sendWavexFullReload(server, file);
       });
-
-      const pollTimer = setInterval(() => {
-        const files = new Set(listWavexTemplateFiles(config));
-        for (const [file] of mtimes) {
-          if (!files.has(file)) {
-            mtimes.delete(file);
-            sendWavexFullReload(server, file);
-          }
-        }
-        for (const file of files) {
-          const mtime = safeMtime(file);
-          if (mtime === undefined) continue;
-          const previous = mtimes.get(file);
-          mtimes.set(file, mtime);
-          if (previous === undefined) sendWavexFullReload(server, file);
-          else if (mtime > previous) sendWavexHotUpdate(server, file);
-        }
-      }, 300);
-      pollTimer.unref?.();
-      server.httpServer?.once("close", () => clearInterval(pollTimer));
     },
     resolveId(id) {
       if (id === VIRTUAL_ROUTES_ID) return RESOLVED_VIRTUAL_ROUTES_ID;
@@ -404,16 +373,6 @@ function stripQuery(id: string): string {
   return id.replace(/[?#].*$/, "");
 }
 
-function fileFromRequestUrl(url: string | undefined, root: string): string | undefined {
-  if (!url || !url.includes(".wx")) return undefined;
-  try {
-    const pathname = decodeURIComponent(new URL(url, "http://wavex.local").pathname);
-    return resolve(root, pathname.replace(/^\/+/, ""));
-  } catch {
-    return undefined;
-  }
-}
-
 function invalidateWavexFile(server: ViteDevServer, file: string): void {
   server.moduleGraph.onFileChange(file);
   invalidateVirtualModules(server);
@@ -502,21 +461,6 @@ function normalizeHotPath(url: string): string {
 
 function listWavexTemplateFiles(config: ResolvedDirs): string[] {
   return [...walkWxFiles(config.pagesDir), ...walkWxFiles(config.componentsDir)];
-}
-
-function snapshotWavexMtimes(config: ResolvedDirs): Map<string, number> {
-  return new Map(listWavexTemplateFiles(config).flatMap((file) => {
-    const mtime = safeMtime(file);
-    return mtime === undefined ? [] : [[file, mtime]];
-  }));
-}
-
-function safeMtime(file: string): number | undefined {
-  try {
-    return statSync(file).mtimeMs;
-  } catch {
-    return undefined;
-  }
 }
 
 function isInside(file: string, dir: string): boolean {

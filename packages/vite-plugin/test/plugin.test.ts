@@ -186,6 +186,19 @@ describe("wavex Vite transform", () => {
 });
 
 describe("wavex Vite dev-server integration", () => {
+  it("relies on Vite's watcher instead of request-time invalidation or stat polling", () => {
+    const root = fixtureRoot("wavex-vite-cache-guard-");
+    writeFixture(root, "src/pages/index.wx", "~~~\nh1 Home\n");
+    const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
+    const { server } = createDevServer(root, new Map());
+    const plugin = configuredPlugin(root);
+
+    plugin.configureServer(server);
+
+    expect(server.middlewares.use).not.toHaveBeenCalled();
+    expect(setIntervalSpy).not.toHaveBeenCalled();
+  });
+
   it("watches pages and components and emits a page self update for component edits", () => {
     const root = fixtureRoot("wavex-vite-hmr-");
     writeFixture(root, "src/pages/index.wx", "~~~\n@card\n");
@@ -210,6 +223,7 @@ describe("wavex Vite dev-server integration", () => {
     change(componentFile);
     close();
 
+    expect(server.middlewares.use).not.toHaveBeenCalled();
     expect(server.watcher.add).toHaveBeenCalledWith([join(root, "src/pages"), join(root, "src/components")]);
     expect(server.moduleGraph.onFileChange).toHaveBeenCalledWith(componentFile);
     expect(server.ws.send).toHaveBeenCalledWith({
