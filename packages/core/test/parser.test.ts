@@ -136,13 +136,13 @@ describe("parseWavex", () => {
   });
 
   it("diagnoses invalid Convex addresses with WX020 without sentinel AST resources", () => {
-    const parsed = parseWavex(`~~~\n$$foo//bar:list\n$$foo/:list\n$tasks\n$$tasks:list?\n$$tasks:list\n`);
+    const parsed = parseWavex(`~~~\n$$foo//bar:list\n  +loading\n    p Loading should stay under the invalid resource\n$$foo/:list\n$tasks\n$$tasks:list?\n$$tasks:list\n`);
 
     expect(parsed.diagnostics).toMatchObject([
       { code: "WX020", severity: "error", line: 2, column: 1 },
-      { code: "WX020", severity: "error", line: 3, column: 1 },
-      { code: "WX020", severity: "error", line: 4, column: 1 },
-      { code: "WX020", severity: "error", line: 5, column: 1 }
+      { code: "WX020", severity: "error", line: 5, column: 1 },
+      { code: "WX020", severity: "error", line: 6, column: 1 },
+      { code: "WX020", severity: "error", line: 7, column: 1 }
     ]);
     expect(parsed.diagnostics).toHaveLength(4);
     expect(parsed.nodes).toMatchObject([
