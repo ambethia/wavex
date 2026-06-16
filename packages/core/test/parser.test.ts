@@ -51,7 +51,7 @@ describe("extractAttrsTypeKeys", () => {
   it("ignores braces in interface Attrs generic constraints", () => {
     expect(
       extractAttrsTypeKeys(`
-        interface Attrs extends BaseAttrs<{ inherited: string }> {
+        interface Attrs extends BaseAttrs<{ inherited: string; derive: () => { ignored: string } }> {
           task: { text: string }
           selected?: boolean
         }

@@ -235,13 +235,14 @@ describe("compileWavexModule", () => {
 
   it("ignores braces in interface Attrs generic constraints when compiling typed locals", () => {
     const compiled = compileWavexModule(
-      `interface Attrs extends BaseAttrs<{ inherited: string }> {\n  actual: string;\n}\n~~~\np {{ actual }}\n`,
+      `interface Attrs extends BaseAttrs<{ inherited: string; derive: () => { ignored: string } }> {\n  actual: string;\n}\n~~~\np {{ actual }}\n`,
       { id: "src/components/actual-card.wx" }
     );
 
     expect(compiled.ast.diagnostics).toEqual([]);
     expect(compiled.code).toContain("const { actual } = attrs as Attrs;");
     expect(compiled.code).not.toContain("const { inherited");
+    expect(compiled.code).not.toContain("const { ignored");
   });
 
   it("diagnoses typed Attrs keys that collide with WAVEx render locals", () => {

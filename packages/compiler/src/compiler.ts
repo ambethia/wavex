@@ -330,7 +330,7 @@ function findAttrsBodyStart(source: string): number | undefined {
   for (let index = interfaceHead.index + interfaceHead[0].length; index < source.length; index += 1) {
     const char = source[index]!;
     if (char === "<") angleDepth += 1;
-    else if (char === ">") angleDepth = Math.max(0, angleDepth - 1);
+    else if (char === ">" && source[index - 1] !== "=") angleDepth = Math.max(0, angleDepth - 1);
     else if (char === "[") bracketDepth += 1;
     else if (char === "]") bracketDepth = Math.max(0, bracketDepth - 1);
     else if (char === "(") parenDepth += 1;
