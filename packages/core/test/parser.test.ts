@@ -54,6 +54,8 @@ describe("extractAttrsTypeKeys", () => {
         const example = "interface Attrs { quoted: string }";
         const matcher = /type Attrs = { regex: string }/g;
         const makeMatcher = () => /interface Attrs { arrow: string }/;
+        if (example === ")")
+          /interface Attrs { conditional: string }/.test(example);
         /*
           interface Attrs {
             blocked: boolean

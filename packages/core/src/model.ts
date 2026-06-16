@@ -473,9 +473,45 @@ function canStartRegexLiteral(source: string, slashIndex: number): boolean {
 
   const previous = source[index]!;
   if (/[=(:,[!&|?{};~*%^<>+-]/.test(previous)) return true;
+  if (previous === ")") return followsControlFlowCondition(source, index);
   if (!/[A-Za-z_$]/.test(previous)) return false;
 
   let wordStart = index;
   while (wordStart > 0 && /[\w$]/.test(source[wordStart - 1]!)) wordStart -= 1;
-  return /^(return|throw|case|delete|void|typeof|yield|await|in|of)$/.test(source.slice(wordStart, index + 1));
+  return /^(return|throw|case|delete|void|typeof|yield|await|in|of|else|do)$/.test(source.slice(wordStart, index + 1));
+}
+
+function followsControlFlowCondition(source: string, closeParenIndex: number): boolean {
+  let depth = 1;
+  let index = closeParenIndex - 1;
+  while (index >= 0) {
+    const char = source[index]!;
+    if (char === '"' || char === "'" || char === "`") {
+      index = previousStringDelimiter(source, index, char);
+    } else if (char === ")") depth += 1;
+    else if (char === "(") {
+      depth -= 1;
+      if (depth === 0) break;
+    }
+    index -= 1;
+  }
+  if (index < 0) return false;
+
+  index -= 1;
+  while (index >= 0 && /\s/.test(source[index]!)) index -= 1;
+  let wordStart = index;
+  while (wordStart > 0 && /[\w$]/.test(source[wordStart - 1]!)) wordStart -= 1;
+  return /^(if|while|for|with)$/.test(source.slice(wordStart, index + 1));
+}
+
+function previousStringDelimiter(source: string, closeIndex: number, quote: string): number {
+  for (let index = closeIndex - 1; index >= 0; index -= 1) {
+    if (source[index] !== quote) continue;
+    let backslashes = 0;
+    for (let escapeIndex = index - 1; escapeIndex >= 0 && source[escapeIndex] === "\\"; escapeIndex -= 1) {
+      backslashes += 1;
+    }
+    if (backslashes % 2 === 0) return index;
+  }
+  return closeIndex;
 }

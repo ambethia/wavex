@@ -219,7 +219,7 @@ describe("compileWavexModule", () => {
 
   it("ignores Attrs declarations inside comments, strings, and regex literals when compiling typed locals", () => {
     const compiled = compileWavexModule(
-      `// type Attrs = { commented: string }\nconst example = "interface Attrs { quoted: string }";\nconst matcher = /type Attrs = { regex: string }/g;\nconst makeMatcher = () => /interface Attrs { arrow: string }/;\n/*\n  interface Attrs {\n    blocked: boolean\n  }\n*/\ntype Attrs = {\n  actual: string;\n}\n~~~\np {{ actual }}\n`,
+      `// type Attrs = { commented: string }\nconst example = "interface Attrs { quoted: string }";\nconst matcher = /type Attrs = { regex: string }/g;\nconst makeMatcher = () => /interface Attrs { arrow: string }/;\nif (example === ")")\n  /interface Attrs { conditional: string }/.test(example);\n/*\n  interface Attrs {\n    blocked: boolean\n  }\n*/\ntype Attrs = {\n  actual: string;\n}\n~~~\np {{ actual }}\n`,
       { id: "src/components/actual-card.wx" }
     );
 
@@ -229,6 +229,7 @@ describe("compileWavexModule", () => {
     expect(compiled.code).not.toContain("const { quoted");
     expect(compiled.code).not.toContain("const { regex");
     expect(compiled.code).not.toContain("const { arrow");
+    expect(compiled.code).not.toContain("const { conditional");
     expect(compiled.code).not.toContain("const { blocked");
   });
 
