@@ -110,8 +110,8 @@ const DIRECTIVE_NAMES = new Set([
  */
 export function parseWavex(source: string, _options: ParseWavexOptions = {}): WavexFile {
   const diagnostics: Diagnostic[] = [];
-  const allLines = source.split(/\r?\n/);
   const lineStartOffsets = computeLineStartOffsets(source);
+  const allLines = splitSourceLines(source, lineStartOffsets);
   const separatorIndex = allLines.findIndex((line) => line.trim() === "~~~");
   const hasWaveSeparator = separatorIndex !== -1;
 
@@ -182,7 +182,7 @@ function parseTemplateLines(
         code: "WX003",
         severity: "error",
         line: line.sourceLine,
-        column: indentSpaces + 1,
+        column: leadingWhitespace.length + 1,
         message: "Indentation must use multiples of exactly two spaces."
       });
     }
@@ -201,7 +201,7 @@ function parseTemplateLines(
     }
 
     const content = line.raw.slice(leadingWhitespace.length);
-    const range = makeRange(line, leadingWhitespace.length, line.raw.length);
+    const range = makeRange(line, leadingWhitespace.length);
     const node = parseLine(content, range, diagnostics, resources);
     if (!node) continue;
 
@@ -899,7 +899,18 @@ function computeLineStartOffsets(source: string): number[] {
   return offsets;
 }
 
-function makeRange(line: LineRecord, leadingWhitespaceLength: number, lineLength: number): SourceRange {
+function splitSourceLines(source: string, lineStartOffsets: readonly number[]): string[] {
+  return lineStartOffsets.map((startOffset, index) => {
+    const nextStartOffset = lineStartOffsets[index + 1] ?? source.length;
+    let lineEndOffset = nextStartOffset;
+    if (lineEndOffset > startOffset && source[lineEndOffset - 1] === "\n") lineEndOffset -= 1;
+    if (lineEndOffset > startOffset && source[lineEndOffset - 1] === "\r") lineEndOffset -= 1;
+    return source.slice(startOffset, lineEndOffset);
+  });
+}
+
+function makeRange(line: LineRecord, leadingWhitespaceLength: number): SourceRange {
+  const lineEnd = trimEndIndex(line.raw);
   const start: SourceLocation = {
     line: line.sourceLine,
     column: leadingWhitespaceLength + 1,
@@ -907,8 +918,8 @@ function makeRange(line: LineRecord, leadingWhitespaceLength: number, lineLength
   };
   const end: SourceLocation = {
     line: line.sourceLine,
-    column: lineLength + 1,
-    offset: line.sourceOffset + lineLength
+    column: lineEnd + 1,
+    offset: line.sourceOffset + lineEnd
   };
   return { start, end };
 }

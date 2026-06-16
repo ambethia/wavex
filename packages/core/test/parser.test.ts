@@ -370,6 +370,22 @@ describe("parseWavex", () => {
     expect(source.slice(expression!.expressionRange!.start.offset, expression!.expressionRange!.end.offset)).toBe("formatTitle(talk.title)");
   });
 
+  it("trims trailing whitespace from node ranges and keeps source columns with tabbed indentation", () => {
+    const source = "const marker = true\r~~~\rmain [stack]   \r  p Hello\t \r \t@button Bad\r";
+    const parsed = parseWavex(source);
+    const main = parsed.nodes[0];
+    const paragraph = main?.children[0];
+
+    expect(parsed.hasWaveSeparator).toBe(true);
+    expect(parsed.prelude).toBe("const marker = true\r");
+    expect(source.slice(main!.range.start.offset, main!.range.end.offset)).toBe("main [stack]");
+    expect(source.slice(paragraph!.range.start.offset, paragraph!.range.end.offset)).toBe("p Hello");
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX002", severity: "error", line: 5, column: 2 },
+      { code: "WX003", severity: "error", line: 5, column: 3 }
+    ]);
+  });
+
   it("records UTF-16 source ranges across CRLF newlines, tabs, and unicode text", () => {
     const source = 'type Marker = "é"\r\n\r\n~~~\r\nmain [stack]\r\n  p Café 🧪\r\n\t@button Go\r\n';
     const parsed = parseWavex(source);
