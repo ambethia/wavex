@@ -298,6 +298,19 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`<wa-badge`);
   });
 
+  it("only composes @components/ references when the local component is known", () => {
+    const compiled = compileWavexModule(`~~~\n@components/card Local\n@components/ghost Missing\n`, {
+      id: "src/pages/index.wx",
+      localComponents: ["card"]
+    });
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain(`import * as __wxc_card from "/src/components/card.wx";`);
+    expect(compiled.code).toContain(`__wxc_card.default ?? __wxc_card.render`);
+    expect(compiled.code).not.toContain(`/src/components/ghost.wx`);
+    expect(compiled.code).toContain(`<wx-ghost>Missing</wx-ghost>`);
+  });
+
   it("compiles action-state directives inside semantic-event elements", () => {
     const compiled = compileWavexModule(
       `~~~\n@button :click:$$ai/summarize:run data-slug:talk.slug\n  +pending\n    @spinner\n    | Summarizing…\n  +idle\n    | Summarize\n  +mutation-error problem\n    span {{ String(problem) }}\n`,

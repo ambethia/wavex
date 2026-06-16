@@ -545,7 +545,7 @@ function resolveLocalComponentReference(reference: string, options: InternalComp
   const candidates = new Set(options.localComponents ?? []);
   if (normalized.startsWith("components/")) {
     const direct = normalized.slice("components/".length);
-    return candidates.has(direct) ? direct : direct;
+    return candidates.has(direct) ? direct : undefined;
   }
   return candidates.has(normalized) ? normalized : undefined;
 }
