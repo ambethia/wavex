@@ -267,11 +267,11 @@ export function lastPathSegment(path: string): string {
 
 /** Lightweight English singularization used for inferred Convex resource binding names. */
 export function singularize(name: string): string {
-  if (name.length <= 1 || name.endsWith("ss")) return name;
+  if (name.length <= 1 || /ss$/i.test(name)) return name;
   if (/[^aeiou]ies$/i.test(name)) return `${name.slice(0, -3)}y`;
   if (/ies$/i.test(name)) return name.slice(0, -1);
   if (/(ches|shes|sses|xes|zes)$/i.test(name)) return name.slice(0, -2);
-  if (name.endsWith("s")) return name.slice(0, -1);
+  if (/s$/i.test(name)) return name.slice(0, -1);
   return name;
 }
 

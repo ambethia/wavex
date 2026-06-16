@@ -18,6 +18,7 @@ describe("singularize", () => {
     expect(singularize("houses")).toBe("house");
     expect(singularize("addresses")).toBe("address");
     expect(singularize("boxes")).toBe("box");
+    expect(singularize("ADDRESS")).toBe("ADDRESS");
   });
 });
 

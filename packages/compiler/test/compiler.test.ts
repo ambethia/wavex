@@ -217,6 +217,19 @@ describe("compileWavexModule", () => {
     expect(() => render({ attrs: { talk: { title: "Keynote" }, featured: true } })).not.toThrow();
   });
 
+  it("ignores Attrs declarations inside comments and string literals when compiling typed locals", () => {
+    const compiled = compileWavexModule(
+      `// type Attrs = { commented: string }\nconst example = "interface Attrs { quoted: string }";\n/*\n  interface Attrs {\n    blocked: boolean\n  }\n*/\ntype Attrs = {\n  actual: string;\n}\n~~~\np {{ actual }}\n`,
+      { id: "src/components/actual-card.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("const { actual } = attrs as Attrs;");
+    expect(compiled.code).not.toContain("const { commented");
+    expect(compiled.code).not.toContain("const { quoted");
+    expect(compiled.code).not.toContain("const { blocked");
+  });
+
   it("diagnoses typed Attrs keys that collide with WAVEx render locals", () => {
     const compiled = compileWavexModule(
       `type Attrs = {\n  route: string;\n  state: string;\n  talk: { title: string };\n}\n~~~\np {{ talk.title }}\n`,
