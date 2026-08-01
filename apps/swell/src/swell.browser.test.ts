@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { page } from "vitest/browser";
 import {
-  createClientRouter,
   type ActionClient,
-  type ClientRouter,
+  type ClientRoute,
   type ResolvedActionDefinition,
   type ResolvedResourceDefinition,
   type ResourceClient,
   type ResourceSubscriptionHandlers,
 } from "@wavex/runtime";
-import { mountLit, type LitMount } from "@wavex/runtime/lit";
+import { mountLitApp, type LitApp } from "@wavex/runtime/lit";
 import routes from "virtual:wavex/routes";
+import authStateFixture from "./components/auth-state-fixture.wx";
 
 const talks = [
   {
@@ -72,14 +72,11 @@ class SwellTestBackend implements ResourceClient, ActionClient {
   }
 }
 
-let app: LitMount | undefined;
-let router: ClientRouter | undefined;
+let app: LitApp | undefined;
 let root: HTMLDivElement | undefined;
 const originalTitle = document.title;
 
 afterEach(() => {
-  router?.dispose();
-  router = undefined;
   app?.dispose();
   app = undefined;
   root?.remove();
@@ -94,14 +91,24 @@ function mountSwell() {
   root = document.createElement("div");
   document.body.append(root);
   const backend = new SwellTestBackend();
-  app = mountLit(root, () => undefined, {}, {
+  app = mountLitApp({
+    root,
+    routes,
     resourceClient: backend,
     actionClient: backend,
     resolveActionKind: (definition) => (definition.modulePath === "ai/summarize" ? "action" : "mutation"),
+    viewTransitions: false,
   });
-  router = createClientRouter({ routes, host: app, viewTransitions: false });
-  return { backend, router };
+  return { backend, app, router: app.router };
 }
+
+const authFixtureRoute: ClientRoute = {
+  id: "auth-fixture",
+  file: "src/components/auth-state-fixture.wx",
+  path: "/auth-fixture",
+  segments: [{ kind: "static", value: "auth-fixture" }],
+  load: async () => ({ default: authStateFixture }),
+};
 
 describe("Swell Conf browser flows", () => {
   it("navigates static, dynamic, catch-all, and history routes with live head updates", async () => {
@@ -143,5 +150,31 @@ describe("Swell Conf browser flows", () => {
       tier: "general",
     });
     await expect.poll(() => root?.textContent).toContain("This email is already registered.");
+  });
+
+  it("rerenders app-owned auth context through a compiled page without remounting", async () => {
+    window.history.replaceState({}, "", "/auth-fixture");
+    root = document.createElement("div");
+    document.body.append(root);
+    app = mountLitApp({
+      root,
+      routes: [authFixtureRoute],
+      initialContext: { state: { auth: { status: "loading" } } },
+      viewTransitions: false,
+    });
+
+    await app.ready;
+    await expect.poll(() => root?.textContent).toContain("Auth: loading");
+    const mountedShell = root.firstElementChild;
+    expect(mountedShell).toBeTruthy();
+
+    app.update({ state: { auth: { status: "unauthenticated" } } });
+    await expect.poll(() => root?.textContent).toContain("Auth: unauthenticated");
+    expect(root.firstElementChild).toBe(mountedShell);
+
+    app.update({ state: { auth: { status: "authenticated", userId: "user-1" } } });
+    await expect.poll(() => root?.textContent).toContain("Auth: authenticated (user-1)");
+    expect(root.firstElementChild).toBe(mountedShell);
+    expect(app.router.current?.route.path).toBe("/auth-fixture");
   });
 });
