@@ -7,4 +7,5 @@ editors/*/grammars/
 /.agents/skills/using-fontawesome
 /.agents/skills/using-webawesome
 *.vsix
+artifacts/
 .flux

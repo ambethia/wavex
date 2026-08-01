@@ -1,8 +1,20 @@
 {
   "name": "@wavex/lsp",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "description": "WAVEx Volar-based language server.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambethia/wavex.git",
+    "directory": "packages/lsp"
+  },
+  "homepage": "https://github.com/ambethia/wavex#readme",
+  "bugs": {
+    "url": "https://github.com/ambethia/wavex/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "wavex-language-server": "./bin/wavex-language-server.js"
   },
@@ -39,7 +51,10 @@
     "typescript": "*"
   },
   "files": [
-    "dist",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
     "bin"
   ],
   "license": "MIT"

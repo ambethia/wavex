@@ -1,8 +1,20 @@
 {
   "name": "@wavex/compiler",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "description": "WAVEx .wx to render-module compiler.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambethia/wavex.git",
+    "directory": "packages/compiler"
+  },
+  "homepage": "https://github.com/ambethia/wavex#readme",
+  "bugs": {
+    "url": "https://github.com/ambethia/wavex/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,6 +33,11 @@
     "@wavex/runtime": "workspace:*",
     "lit": ">=3.0.0"
   },
-  "files": ["dist"],
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
+  ],
   "license": "MIT"
 }

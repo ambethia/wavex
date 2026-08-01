@@ -1,8 +1,20 @@
 {
   "name": "wavex",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "description": "WAVEx CLI.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambethia/wavex.git",
+    "directory": "packages/wavex"
+  },
+  "homepage": "https://github.com/ambethia/wavex#readme",
+  "bugs": {
+    "url": "https://github.com/ambethia/wavex/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "wavex": "./dist/cli.js"
   },
@@ -23,7 +35,10 @@
     "@lit-labs/ssr": "^3.3.0"
   },
   "files": [
-    "dist"
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
   ],
   "license": "MIT",
   "peerDependencies": {

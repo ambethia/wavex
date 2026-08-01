@@ -2,10 +2,15 @@
   "name": "wavex-vscode",
   "displayName": "WAVEx",
   "description": "WAVEx (.wx) language support: syntax highlighting and the Volar-based language server.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "wavex",
   "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ambethia/wavex.git",
+    "directory": "editors/vscode"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },

@@ -1,8 +1,20 @@
 {
   "name": "@wavex/core",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "description": "Shared WAVEx project model and helpers.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambethia/wavex.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/ambethia/wavex#readme",
+  "bugs": {
+    "url": "https://github.com/ambethia/wavex/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,7 +30,10 @@
     "typecheck": "tsc -b --pretty false"
   },
   "files": [
-    "dist"
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map"
   ],
   "license": "MIT",
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "wavex-workspace",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "private": true,
   "type": "module",
   "description": "WAVEx TypeScript-first framework workspace.",
@@ -9,6 +9,9 @@
     "check": "pnpm typecheck && pnpm test && pnpm docs:check && pnpm api-docs:check",
     "typecheck": "pnpm -r typecheck",
     "test": "vp test run",
+    "ci": "pnpm check && pnpm build && pnpm package:check",
+    "package:check": "node scripts/check-packages.mjs",
+    "package:artifacts": "node scripts/check-packages.mjs --output artifacts",
     "docs:skill": "node scripts/build-docs-skill.mjs",
     "docs:check": "node scripts/build-docs-skill.mjs --check",
     "api-docs:check": "node scripts/check-api-doc-comments.mjs"
@@ -22,6 +25,14 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambethia/wavex.git"
+  },
+  "homepage": "https://github.com/ambethia/wavex#readme",
+  "bugs": {
+    "url": "https://github.com/ambethia/wavex/issues"
+  },
   "packageManager": "pnpm@10.18.0",
   "pnpm": {
     "overrides": {

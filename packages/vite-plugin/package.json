@@ -1,8 +1,20 @@
 {
   "name": "@wavex/vite-plugin",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "description": "Vite plugin for WAVEx .wx files.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambethia/wavex.git",
+    "directory": "packages/vite-plugin"
+  },
+  "homepage": "https://github.com/ambethia/wavex#readme",
+  "bugs": {
+    "url": "https://github.com/ambethia/wavex/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -25,7 +37,10 @@
     "vite": ">=8.0.0 || ^0.1.24"
   },
   "files": [
-    "dist",
+    "dist/**/*.js",
+    "dist/**/*.js.map",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
     "client.d.ts"
   ],
   "license": "MIT"
