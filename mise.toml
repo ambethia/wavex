@@ -1,3 +1,20 @@
 [tools]
 node = "24.9.0"
 viteplus = "0.1.24"
+
+[tasks.vscode-build]
+description = "Build WAVEx VS Code extension bundle"
+run = "pnpm --filter @wavex/core build && pnpm --filter @wavex/lsp build && pnpm --filter wavex-vscode build"
+
+[tasks.vscode-package]
+description = "Package WAVEx VS Code extension VSIX"
+run = "pnpm --filter wavex-vscode package"
+
+[tasks.vscode-watch-lsp]
+description = "Watch core + LSP TypeScript builds for VS Code extension development"
+run = "pnpm exec tsc -b packages/core packages/lsp --watch"
+
+[tasks.vscode-dev]
+description = "Build the VS Code extension and open its extension-development workspace"
+depends = ["vscode-build"]
+run = "code editors/vscode"
