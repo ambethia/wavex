@@ -9,7 +9,7 @@ From a clean checkout:
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm ci
+pnpm run ci
 pnpm package:artifacts
 pnpm --filter wavex-vscode package:pre-release
 ```
