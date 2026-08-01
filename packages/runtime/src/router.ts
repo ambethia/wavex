@@ -75,6 +75,20 @@ export interface RouterPageHost {
   setNavigation?(navigation: NavigationState): void;
 }
 
+/** A document or custom scroll container's two-dimensional scroll offset. */
+export interface ScrollPosition {
+  x: number;
+  y: number;
+}
+
+/** Custom scroll container seams for client-router scroll restoration. */
+export interface ClientRouterScrollOptions {
+  /** Read the current scroll offset (defaults to `window.scrollX/Y`). */
+  getPosition?: () => ScrollPosition;
+  /** Apply an offset after a route commit (defaults to `window.scrollTo`). */
+  scrollTo?: (position: ScrollPosition) => void;
+}
+
 /** Options for creating the progressive-enhancement client router. */
 export interface ClientRouterOptions {
   routes: readonly ClientRoute[];
@@ -87,6 +101,12 @@ export interface ClientRouterOptions {
    * and on the initial load; HMR swaps never transition.
    */
   viewTransitions?: boolean;
+  /**
+   * Reset push/replace navigations to the top and restore history offsets
+   * after page commits. Pass false to leave all scrolling to the app/browser,
+   * or provide custom seams for a scroll container.
+   */
+  scrollRestoration?: false | ClientRouterScrollOptions;
   window?: Window;
   onNavigate?: (route: RouteContext) => void;
 }
@@ -107,7 +127,53 @@ interface ActivePage {
   layouts?: Array<{ file: string; module: RoutePageModule }>;
 }
 
+interface WavexHistoryMetadata {
+  key: string;
+  scroll: ScrollPosition;
+}
+
+interface InternalNavigationOptions {
+  replace?: boolean;
+  pop?: boolean;
+  scrollPosition?: ScrollPosition;
+}
+
 const defaultNotFound: RenderFunction = () => undefined;
+const topOfPage: ScrollPosition = { x: 0, y: 0 };
+const historyStateKey = "__wavex";
+let historyEntrySequence = 0;
+
+function createHistoryEntryKey(): string {
+  historyEntrySequence += 1;
+  return `wx-${historyEntrySequence}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function historyMetadata(state: unknown): WavexHistoryMetadata | undefined {
+  if (!isRecord(state)) return undefined;
+  const metadata = state[historyStateKey];
+  if (!isRecord(metadata) || typeof metadata.key !== "string") return undefined;
+  const scroll = metadata.scroll;
+  if (!isRecord(scroll) || typeof scroll.x !== "number" || typeof scroll.y !== "number") return undefined;
+  if (!Number.isFinite(scroll.x) || !Number.isFinite(scroll.y)) return undefined;
+  return { key: metadata.key, scroll: { x: scroll.x, y: scroll.y } };
+}
+
+function withHistoryMetadata(state: unknown, metadata: WavexHistoryMetadata): Record<string, unknown> {
+  const base = isRecord(state) ? state : {};
+  const existing = isRecord(base[historyStateKey]) ? base[historyStateKey] : {};
+  return {
+    ...base,
+    [historyStateKey]: {
+      ...existing,
+      key: metadata.key,
+      scroll: { ...metadata.scroll }
+    }
+  };
+}
 
 /**
  * Progressive client router: intercepts internal link clicks (native `a href`
@@ -121,6 +187,11 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const win = options.window ?? window;
   const notFound = options.notFound ?? defaultNotFound;
   const viewTransitionsEnabled = options.viewTransitions ?? true;
+  const scrollOptions = options.scrollRestoration === false ? undefined : options.scrollRestoration ?? {};
+  const getScrollPosition = scrollOptions?.getPosition ?? (() => ({ x: win.scrollX, y: win.scrollY }));
+  const scrollTo = scrollOptions?.scrollTo ?? ((position: ScrollPosition) => win.scrollTo(position.x, position.y));
+  const savedScrollPositions = new Map<string, ScrollPosition>();
+  let activeHistoryKey = historyMetadata(win.history.state)?.key ?? createHistoryEntryKey();
   let navigationToken = 0;
   let current: ActivePage | undefined;
   let navigationPending = false;
@@ -137,6 +208,27 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
 
   const clearNavigation = () => {
     if (navigationPending) setNavigation({ pending: false });
+  };
+
+  const captureScrollPosition = (persist: boolean): void => {
+    if (!scrollOptions) return;
+    const position = { ...getScrollPosition() };
+    savedScrollPositions.set(activeHistoryKey, position);
+    if (persist) {
+      win.history.replaceState(
+        withHistoryMetadata(win.history.state, { key: activeHistoryKey, scroll: position }),
+        ""
+      );
+    }
+  };
+
+  const restoreScrollPosition = async (token: number, position: ScrollPosition | undefined): Promise<void> => {
+    if (!scrollOptions || !position || token !== navigationToken || disposed) return;
+    if (typeof win.requestAnimationFrame === "function") {
+      await new Promise<void>((resolve) => win.requestAnimationFrame(() => resolve()));
+    }
+    if (token !== navigationToken || disposed) return;
+    scrollTo(position);
   };
 
   /**
@@ -201,14 +293,24 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     current = next;
   };
 
-  const navigate = async (to: string, navOptions: { replace?: boolean; pop?: boolean } = {}) => {
+  const navigate = async (to: string, navOptions: InternalNavigationOptions = {}) => {
     if (disposed) return;
     const url = new URL(to, win.location.href);
     const token = ++navigationToken;
+    const scrollPosition = scrollOptions ? navOptions.scrollPosition ?? topOfPage : undefined;
     if (!navOptions.pop) {
       const method = navOptions.replace ? "replaceState" : "pushState";
       const hasFragment = to.includes("#");
-      win.history[method]({}, "", url.pathname + url.search + (hasFragment ? url.hash || "#" : ""));
+      if (!navOptions.replace) captureScrollPosition(true);
+      if (!navOptions.replace) activeHistoryKey = createHistoryEntryKey();
+      if (scrollOptions) savedScrollPositions.set(activeHistoryKey, topOfPage);
+      const nextState = scrollOptions
+        ? withHistoryMetadata(navOptions.replace ? win.history.state : {}, {
+            key: activeHistoryKey,
+            scroll: topOfPage
+          })
+        : {};
+      win.history[method](nextState, "", url.pathname + url.search + (hasFragment ? url.hash || "#" : ""));
     }
 
     const match = matchRoutePath(options.routes, url.pathname);
@@ -222,6 +324,8 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       clearNavigation();
       options.host.setPage({ render: notFound, resources: [], route });
       current = { route };
+      await restoreScrollPosition(token, scrollPosition);
+      if (token !== navigationToken) return;
       options.onNavigate?.(route);
       return;
     }
@@ -241,6 +345,8 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       if (token !== navigationToken) return;
       const committed = await renderErrorRoute(token, clientRoute, route, error);
       if (!committed) return;
+      await restoreScrollPosition(token, scrollPosition);
+      if (token !== navigationToken) return;
       options.onNavigate?.(route);
       return;
     }
@@ -255,6 +361,8 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       });
     });
     if (!committed) return;
+    await restoreScrollPosition(token, scrollPosition);
+    if (token !== navigationToken) return;
     options.onNavigate?.(route);
   };
 
@@ -321,14 +429,23 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     return leftEntries.length === Object.keys(right).length && leftEntries.every(([key, value]) => right[key] === value);
   };
 
-  const onPopState = () => {
+  const onPopState = (event: PopStateEvent) => {
     if (current?.route.path === win.location.pathname && queriesEqual(current.route.query, parseQueryString(win.location.search))) {
+      activeHistoryKey = historyMetadata(event.state)?.key ?? activeHistoryKey;
       navigationToken += 1;
       clearNavigation();
       return;
     }
+    captureScrollPosition(false);
+    const metadata = historyMetadata(event.state ?? win.history.state);
+    activeHistoryKey = metadata?.key ?? createHistoryEntryKey();
+    const scrollPosition = savedScrollPositions.get(activeHistoryKey) ?? metadata?.scroll ?? topOfPage;
+    savedScrollPositions.set(activeHistoryKey, scrollPosition);
     const hasFragment = win.location.href.includes("#");
-    void navigate(win.location.pathname + win.location.search + (hasFragment ? win.location.hash || "#" : ""), { pop: true });
+    void navigate(win.location.pathname + win.location.search + (hasFragment ? win.location.hash || "#" : ""), {
+      pop: true,
+      scrollPosition
+    });
   };
 
   win.document.addEventListener("click", onClick);
@@ -355,6 +472,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     },
     dispose() {
       if (disposed) return;
+      captureScrollPosition(true);
       disposed = true;
       navigationToken += 1;
       clearNavigation();

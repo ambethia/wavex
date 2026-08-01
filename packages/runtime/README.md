@@ -33,9 +33,10 @@ live deployment):
   `data-wx-navigating` on `<html>`), and commits wrap in
   `document.startViewTransition` by default — pending state clears inside the
   transition's update callback, atomically with the swap, so progress UI is
-  never baked into either snapshot. Known follow-up: no scroll management yet
-  (no `scrollTo(0,0)` on push; popstate restoration races the deferred swap by
-  one frame).
+  never baked into either snapshot. Push/replace navigation resets to the top;
+  back/forward navigation restores its saved offset on the frame after the
+  atomic page swap. `scrollRestoration: false` opts out, while custom
+  `getPosition`/`scrollTo` seams support non-window scroll containers.
 - `applyHead` — reconciles `document.title` and `data-wx-head`-managed nodes;
   prerendered head output emits the same shape so served and hydrated
   documents agree.

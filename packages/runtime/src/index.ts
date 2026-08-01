@@ -756,6 +756,8 @@ export {
   type ClientRoute,
   type ClientRouter,
   type ClientRouterOptions,
+  type ClientRouterScrollOptions,
   type RoutePageModule,
-  type RouterPageHost
+  type RouterPageHost,
+  type ScrollPosition
 } from "./router.js";

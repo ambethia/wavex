@@ -55,10 +55,13 @@ function deferred(): Deferred {
   return { promise, resolve, reject };
 }
 
-function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion?: boolean } = {}) {
+function fakeEnvironment(
+  options: { startViewTransition?: boolean; reducedMotion?: boolean; deferAnimationFrame?: boolean } = {}
+) {
   const calls: Array<{ kind: string; payload?: unknown }> = [];
   const attributes = new Set<string>();
   const transitions: Array<{ types?: string[] }> = [];
+  const animationFrames: FrameRequestCallback[] = [];
   const documentListeners = new Map<string, Set<(event: Event) => void>>();
   const windowListeners = new Map<string, Set<(event: Event) => void>>();
 
@@ -105,6 +108,9 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
   }
 
   const location = { href: "http://app.test/", origin: "http://app.test", pathname: "/", search: "", hash: "" };
+  const historyEntries = new Map<string, unknown>([[location.href, null]]);
+  let historyState: unknown = null;
+  let scrollPosition = { x: 0, y: 0 };
   const setLocation = (url: string) => {
     const next = new URL(url, location.href);
     location.href = next.href;
@@ -116,14 +122,36 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
   const win = {
     location,
     history: {
-      pushState: (_s: unknown, _t: string, url: string) => {
+      get state() {
+        return historyState;
+      },
+      pushState: (state: unknown, _t: string, url: string) => {
         calls.push({ kind: "pushState", payload: url });
         setLocation(url);
+        historyState = state;
+        historyEntries.set(location.href, state);
       },
-      replaceState: (_s: unknown, _t: string, url: string) => {
+      replaceState: (state: unknown, _t: string, url?: string) => {
         calls.push({ kind: "replaceState", payload: url });
-        setLocation(url);
+        if (url !== undefined) setLocation(url);
+        historyState = state;
+        historyEntries.set(location.href, state);
       }
+    },
+    get scrollX() {
+      return scrollPosition.x;
+    },
+    get scrollY() {
+      return scrollPosition.y;
+    },
+    scrollTo: (x: number, y: number) => {
+      scrollPosition = { x, y };
+      calls.push({ kind: "scrollTo", payload: { x, y } });
+    },
+    requestAnimationFrame: (callback: FrameRequestCallback) => {
+      if (options.deferAnimationFrame) animationFrames.push(callback);
+      else callback(0);
+      return animationFrames.length;
     },
     matchMedia: () => ({ matches: options.reducedMotion ?? false }),
     addEventListener: (type: string, listener: (event: Event) => void) => {
@@ -157,7 +185,17 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
 
   const pop = (url: string) => {
     setLocation(url);
-    windowListeners.get("popstate")?.forEach((listener) => listener(new Event("popstate")));
+    historyState = historyEntries.get(location.href) ?? null;
+    const event = { state: historyState } as PopStateEvent;
+    windowListeners.get("popstate")?.forEach((listener) => listener(event));
+  };
+
+  const setScroll = (x: number, y: number) => {
+    scrollPosition = { x, y };
+  };
+
+  const flushAnimationFrames = () => {
+    for (const callback of animationFrames.splice(0)) callback(0);
   };
 
   const host = {
@@ -166,7 +204,7 @@ function fakeEnvironment(options: { startViewTransition?: boolean; reducedMotion
     setNavigation: (navigation: { pending: boolean }) => calls.push({ kind: "setNavigation", payload: navigation.pending })
   };
 
-  return { win, host, calls, attributes, transitions, click, pop, FakeAnchor };
+  return { win, host, calls, attributes, transitions, click, pop, setScroll, flushAnimationFrames, FakeAnchor };
 }
 
 function routeOf(file: string, path: string, load: () => Promise<RoutePageModule>, errors: ClientRoute["errors"] = []): ClientRoute {
@@ -469,6 +507,103 @@ describe("client router navigation lifecycle", () => {
     expect(env.click(new env.FakeAnchor("/a"))).toBe(false);
     await router.navigate("/a");
     expect(env.calls.filter((call) => call.kind === "setPage")).toEqual([]);
+  });
+});
+
+describe("client router scroll restoration", () => {
+  const routes = [
+    routeOf("a.wx", "/a", async () => ({ default: () => "a" })),
+    routeOf("b.wx", "/b", async () => ({ default: () => "b" }))
+  ];
+
+  it("resets push and replace navigations after their page commits", async () => {
+    const env = fakeEnvironment({ startViewTransition: true });
+    const router = createClientRouter({ routes, host: env.host, window: env.win });
+
+    env.setScroll(12, 640);
+    await router.navigate("/a");
+    env.setScroll(20, 900);
+    env.calls.length = 0;
+    await router.navigate("/b", { replace: true });
+
+    expect(env.transitions).toHaveLength(1);
+    const commit = env.calls.findIndex((call) => call.kind === "setPage" && call.payload === "/b");
+    const restore = env.calls.findIndex((call) => call.kind === "scrollTo");
+    expect(commit).toBeGreaterThanOrEqual(0);
+    expect(restore).toBeGreaterThan(commit);
+    expect(env.calls[restore]).toEqual({ kind: "scrollTo", payload: { x: 0, y: 0 } });
+  });
+
+  it("restores a saved position after a popstate page swap", async () => {
+    const env = fakeEnvironment();
+    const router = createClientRouter({ routes, host: env.host, window: env.win, viewTransitions: false });
+
+    await router.navigate("/a");
+    env.setScroll(4, 480);
+    await router.navigate("/b");
+    env.setScroll(8, 960);
+    env.calls.length = 0;
+
+    env.pop("/a");
+    await expect.poll(() => env.calls.some((call) => call.kind === "scrollTo")).toBe(true);
+
+    const commit = env.calls.findIndex((call) => call.kind === "setPage" && call.payload === "/a");
+    const restore = env.calls.findIndex((call) => call.kind === "scrollTo");
+    expect(restore).toBeGreaterThan(commit);
+    expect(env.calls[restore]).toEqual({ kind: "scrollTo", payload: { x: 4, y: 480 } });
+  });
+
+  it("drops a stale restore when a newer navigation starts before the frame", async () => {
+    const env = fakeEnvironment({ deferAnimationFrame: true });
+    const router = createClientRouter({ routes, host: env.host, window: env.win, viewTransitions: false });
+
+    const first = router.navigate("/a");
+    await expect.poll(() => env.calls.some((call) => call.kind === "setPage" && call.payload === "/a")).toBe(true);
+    const second = router.navigate("/b");
+    await expect.poll(() => env.calls.some((call) => call.kind === "setPage" && call.payload === "/b")).toBe(true);
+
+    env.flushAnimationFrames();
+    await Promise.all([first, second]);
+
+    expect(env.calls.filter((call) => call.kind === "scrollTo")).toEqual([
+      { kind: "scrollTo", payload: { x: 0, y: 0 } }
+    ]);
+  });
+
+  it("supports custom scroll containers and a complete opt-out", async () => {
+    const customEnv = fakeEnvironment();
+    let position = { x: 0, y: 100 };
+    const applied: Array<{ x: number; y: number }> = [];
+    const customRouter = createClientRouter({
+      routes,
+      host: customEnv.host,
+      window: customEnv.win,
+      viewTransitions: false,
+      scrollRestoration: {
+        getPosition: () => position,
+        scrollTo: (next) => applied.push(next)
+      }
+    });
+
+    await customRouter.navigate("/a");
+    position = { x: 3, y: 333 };
+    await customRouter.navigate("/b");
+    position = { x: 5, y: 555 };
+    customEnv.pop("/a");
+    await expect.poll(() => applied.length).toBe(3);
+    expect(applied).toEqual([{ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 3, y: 333 }]);
+    expect(customEnv.calls.some((call) => call.kind === "scrollTo")).toBe(false);
+
+    const optOutEnv = fakeEnvironment();
+    const optOutRouter = createClientRouter({
+      routes,
+      host: optOutEnv.host,
+      window: optOutEnv.win,
+      viewTransitions: false,
+      scrollRestoration: false
+    });
+    await optOutRouter.navigate("/a");
+    expect(optOutEnv.calls.some((call) => call.kind === "scrollTo")).toBe(false);
   });
 });
 

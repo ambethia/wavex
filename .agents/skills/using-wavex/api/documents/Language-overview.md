@@ -116,6 +116,12 @@ Client navigations are wrapped in the View Transitions API by default: a subtle 
 
 Opt out per app via the Vite plugin: `wavex({ viewTransitions: false })`. Initial loads and HMR swaps never transition.
 
+### Scroll restoration
+
+After a routed push or replace navigation commits, the client router resets the document to the top. Back and forward navigation restore the destination history entry's saved scroll offset after the atomic page swap (and after its View Transition update callback), so restoration never targets the outgoing page.
+
+Apps that own scrolling can pass `scrollRestoration: false` to `createClientRouter`, or provide `getPosition` and `scrollTo` functions for a custom scroll container. Same-document hash links remain native browser navigation.
+
 ### Error routes
 
 `+error.wx` defines a route-level fallback for sibling and descendant pages.

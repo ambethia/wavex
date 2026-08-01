@@ -294,7 +294,7 @@ Defined in: [packages/core/dist/model.d.ts:18](packages/core/dist/model.d.ts#L18
 
 ### ClientRouter
 
-Defined in: [packages/runtime/src/router.ts:95](packages/runtime/src/router.ts#L95)
+Defined in: [packages/runtime/src/router.ts:115](packages/runtime/src/router.ts#L115)
 
 Imperative router controller returned by createClientRouter.
 
@@ -306,7 +306,7 @@ Imperative router controller returned by createClientRouter.
 optional current?: object;
 ```
 
-Defined in: [packages/runtime/src/router.ts:99](packages/runtime/src/router.ts#L99)
+Defined in: [packages/runtime/src/router.ts:119](packages/runtime/src/router.ts#L119)
 
 ###### file?
 
@@ -328,7 +328,7 @@ route: RouteContext;
 dispose(): void;
 ```
 
-Defined in: [packages/runtime/src/router.ts:100](packages/runtime/src/router.ts#L100)
+Defined in: [packages/runtime/src/router.ts:120](packages/runtime/src/router.ts#L120)
 
 ###### Returns
 
@@ -340,7 +340,7 @@ Defined in: [packages/runtime/src/router.ts:100](packages/runtime/src/router.ts#
 hotReplacePage(file, module): void;
 ```
 
-Defined in: [packages/runtime/src/router.ts:98](packages/runtime/src/router.ts#L98)
+Defined in: [packages/runtime/src/router.ts:118](packages/runtime/src/router.ts#L118)
 
 Swap the module for a route or layout file in place (HMR), keeping route state.
 
@@ -364,7 +364,7 @@ Swap the module for a route or layout file in place (HMR), keeping route state.
 navigate(to, options?): Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/router.ts:96](packages/runtime/src/router.ts#L96)
+Defined in: [packages/runtime/src/router.ts:116](packages/runtime/src/router.ts#L116)
 
 ###### Parameters
 
@@ -386,7 +386,7 @@ Defined in: [packages/runtime/src/router.ts:96](packages/runtime/src/router.ts#L
 
 ### ClientRouterOptions
 
-Defined in: [packages/runtime/src/router.ts:79](packages/runtime/src/router.ts#L79)
+Defined in: [packages/runtime/src/router.ts:93](packages/runtime/src/router.ts#L93)
 
 Options for creating the progressive-enhancement client router.
 
@@ -398,7 +398,7 @@ Options for creating the progressive-enhancement client router.
 host: RouterPageHost;
 ```
 
-Defined in: [packages/runtime/src/router.ts:81](packages/runtime/src/router.ts#L81)
+Defined in: [packages/runtime/src/router.ts:95](packages/runtime/src/router.ts#L95)
 
 ##### notFound?
 
@@ -406,7 +406,7 @@ Defined in: [packages/runtime/src/router.ts:81](packages/runtime/src/router.ts#L
 optional notFound?: RenderFunction;
 ```
 
-Defined in: [packages/runtime/src/router.ts:83](packages/runtime/src/router.ts#L83)
+Defined in: [packages/runtime/src/router.ts:97](packages/runtime/src/router.ts#L97)
 
 Render function used when no route matches the current path.
 
@@ -416,7 +416,7 @@ Render function used when no route matches the current path.
 optional onNavigate?: (route) => void;
 ```
 
-Defined in: [packages/runtime/src/router.ts:91](packages/runtime/src/router.ts#L91)
+Defined in: [packages/runtime/src/router.ts:111](packages/runtime/src/router.ts#L111)
 
 ###### Parameters
 
@@ -434,7 +434,19 @@ Defined in: [packages/runtime/src/router.ts:91](packages/runtime/src/router.ts#L
 routes: readonly ClientRoute[];
 ```
 
-Defined in: [packages/runtime/src/router.ts:80](packages/runtime/src/router.ts#L80)
+Defined in: [packages/runtime/src/router.ts:94](packages/runtime/src/router.ts#L94)
+
+##### scrollRestoration?
+
+```ts
+optional scrollRestoration?: false | ClientRouterScrollOptions;
+```
+
+Defined in: [packages/runtime/src/router.ts:109](packages/runtime/src/router.ts#L109)
+
+Reset push/replace navigations to the top and restore history offsets
+after page commits. Pass false to leave all scrolling to the app/browser,
+or provide custom seams for a scroll container.
 
 ##### viewTransitions?
 
@@ -442,7 +454,7 @@ Defined in: [packages/runtime/src/router.ts:80](packages/runtime/src/router.ts#L
 optional viewTransitions?: boolean;
 ```
 
-Defined in: [packages/runtime/src/router.ts:89](packages/runtime/src/router.ts#L89)
+Defined in: [packages/runtime/src/router.ts:103](packages/runtime/src/router.ts#L103)
 
 Wrap navigation commits in `document.startViewTransition` (default true).
 Automatically skipped when unsupported, under `prefers-reduced-motion`,
@@ -454,7 +466,51 @@ and on the initial load; HMR swaps never transition.
 optional window?: Window;
 ```
 
-Defined in: [packages/runtime/src/router.ts:90](packages/runtime/src/router.ts#L90)
+Defined in: [packages/runtime/src/router.ts:110](packages/runtime/src/router.ts#L110)
+
+***
+
+### ClientRouterScrollOptions
+
+Defined in: [packages/runtime/src/router.ts:85](packages/runtime/src/router.ts#L85)
+
+Custom scroll container seams for client-router scroll restoration.
+
+#### Properties
+
+##### getPosition?
+
+```ts
+optional getPosition?: () => ScrollPosition;
+```
+
+Defined in: [packages/runtime/src/router.ts:87](packages/runtime/src/router.ts#L87)
+
+Read the current scroll offset (defaults to `window.scrollX/Y`).
+
+###### Returns
+
+[`ScrollPosition`](#scrollposition)
+
+##### scrollTo?
+
+```ts
+optional scrollTo?: (position) => void;
+```
+
+Defined in: [packages/runtime/src/router.ts:89](packages/runtime/src/router.ts#L89)
+
+Apply an offset after a route commit (defaults to `window.scrollTo`).
+
+###### Parameters
+
+###### position
+
+[`ScrollPosition`](#scrollposition)
+
+###### Returns
+
+`void`
 
 ***
 
@@ -1451,6 +1507,32 @@ Defined in: [packages/runtime/src/router.ts:73](packages/runtime/src/router.ts#L
 
 ***
 
+### ScrollPosition
+
+Defined in: [packages/runtime/src/router.ts:79](packages/runtime/src/router.ts#L79)
+
+A document or custom scroll container's two-dimensional scroll offset.
+
+#### Properties
+
+##### x
+
+```ts
+x: number;
+```
+
+Defined in: [packages/runtime/src/router.ts:80](packages/runtime/src/router.ts#L80)
+
+##### y
+
+```ts
+y: number;
+```
+
+Defined in: [packages/runtime/src/router.ts:81](packages/runtime/src/router.ts#L81)
+
+***
+
 ### SemanticActionDispatcherOptions
 
 Defined in: [packages/runtime/src/index.ts:181](packages/runtime/src/index.ts#L181)
@@ -1855,7 +1937,7 @@ resources: readonly ResourceDefinition<unknown>[];
 function createClientRouter(options): ClientRouter;
 ```
 
-Defined in: [packages/runtime/src/router.ts:120](packages/runtime/src/router.ts#L120)
+Defined in: [packages/runtime/src/router.ts:186](packages/runtime/src/router.ts#L186)
 
 Progressive client router: intercepts internal link clicks (native `a href`
 stays native), drives the History API, lazy-loads the matched route's
