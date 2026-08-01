@@ -12,3 +12,10 @@ declare module "*.wx" {
   export const render: RenderFunction;
   export default render;
 }
+
+declare module "virtual:wavex/routes" {
+  import type { ClientRoute } from "@wavex/runtime";
+
+  export const routes: readonly ClientRoute[];
+  export default routes;
+}

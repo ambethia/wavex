@@ -28,7 +28,8 @@ describe("@wavex/vite-plugin/client types", () => {
         "export interface HeadEntry { tag: 'title' | 'meta' | 'link' }",
         "export interface RenderContext { attrs?: Record<string, unknown> }",
         "export type RenderFunction<Result = unknown> = (context?: RenderContext) => Result;",
-        "export interface ResourceDefinition { name: string; modulePath: string; functionName: string }"
+        "export interface ResourceDefinition { name: string; modulePath: string; functionName: string }",
+        "export interface ClientRoute { path: string; load(): Promise<unknown> }"
       ].join("\n")
     );
 
@@ -38,13 +39,16 @@ describe("@wavex/vite-plugin/client types", () => {
       [
         'import defaultRender, { headEntries, render, resources, wxFile } from "./page.wx";',
         'import type { RenderFunction, ResourceDefinition } from "@wavex/runtime";',
+        'import routes, { routes as namedRoutes } from "virtual:wavex/routes";',
         "const defaultRenderCheck: RenderFunction = defaultRender;",
         "const namedRenderCheck: RenderFunction = render;",
         "const resourceCheck: readonly ResourceDefinition[] = resources;",
         "const idCheck: string = wxFile.id;",
         "const componentCheck: readonly string[] = wxFile.localComponents;",
         "headEntries({ attrs: {} });",
-        "void defaultRenderCheck; void namedRenderCheck; void resourceCheck; void idCheck; void componentCheck;"
+        "const routePath: string | undefined = routes[0]?.path;",
+        "const namedRoutePath: string | undefined = namedRoutes[0]?.path;",
+        "void defaultRenderCheck; void namedRenderCheck; void resourceCheck; void idCheck; void componentCheck; void routePath; void namedRoutePath;"
       ].join("\n")
     );
 

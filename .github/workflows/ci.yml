@@ -27,4 +27,15 @@ jobs:
           node-version: 24.9.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter todo exec playwright install --with-deps chromium
       - run: pnpm ci
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: browser-failures-${{ github.sha }}
+          path: |
+            apps/*/.vitest-attachments/
+            apps/*/.vitest-browser/
+            apps/*/src/**/__traces__/
+          include-hidden-files: true
+          if-no-files-found: ignore

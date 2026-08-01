@@ -10,6 +10,7 @@
     "preview": "vp preview",
     "check": "vp check",
     "test": "vp test run",
+    "test:browser": "vp test run --project browser",
     "wavex:check": "wavex check src",
     "wavex:routes": "wavex routes ."
   },
@@ -18,10 +19,12 @@
     "convex": "^1.40.0"
   },
   "devDependencies": {
+    "@vitest/browser-playwright": "^4.1.8",
     "@wavex/runtime": "workspace:*",
     "@wavex/vite-plugin": "workspace:*",
     "convex-test": "^0.0.53",
     "lit": "3.3.3",
+    "playwright": "^1.60.0",
     "typescript": "~6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.1.24",
     "vite-plus": "0.1.24",

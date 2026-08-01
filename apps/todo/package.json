@@ -9,6 +9,7 @@
     "preview": "vp preview",
     "check": "vp check",
     "test": "vp test run",
+    "test:browser": "vp test run --project browser",
     "wavex:check": "wavex check src",
     "wavex:routes": "wavex routes ."
   },

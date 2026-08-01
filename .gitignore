@@ -1,6 +1,9 @@
 node_modules/
 packages/*/dist/
 coverage/
+**/.vitest-attachments/
+**/.vitest-browser/
+**/__traces__/
 .DS_Store
 *.log
 editors/*/grammars/
