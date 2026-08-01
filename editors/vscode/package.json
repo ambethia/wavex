@@ -58,7 +58,9 @@
   "scripts": {
     "build": "node build.mjs",
     "typecheck": "tsc -b --pretty false",
-    "package": "pnpm build && vsce package --no-dependencies"
+    "package": "pnpm build && vsce package --no-dependencies",
+    "package:pre-release": "pnpm build && vsce package --pre-release --no-dependencies",
+    "package:check": "node check-package.mjs"
   },
   "dependencies": {
     "@wavex/lsp": "workspace:*",

@@ -24,7 +24,7 @@ jobs:
       - run: pnpm check
       - run: pnpm build
       - run: pnpm package:artifacts
-      - run: pnpm --filter wavex-vscode package
+      - run: pnpm --filter wavex-vscode package:pre-release
       - uses: actions/upload-artifact@v7
         with:
           name: wavex-${{ github.sha }}

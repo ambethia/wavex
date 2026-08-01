@@ -11,7 +11,7 @@ From a clean checkout:
 pnpm install --frozen-lockfile
 pnpm ci
 pnpm package:artifacts
-pnpm --filter wavex-vscode package
+pnpm --filter wavex-vscode package:pre-release
 ```
 
 `pnpm package:check` packs every public workspace package, installs those
@@ -20,7 +20,8 @@ point, and runs the packed `wavex` binary. `pnpm package:artifacts` performs the
 same check and retains the tarballs under `artifacts/`.
 
 The manually dispatched `release-artifacts.yml` workflow runs the full gate
-and uploads the npm tarballs plus VSIX without publishing either artifact.
+and uploads the npm tarballs plus a VS Code prerelease VSIX without publishing
+either artifact.
 
 ## First npm publication
 

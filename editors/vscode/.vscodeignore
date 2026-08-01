@@ -1,5 +1,8 @@
 src/
 node_modules/
 build.mjs
+check-package.mjs
 tsconfig.json
-*.map
+.gitignore
+**/*.map
+**/*.tsbuildinfo
