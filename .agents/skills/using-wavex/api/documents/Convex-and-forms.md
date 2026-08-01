@@ -142,6 +142,32 @@ Semantic event directives use `:event:target`.
 @button :click:$$tasks:clearCompleted Clear completed
 ```
 
+A non-Convex target is the name of a function in that `.wx` module's
+TypeScript prelude. The compiler attaches the function to the rendered element
+without serializing it into HTML; the delegated runtime invokes it with the DOM
+`Event` and rerenders the mounted page after it runs. Async handlers are
+awaited.
+
+```wx
+let draft = ""
+
+function reset(event: Event) {
+  event.preventDefault()
+  draft = ""
+}
+
+~~~
+button :click:reset Reset
+p
+  | Draft: {{ draft }}
+```
+
+Semantic `submit` handlers prevent native submission automatically. A local
+target that does not resolve to a prelude function falls through to an
+app-provided render-context `dispatch`, when present; otherwise the runtime
+reports a console diagnostic. Custom mounts can replace that diagnostic with
+`onUnhandledAction`.
+
 Raw DOM/custom events use `on:event:handler`.
 
 ```wx

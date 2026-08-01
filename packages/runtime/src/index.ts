@@ -180,12 +180,15 @@ export type ActionKindResolver = (definition: ActionDefinition, event: WavexActi
 /** Dependencies and lifecycle hooks for the semantic action dispatcher. */
 export interface SemanticActionDispatcherOptions {
   actionClient?: ActionClient;
+  /** App-level fallback for non-Convex targets that have no compiled local handler. */
   dispatch?: (event: WavexActionEvent) => void | Promise<void>;
+  /** Override the default console diagnostic for an unresolved non-Convex target. */
+  onUnhandledAction?: (event: WavexActionEvent) => void;
   resolveActionKind?: ActionKindResolver;
   onActionResult?: (definition: ResolvedActionDefinition, result: unknown, event: WavexActionEvent) => void;
   onActionError?: (definition: ResolvedActionDefinition, error: unknown, event: WavexActionEvent) => void;
   throwActionErrors?: boolean;
-  /** Optional analytics sink; semantic Convex actions are captured automatically (`:track:` overrides the name). */
+  /** Optional analytics sink; semantic local and Convex actions are captured automatically (`:track:` overrides the name). */
   analytics?: import("./analytics.js").AnalyticsClient;
 }
 
@@ -393,7 +396,8 @@ export function createConvexActionClient(
  * through the action client with full lifecycle handling — pending state,
  * form `preventDefault`/reset on success, error state, and an automatic
  * analytics capture (`:track:` overrides the event name). Non-Convex targets
- * fall through to `options.dispatch` (app-defined handlers).
+ * first resolve the local prelude handler attached by the compiler, then fall
+ * through to `options.dispatch` for app-level targets.
  */
 export function createSemanticActionDispatcher(
   context: RenderContext,
@@ -402,7 +406,22 @@ export function createSemanticActionDispatcher(
   return async (event) => {
     const action = parseConvexActionTarget(event.target);
     if (!action) {
-      await options.dispatch?.(event);
+      if (event.type === "submit" && typeof event.event.preventDefault === "function") event.event.preventDefault();
+      captureLocalActionAnalytics(options, event);
+      const localHandler = localSemanticHandler(event);
+      if (localHandler) {
+        await localHandler(event.event, event);
+      } else if (options.dispatch) {
+        await options.dispatch(event);
+      } else if (options.onUnhandledAction) {
+        options.onUnhandledAction(event);
+      } else {
+        console.error(
+          new Error(
+            `WAVEx semantic action ${JSON.stringify(event.target)} has no compiled local handler or app dispatch fallback.`
+          )
+        );
+      }
       return;
     }
 
@@ -430,27 +449,55 @@ export function createSemanticActionDispatcher(
   };
 }
 
+type LocalSemanticHandler = (event: Event, action: WavexActionEvent) => unknown | Promise<unknown>;
+
+function localSemanticHandler(event: WavexActionEvent): LocalSemanticHandler | undefined {
+  const element = event.element as Element & {
+    __wavexSemanticHandlers?: Record<string, LocalSemanticHandler>;
+  };
+  const handler = element.__wavexSemanticHandlers?.[event.target];
+  return typeof handler === "function" ? handler : undefined;
+}
+
+function captureLocalActionAnalytics(options: SemanticActionDispatcherOptions, event: WavexActionEvent): void {
+  captureSemanticAnalytics(options, event, {
+    wx_event_type: event.type,
+    wx_target: event.target,
+    wx_kind: "local"
+  });
+}
+
 function captureActionAnalytics(
   options: SemanticActionDispatcherOptions,
   event: WavexActionEvent,
   definition: ResolvedActionDefinition
+): void {
+  captureSemanticAnalytics(options, event, {
+    wx_event_type: event.type,
+    wx_target: definition.target,
+    wx_kind: definition.kind,
+    wx_module: definition.modulePath,
+    wx_function: definition.functionName
+  });
+}
+
+function captureSemanticAnalytics(
+  options: SemanticActionDispatcherOptions,
+  event: WavexActionEvent,
+  properties: Record<string, unknown>
 ): void {
   if (!options.analytics) return;
 
   try {
     const trackOverride = event.element.getAttribute?.("data-wx-track") ?? undefined;
     void Promise.resolve(
-      options.analytics.capture(trackOverride ?? analyticsEventNameForTarget(definition.target), {
-        wx_event_type: event.type,
-        wx_target: definition.target,
-        wx_kind: definition.kind,
-        wx_module: definition.modulePath,
-        wx_function: definition.functionName
+      options.analytics.capture(trackOverride ?? analyticsEventNameForTarget(event.target), {
+        ...properties
       })
     ).catch(() => undefined);
   } catch {
     // Analytics is best-effort telemetry. A broken analytics sink must not
-    // prevent the Convex action from running or leave its actionState pending.
+    // prevent the semantic action from running or leave its actionState pending.
   }
 }
 

@@ -23,6 +23,10 @@ are reported on `result.ast.diagnostics`, never thrown.
 - **Render stays side-effect free**: bare `$$module:fn` lines lower to query
   resource definitions; mutations/actions only lower behind explicit triggers
   (`:click:`, `:submit:`).
+- **Local semantic handlers stay local**: a non-Convex `:event:handler`
+  target is emitted as a private element property pointing at the module
+  prelude function. Delegation can execute it and request a rerender without a
+  global handler registry; Convex targets continue through the action client.
 - **Typed component inputs**: a component declaring `type Attrs = { … }` in
   its prelude gets each attribute destructured as a bare typed local in
   template scope.
@@ -174,7 +178,7 @@ on `result.ast.diagnostics`, not thrown.
 function componentTagForReference(reference, options?): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:1117](packages/compiler/src/compiler.ts#L1117)
+Defined in: [packages/compiler/src/compiler.ts:1128](packages/compiler/src/compiler.ts#L1128)
 
 Resolve an `@name` reference to its custom-element tag using the compile
 options' component sets (local components shadow Web Awesome).
@@ -201,7 +205,7 @@ options' component sets (local components shadow Web Awesome).
 function utilityClassForToken(token): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:1122](packages/compiler/src/compiler.ts#L1122)
+Defined in: [packages/compiler/src/compiler.ts:1133](packages/compiler/src/compiler.ts#L1133)
 
 Expand one `[utility]` token to its `wa-` class (plain prefix expansion, no mapping table).
 

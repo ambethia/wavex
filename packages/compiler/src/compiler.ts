@@ -943,6 +943,7 @@ function compileAttributes(attributes: readonly Attribute[], utilities: readonly
   const emitted: string[] = [];
   const staticClasses: string[] = expandUtilityClassList(utilities);
   const dynamicClasses: string[] = [];
+  const localSemanticHandlers = new Map<string, string>();
 
   for (const attribute of attributes) {
     if (attribute.name === "class") {
@@ -967,11 +968,21 @@ function compileAttributes(attributes: readonly Attribute[], utilities: readonly
         break;
       case "semantic-event":
         emitted.push(...compileSemanticEventAttribute(attribute, options));
+        if (attribute.event !== "track" && !attribute.target.startsWith("$$") && isBindingIdentifierName(attribute.target)) {
+          localSemanticHandlers.set(attribute.target, attribute.target);
+        }
         break;
       case "raw-event":
         emitted.push(` @${attribute.event}=\${${attribute.handler}}`);
         break;
     }
+  }
+
+  if (localSemanticHandlers.size > 0) {
+    const handlers = [...localSemanticHandlers]
+      .map(([target, handler]) => `${JSON.stringify(target)}: typeof ${handler} === "function" ? ${handler} : undefined`)
+      .join(", ");
+    emitted.push(` .__wavexSemanticHandlers=\${{ ${handlers} }}`);
   }
 
   if (staticClasses.length > 0 || dynamicClasses.length > 0) {

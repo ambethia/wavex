@@ -1,3 +1,13 @@
+let localCount = 0
+
+function incrementLocal() {
+  localCount += 1
+}
+
 ~~~
 section data-auth-status:{{ state.auth?.status ?? "missing" }}
   p Auth: {{ state.auth?.status ?? "missing" }}{{ state.auth?.userId ? ` (${state.auth.userId})` : "" }}
+  button :click:incrementLocal Increment local
+  button :click:missingLocal Missing local
+  p
+    | Local count: {{ localCount }}

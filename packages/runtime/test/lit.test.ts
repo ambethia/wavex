@@ -96,6 +96,31 @@ describe("mountLit lifecycle", () => {
     expect(onDispose).toHaveBeenCalledTimes(1);
     expect((globalThis as typeof globalThis & { __wavexHotReplacePage?: unknown }).__wavexHotReplacePage).toBeUndefined();
   });
+
+  it("runs local semantic handlers and rerenders without an action client", async () => {
+    const root = documentlessRoot();
+    let count = 0;
+    const mount = mountLit(root, () => html`count:${count}`);
+    const domEvent = {} as Event;
+
+    await mount.context.dispatch?.({
+      type: "click",
+      target: "increment",
+      event: domEvent,
+      element: {
+        __wavexSemanticHandlers: {
+          increment: () => {
+            count += 1;
+          }
+        }
+      } as unknown as Element,
+      context: mount.context
+    });
+
+    expect(count).toBe(1);
+    expect(litRender).toHaveBeenCalledTimes(3);
+    mount.dispose();
+  });
 });
 
 function documentlessRoot(): HTMLElement {

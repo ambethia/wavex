@@ -23,9 +23,12 @@ live deployment):
   subscriptions).
 - `createSemanticActionDispatcher` + `installSemanticEventDelegation` —
   `:event:target` attributes compile to `data-wx-*` attributes; one delegated
-  listener per event type dispatches them with full pending/error lifecycle,
-  form reset on success, and automatic analytics capture (`:track:` overrides
-  the event name).
+  listener per event type dispatches them. Non-Convex targets first invoke the
+  prelude function attached to the element by the compiler, then fall through
+  to an app-level dispatcher; unresolved targets report a configurable
+  diagnostic. Convex targets retain full pending/error lifecycle and form
+  reset on success. Both paths capture analytics automatically (`:track:`
+  overrides the event name).
 - `createClientRouter` — progressive enhancement over native links: History
   API, lazy route-module loading, layout composition through semantic slots,
   and atomic page swaps via the `RouterPageHost` seam. Navigation lifecycle is

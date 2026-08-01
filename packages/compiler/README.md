@@ -23,6 +23,10 @@ are reported on `result.ast.diagnostics`, never thrown.
 - **Render stays side-effect free**: bare `$$module:fn` lines lower to query
   resource definitions; mutations/actions only lower behind explicit triggers
   (`:click:`, `:submit:`).
+- **Local semantic handlers stay local**: a non-Convex `:event:handler`
+  target is emitted as a private element property pointing at the module
+  prelude function. Delegation can execute it and request a rerender without a
+  global handler registry; Convex targets continue through the action client.
 - **Typed component inputs**: a component declaring `type Attrs = { … }` in
   its prelude gets each attribute destructured as a bare typed local in
   template scope.

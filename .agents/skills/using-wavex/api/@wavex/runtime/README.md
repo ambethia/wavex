@@ -516,7 +516,7 @@ Apply an offset after a route commit (defaults to `window.scrollTo`).
 
 ### ConvexActionClientLike
 
-Defined in: [packages/runtime/src/index.ts:203](packages/runtime/src/index.ts#L203)
+Defined in: [packages/runtime/src/index.ts:206](packages/runtime/src/index.ts#L206)
 
 Structural slice of the Convex client used for mutations and actions.
 
@@ -528,7 +528,7 @@ Structural slice of the Convex client used for mutations and actions.
 action(action, args): Promise<unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:205](packages/runtime/src/index.ts#L205)
+Defined in: [packages/runtime/src/index.ts:208](packages/runtime/src/index.ts#L208)
 
 ###### Parameters
 
@@ -550,7 +550,7 @@ Defined in: [packages/runtime/src/index.ts:205](packages/runtime/src/index.ts#L2
 mutation(mutation, args): Promise<unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:204](packages/runtime/src/index.ts#L204)
+Defined in: [packages/runtime/src/index.ts:207](packages/runtime/src/index.ts#L207)
 
 ###### Parameters
 
@@ -570,7 +570,7 @@ Defined in: [packages/runtime/src/index.ts:204](packages/runtime/src/index.ts#L2
 
 ### ConvexActionClientOptions
 
-Defined in: [packages/runtime/src/index.ts:215](packages/runtime/src/index.ts#L215)
+Defined in: [packages/runtime/src/index.ts:218](packages/runtime/src/index.ts#L218)
 
 Function-resolution options for the Convex mutation/action adapter.
 
@@ -582,7 +582,7 @@ Function-resolution options for the Convex mutation/action adapter.
 optional api?: unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:216](packages/runtime/src/index.ts#L216)
+Defined in: [packages/runtime/src/index.ts:219](packages/runtime/src/index.ts#L219)
 
 ##### resolveFunction?
 
@@ -590,7 +590,7 @@ Defined in: [packages/runtime/src/index.ts:216](packages/runtime/src/index.ts#L2
 optional resolveFunction?: (definition) => unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:217](packages/runtime/src/index.ts#L217)
+Defined in: [packages/runtime/src/index.ts:220](packages/runtime/src/index.ts#L220)
 
 ###### Parameters
 
@@ -606,7 +606,7 @@ Defined in: [packages/runtime/src/index.ts:217](packages/runtime/src/index.ts#L2
 
 ### ConvexBrowserClientLike
 
-Defined in: [packages/runtime/src/index.ts:193](packages/runtime/src/index.ts#L193)
+Defined in: [packages/runtime/src/index.ts:196](packages/runtime/src/index.ts#L196)
 
 Structural slice of the official Convex browser client the runtime depends on (subscriptions).
 
@@ -622,7 +622,7 @@ onUpdate(
    onError?): ResourceTeardown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:194](packages/runtime/src/index.ts#L194)
+Defined in: [packages/runtime/src/index.ts:197](packages/runtime/src/index.ts#L197)
 
 ###### Parameters
 
@@ -650,7 +650,7 @@ Defined in: [packages/runtime/src/index.ts:194](packages/runtime/src/index.ts#L1
 
 ### ConvexResourceClientOptions
 
-Defined in: [packages/runtime/src/index.ts:209](packages/runtime/src/index.ts#L209)
+Defined in: [packages/runtime/src/index.ts:212](packages/runtime/src/index.ts#L212)
 
 Function-resolution options for the Convex query resource adapter.
 
@@ -662,7 +662,7 @@ Function-resolution options for the Convex query resource adapter.
 optional api?: unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:210](packages/runtime/src/index.ts#L210)
+Defined in: [packages/runtime/src/index.ts:213](packages/runtime/src/index.ts#L213)
 
 ##### resolveFunction?
 
@@ -670,7 +670,7 @@ Defined in: [packages/runtime/src/index.ts:210](packages/runtime/src/index.ts#L2
 optional resolveFunction?: (definition) => unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:211](packages/runtime/src/index.ts#L211)
+Defined in: [packages/runtime/src/index.ts:214](packages/runtime/src/index.ts#L214)
 
 ###### Parameters
 
@@ -686,7 +686,7 @@ Defined in: [packages/runtime/src/index.ts:211](packages/runtime/src/index.ts#L2
 
 ### HeadEntry
 
-Defined in: [packages/runtime/src/index.ts:230](packages/runtime/src/index.ts#L230)
+Defined in: [packages/runtime/src/index.ts:233](packages/runtime/src/index.ts#L233)
 
 One managed head node from a `+head` directive (title, meta, or link).
 
@@ -698,7 +698,7 @@ One managed head node from a `+head` directive (title, meta, or link).
 optional attributes?: Record<string, string>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:233](packages/runtime/src/index.ts#L233)
+Defined in: [packages/runtime/src/index.ts:236](packages/runtime/src/index.ts#L236)
 
 ##### tag
 
@@ -706,7 +706,7 @@ Defined in: [packages/runtime/src/index.ts:233](packages/runtime/src/index.ts#L2
 tag: "title" | "meta" | "link";
 ```
 
-Defined in: [packages/runtime/src/index.ts:231](packages/runtime/src/index.ts#L231)
+Defined in: [packages/runtime/src/index.ts:234](packages/runtime/src/index.ts#L234)
 
 ##### text?
 
@@ -714,7 +714,7 @@ Defined in: [packages/runtime/src/index.ts:231](packages/runtime/src/index.ts#L2
 optional text?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:232](packages/runtime/src/index.ts#L232)
+Defined in: [packages/runtime/src/index.ts:235](packages/runtime/src/index.ts#L235)
 
 ***
 
@@ -1555,9 +1555,9 @@ Defined in: [packages/runtime/src/index.ts:182](packages/runtime/src/index.ts#L1
 optional analytics?: AnalyticsClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:189](packages/runtime/src/index.ts#L189)
+Defined in: [packages/runtime/src/index.ts:192](packages/runtime/src/index.ts#L192)
 
-Optional analytics sink; semantic Convex actions are captured automatically (`:track:` overrides the name).
+Optional analytics sink; semantic local and Convex actions are captured automatically (`:track:` overrides the name).
 
 ##### dispatch?
 
@@ -1565,7 +1565,9 @@ Optional analytics sink; semantic Convex actions are captured automatically (`:t
 optional dispatch?: (event) => void | Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:183](packages/runtime/src/index.ts#L183)
+Defined in: [packages/runtime/src/index.ts:184](packages/runtime/src/index.ts#L184)
+
+App-level fallback for non-Convex targets that have no compiled local handler.
 
 ###### Parameters
 
@@ -1583,7 +1585,7 @@ Defined in: [packages/runtime/src/index.ts:183](packages/runtime/src/index.ts#L1
 optional onActionError?: (definition, error, event) => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:186](packages/runtime/src/index.ts#L186)
+Defined in: [packages/runtime/src/index.ts:189](packages/runtime/src/index.ts#L189)
 
 ###### Parameters
 
@@ -1609,7 +1611,7 @@ Defined in: [packages/runtime/src/index.ts:186](packages/runtime/src/index.ts#L1
 optional onActionResult?: (definition, result, event) => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:185](packages/runtime/src/index.ts#L185)
+Defined in: [packages/runtime/src/index.ts:188](packages/runtime/src/index.ts#L188)
 
 ###### Parameters
 
@@ -1629,13 +1631,33 @@ Defined in: [packages/runtime/src/index.ts:185](packages/runtime/src/index.ts#L1
 
 `void`
 
+##### onUnhandledAction?
+
+```ts
+optional onUnhandledAction?: (event) => void;
+```
+
+Defined in: [packages/runtime/src/index.ts:186](packages/runtime/src/index.ts#L186)
+
+Override the default console diagnostic for an unresolved non-Convex target.
+
+###### Parameters
+
+###### event
+
+[`WavexActionEvent`](#wavexactionevent)
+
+###### Returns
+
+`void`
+
 ##### resolveActionKind?
 
 ```ts
 optional resolveActionKind?: ActionKindResolver;
 ```
 
-Defined in: [packages/runtime/src/index.ts:184](packages/runtime/src/index.ts#L184)
+Defined in: [packages/runtime/src/index.ts:187](packages/runtime/src/index.ts#L187)
 
 ##### throwActionErrors?
 
@@ -1643,13 +1665,13 @@ Defined in: [packages/runtime/src/index.ts:184](packages/runtime/src/index.ts#L1
 optional throwActionErrors?: boolean;
 ```
 
-Defined in: [packages/runtime/src/index.ts:187](packages/runtime/src/index.ts#L187)
+Defined in: [packages/runtime/src/index.ts:190](packages/runtime/src/index.ts#L190)
 
 ***
 
 ### WavexActionEvent
 
-Defined in: [packages/runtime/src/index.ts:221](packages/runtime/src/index.ts#L221)
+Defined in: [packages/runtime/src/index.ts:224](packages/runtime/src/index.ts#L224)
 
 A semantic event captured by delegation: `:click:save` produces `{ type: "click", target: "save" }`.
 
@@ -1661,7 +1683,7 @@ A semantic event captured by delegation: `:click:save` produces `{ type: "click"
 context: RenderContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:226](packages/runtime/src/index.ts#L226)
+Defined in: [packages/runtime/src/index.ts:229](packages/runtime/src/index.ts#L229)
 
 ##### element
 
@@ -1669,7 +1691,7 @@ Defined in: [packages/runtime/src/index.ts:226](packages/runtime/src/index.ts#L2
 element: Element;
 ```
 
-Defined in: [packages/runtime/src/index.ts:225](packages/runtime/src/index.ts#L225)
+Defined in: [packages/runtime/src/index.ts:228](packages/runtime/src/index.ts#L228)
 
 ##### event
 
@@ -1677,7 +1699,7 @@ Defined in: [packages/runtime/src/index.ts:225](packages/runtime/src/index.ts#L2
 event: Event;
 ```
 
-Defined in: [packages/runtime/src/index.ts:224](packages/runtime/src/index.ts#L224)
+Defined in: [packages/runtime/src/index.ts:227](packages/runtime/src/index.ts#L227)
 
 ##### target
 
@@ -1685,7 +1707,7 @@ Defined in: [packages/runtime/src/index.ts:224](packages/runtime/src/index.ts#L2
 target: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:223](packages/runtime/src/index.ts#L223)
+Defined in: [packages/runtime/src/index.ts:226](packages/runtime/src/index.ts#L226)
 
 ##### type
 
@@ -1693,7 +1715,7 @@ Defined in: [packages/runtime/src/index.ts:223](packages/runtime/src/index.ts#L2
 type: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:222](packages/runtime/src/index.ts#L222)
+Defined in: [packages/runtime/src/index.ts:225](packages/runtime/src/index.ts#L225)
 
 ## Type Aliases
 
@@ -1743,7 +1765,7 @@ Lifecycle of a mutation/action dispatch; drives `+pending` / `+idle` / `+mutatio
 type RenderFunction<Result> = (context?) => Result;
 ```
 
-Defined in: [packages/runtime/src/index.ts:237](packages/runtime/src/index.ts#L237)
+Defined in: [packages/runtime/src/index.ts:240](packages/runtime/src/index.ts#L240)
 
 The shape of a compiled `.wx` module's render export; `Result` is the renderer backend's template type.
 
@@ -1852,7 +1874,7 @@ Conventional analytics event name for a semantic Convex action target, e.g. "$$t
 function applyHead(entries, documentRef?): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:495](packages/runtime/src/index.ts#L495)
+Defined in: [packages/runtime/src/index.ts:542](packages/runtime/src/index.ts#L542)
 
 Reconcile `document.title` and `data-wx-head`-managed meta/link nodes with
 the given entries. Only nodes the runtime created are touched, so static
@@ -1964,7 +1986,7 @@ back/forward.
 function createConvexActionClient(client, options?): ActionClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:378](packages/runtime/src/index.ts#L378)
+Defined in: [packages/runtime/src/index.ts:381](packages/runtime/src/index.ts#L381)
 
 Adapt the Convex client to the [ActionClient](#actionclient) seam; dispatches by inferred kind (mutation vs action).
 
@@ -1990,7 +2012,7 @@ Adapt the Convex client to the [ActionClient](#actionclient) seam; dispatches by
 function createConvexResourceClient(client, options?): ResourceClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:363](packages/runtime/src/index.ts#L363)
+Defined in: [packages/runtime/src/index.ts:366](packages/runtime/src/index.ts#L366)
 
 Adapt the official Convex browser client to the [ResourceClient](#resourceclient)
 seam. Function addresses resolve through the generated `api` object when
@@ -2042,7 +2064,7 @@ stays optional — apps enable it with VITE_POSTHOG_KEY / VITE_POSTHOG_HOST.
 function createRenderContext(context?): RenderContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:257](packages/runtime/src/index.ts#L257)
+Defined in: [packages/runtime/src/index.ts:260](packages/runtime/src/index.ts#L260)
 
 Normalize a partial context into a fully-populated [RenderContext](#rendercontext) with empty defaults.
 
@@ -2067,7 +2089,7 @@ function createResourceController(
    options?): ResourceController;
 ```
 
-Defined in: [packages/runtime/src/index.ts:278](packages/runtime/src/index.ts#L278)
+Defined in: [packages/runtime/src/index.ts:281](packages/runtime/src/index.ts#L281)
 
 Subscribe the context's resources through a [ResourceClient](#resourceclient) and keep
 `context.resources` / `context.resourceStates` current. Subscriptions are
@@ -2102,7 +2124,7 @@ readonly [`ResourceDefinition`](#resourcedefinition)\<`unknown`\>[] = `[]`
 function createRouteContext(input?): RouteContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:246](packages/runtime/src/index.ts#L246)
+Defined in: [packages/runtime/src/index.ts:249](packages/runtime/src/index.ts#L249)
 
 Build a [RouteContext](#routecontext) from a URL (defaults to the current location); params are filled in by the router.
 
@@ -2124,13 +2146,14 @@ Build a [RouteContext](#routecontext) from a URL (defaults to the current locati
 function createSemanticActionDispatcher(context, options?): (event) => Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:398](packages/runtime/src/index.ts#L398)
+Defined in: [packages/runtime/src/index.ts:402](packages/runtime/src/index.ts#L402)
 
 Build the dispatcher behind `context.dispatch`. `$$module:fn` targets go
 through the action client with full lifecycle handling — pending state,
 form `preventDefault`/reset on success, error state, and an automatic
 analytics capture (`:track:` overrides the event name). Non-Convex targets
-fall through to `options.dispatch` (app-defined handlers).
+first resolve the local prelude handler attached by the compiler, then fall
+through to `options.dispatch` for app-level targets.
 
 #### Parameters
 
@@ -2154,7 +2177,7 @@ fall through to `options.dispatch` (app-defined handlers).
 function installSemanticEventDelegation(root, context): () => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:463](packages/runtime/src/index.ts#L463)
+Defined in: [packages/runtime/src/index.ts:510](packages/runtime/src/index.ts#L510)
 
 Listen for click/submit/change at the root (capture phase) and route
 `data-wx-*` action attributes — the compiled form of `:event:target` — to

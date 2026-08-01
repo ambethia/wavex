@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createConvexActionClient,
   createRenderContext,
@@ -11,7 +11,10 @@ import {
 function fakeActionEvent(input: {
   target: string;
   type?: string;
-  element?: Partial<Element> & { args?: unknown };
+  element?: Partial<Element> & {
+    args?: unknown;
+    __wavexSemanticHandlers?: Record<string, (event: Event, action: WavexActionEvent) => unknown>;
+  };
   preventDefault?: () => void;
 }): WavexActionEvent {
   const context = createRenderContext();
@@ -226,6 +229,57 @@ describe("semantic action dispatcher", () => {
     await dispatch(event);
 
     expect(customTargets).toEqual(["reset"]);
+  });
+
+  it("invokes a compiler-attached local handler and captures semantic analytics", async () => {
+    const handled: Array<{ event: Event; target: string }> = [];
+    const fallback = vi.fn();
+    const captured: Array<{ event: string; properties?: Record<string, unknown> }> = [];
+    const event = fakeActionEvent({
+      target: "reset",
+      element: {
+        __wavexSemanticHandlers: {
+          reset: (domEvent, action) => handled.push({ event: domEvent, target: action.target })
+        },
+        getAttribute: (name) => (name === "data-wx-track" ? "form_reset" : null)
+      }
+    });
+    const dispatch = createSemanticActionDispatcher(event.context, {
+      dispatch: fallback,
+      analytics: { capture: (name, properties) => captured.push({ event: name, properties }) }
+    });
+
+    await dispatch(event);
+
+    expect(handled).toEqual([{ event: event.event, target: "reset" }]);
+    expect(fallback).not.toHaveBeenCalled();
+    expect(captured).toMatchObject([
+      { event: "form_reset", properties: { wx_event_type: "click", wx_target: "reset", wx_kind: "local" } }
+    ]);
+  });
+
+  it("prevents native submit and reports an unresolved local target", async () => {
+    const preventDefault = vi.fn();
+    const onUnhandledAction = vi.fn();
+    const event = fakeActionEvent({ target: "missingHandler", type: "submit", preventDefault });
+    const dispatch = createSemanticActionDispatcher(event.context, { onUnhandledAction });
+
+    await dispatch(event);
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(onUnhandledAction).toHaveBeenCalledWith(event);
+  });
+
+  it("logs a useful default diagnostic for an unresolved local target", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const event = fakeActionEvent({ target: "missingHandler" });
+
+    await createSemanticActionDispatcher(event.context)(event);
+
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('"missingHandler" has no compiled local handler') })
+    );
+    consoleError.mockRestore();
   });
 
   it("rejects malformed Convex targets instead of treating them as custom actions", async () => {

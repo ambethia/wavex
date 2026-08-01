@@ -15,7 +15,7 @@ Import from `@wavex/runtime/lit`.
 
 ### LitApp
 
-Defined in: [packages/runtime/src/lit.ts:92](packages/runtime/src/lit.ts#L92)
+Defined in: [packages/runtime/src/lit.ts:95](packages/runtime/src/lit.ts#L95)
 
 A mounted WAVEx Lit app with its router and initial-navigation lifecycle.
 
@@ -33,7 +33,7 @@ A mounted WAVEx Lit app with its router and initial-navigation lifecycle.
 mount: LitMount<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:93](packages/runtime/src/lit.ts#L93)
+Defined in: [packages/runtime/src/lit.ts:96](packages/runtime/src/lit.ts#L96)
 
 ##### ready
 
@@ -41,7 +41,7 @@ Defined in: [packages/runtime/src/lit.ts:93](packages/runtime/src/lit.ts#L93)
 ready: Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:96](packages/runtime/src/lit.ts#L96)
+Defined in: [packages/runtime/src/lit.ts:99](packages/runtime/src/lit.ts#L99)
 
 Settles after the initial route has loaded and committed.
 
@@ -51,7 +51,7 @@ Settles after the initial route has loaded and committed.
 router: ClientRouter;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:94](packages/runtime/src/lit.ts#L94)
+Defined in: [packages/runtime/src/lit.ts:97](packages/runtime/src/lit.ts#L97)
 
 #### Methods
 
@@ -61,7 +61,7 @@ Defined in: [packages/runtime/src/lit.ts:94](packages/runtime/src/lit.ts#L94)
 dispose(): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:100](packages/runtime/src/lit.ts#L100)
+Defined in: [packages/runtime/src/lit.ts:103](packages/runtime/src/lit.ts#L103)
 
 Dispose the router, mount, and caller lifecycle hook. Idempotent.
 
@@ -75,7 +75,7 @@ Dispose the router, mount, and caller lifecycle hook. Idempotent.
 update(nextContext): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:98](packages/runtime/src/lit.ts#L98)
+Defined in: [packages/runtime/src/lit.ts:101](packages/runtime/src/lit.ts#L101)
 
 Merge app-owned context and rerender without remounting the app.
 
@@ -93,7 +93,7 @@ Merge app-owned context and rerender without remounting the app.
 
 ### LitAppOptions
 
-Defined in: [packages/runtime/src/lit.ts:78](packages/runtime/src/lit.ts#L78)
+Defined in: [packages/runtime/src/lit.ts:81](packages/runtime/src/lit.ts#L81)
 
 Options for composing a Lit mount with the WAVEx client router.
 
@@ -109,7 +109,7 @@ Options for composing a Lit mount with the WAVEx client router.
 optional actionClient?: ActionClient;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:45](packages/runtime/src/lit.ts#L45)
+Defined in: [packages/runtime/src/lit.ts:46](packages/runtime/src/lit.ts#L46)
 
 ###### Inherited from
 
@@ -121,7 +121,7 @@ Defined in: [packages/runtime/src/lit.ts:45](packages/runtime/src/lit.ts#L45)
 optional analytics?: AnalyticsClient;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:47](packages/runtime/src/lit.ts#L47)
+Defined in: [packages/runtime/src/lit.ts:48](packages/runtime/src/lit.ts#L48)
 
 ###### Inherited from
 
@@ -133,7 +133,7 @@ Defined in: [packages/runtime/src/lit.ts:47](packages/runtime/src/lit.ts#L47)
 optional initialContext?: RenderContext;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:84](packages/runtime/src/lit.ts#L84)
+Defined in: [packages/runtime/src/lit.ts:87](packages/runtime/src/lit.ts#L87)
 
 App-owned context available to the first route render.
 
@@ -143,7 +143,7 @@ App-owned context available to the first route render.
 optional initialPath?: string;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:86](packages/runtime/src/lit.ts#L86)
+Defined in: [packages/runtime/src/lit.ts:89](packages/runtime/src/lit.ts#L89)
 
 Initial URL passed to the router (defaults to the current path and query).
 
@@ -167,7 +167,7 @@ Render function used when no route matches the current path.
 optional onDispose?: () => void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:88](packages/runtime/src/lit.ts#L88)
+Defined in: [packages/runtime/src/lit.ts:91](packages/runtime/src/lit.ts#L91)
 
 Called exactly once when the composed app is disposed; use it for caller-owned clients.
 
@@ -197,13 +197,37 @@ Defined in: [packages/runtime/src/router.ts:111](packages/runtime/src/router.ts#
 
 [`ClientRouterOptions`](README.md#clientrouteroptions).[`onNavigate`](README.md#onnavigate)
 
+##### onUnhandledAction?
+
+```ts
+optional onUnhandledAction?: (event) => void;
+```
+
+Defined in: [packages/runtime/src/lit.ts:50](packages/runtime/src/lit.ts#L50)
+
+Override the runtime diagnostic for a semantic target with no local or app handler.
+
+###### Parameters
+
+###### event
+
+[`WavexActionEvent`](README.md#wavexactionevent)
+
+###### Returns
+
+`void`
+
+###### Inherited from
+
+[`LitMountOptions`](#litmountoptions).[`onUnhandledAction`](#onunhandledaction-1)
+
 ##### resolveActionKind?
 
 ```ts
 optional resolveActionKind?: ActionKindResolver;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:46](packages/runtime/src/lit.ts#L46)
+Defined in: [packages/runtime/src/lit.ts:47](packages/runtime/src/lit.ts#L47)
 
 ###### Inherited from
 
@@ -215,7 +239,7 @@ Defined in: [packages/runtime/src/lit.ts:46](packages/runtime/src/lit.ts#L46)
 optional resourceClient?: ResourceClient;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:44](packages/runtime/src/lit.ts#L44)
+Defined in: [packages/runtime/src/lit.ts:45](packages/runtime/src/lit.ts#L45)
 
 ###### Inherited from
 
@@ -227,7 +251,7 @@ Defined in: [packages/runtime/src/lit.ts:44](packages/runtime/src/lit.ts#L44)
 optional resources?: readonly ResourceDefinition<unknown>[];
 ```
 
-Defined in: [packages/runtime/src/lit.ts:43](packages/runtime/src/lit.ts#L43)
+Defined in: [packages/runtime/src/lit.ts:44](packages/runtime/src/lit.ts#L44)
 
 ###### Inherited from
 
@@ -239,7 +263,7 @@ Defined in: [packages/runtime/src/lit.ts:43](packages/runtime/src/lit.ts#L43)
 optional root?: HTMLElement;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:82](packages/runtime/src/lit.ts#L82)
+Defined in: [packages/runtime/src/lit.ts:85](packages/runtime/src/lit.ts#L85)
 
 Mount target (defaults to `document.body`).
 
@@ -249,7 +273,7 @@ Mount target (defaults to `document.body`).
 routes: readonly ClientRoute[];
 ```
 
-Defined in: [packages/runtime/src/lit.ts:80](packages/runtime/src/lit.ts#L80)
+Defined in: [packages/runtime/src/lit.ts:83](packages/runtime/src/lit.ts#L83)
 
 File-convention routes, normally imported from `virtual:wavex/routes`.
 
@@ -303,7 +327,7 @@ Defined in: [packages/runtime/src/router.ts:110](packages/runtime/src/router.ts#
 
 ### LitMount
 
-Defined in: [packages/runtime/src/lit.ts:58](packages/runtime/src/lit.ts#L58)
+Defined in: [packages/runtime/src/lit.ts:61](packages/runtime/src/lit.ts#L61)
 
 A live mounted page: the router and HMR drive it through `setPage`/`setRender`/`update`.
 
@@ -321,7 +345,7 @@ A live mounted page: the router and HMR drive it through `setPage`/`setRender`/`
 context: RenderContext;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:59](packages/runtime/src/lit.ts#L59)
+Defined in: [packages/runtime/src/lit.ts:62](packages/runtime/src/lit.ts#L62)
 
 ##### result?
 
@@ -329,7 +353,7 @@ Defined in: [packages/runtime/src/lit.ts:59](packages/runtime/src/lit.ts#L59)
 optional result?: Result;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:74](packages/runtime/src/lit.ts#L74)
+Defined in: [packages/runtime/src/lit.ts:77](packages/runtime/src/lit.ts#L77)
 
 ##### root
 
@@ -337,7 +361,7 @@ Defined in: [packages/runtime/src/lit.ts:74](packages/runtime/src/lit.ts#L74)
 root: HTMLElement;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:73](packages/runtime/src/lit.ts#L73)
+Defined in: [packages/runtime/src/lit.ts:76](packages/runtime/src/lit.ts#L76)
 
 #### Methods
 
@@ -347,7 +371,7 @@ Defined in: [packages/runtime/src/lit.ts:73](packages/runtime/src/lit.ts#L73)
 dispose(): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:72](packages/runtime/src/lit.ts#L72)
+Defined in: [packages/runtime/src/lit.ts:75](packages/runtime/src/lit.ts#L75)
 
 ###### Returns
 
@@ -359,7 +383,7 @@ Defined in: [packages/runtime/src/lit.ts:72](packages/runtime/src/lit.ts#L72)
 setNavigation(navigation): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:71](packages/runtime/src/lit.ts#L71)
+Defined in: [packages/runtime/src/lit.ts:74](packages/runtime/src/lit.ts#L74)
 
 Navigation lifecycle from the client router; rerenders so `+if navigation.pending` UI updates.
 
@@ -379,7 +403,7 @@ Navigation lifecycle from the client router; rerenders so `+if navigation.pendin
 setPage(page): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:64](packages/runtime/src/lit.ts#L64)
+Defined in: [packages/runtime/src/lit.ts:67](packages/runtime/src/lit.ts#L67)
 
 Atomically swap render, resources, route, and head in a single update (used by the client router).
 
@@ -413,7 +437,7 @@ readonly [`ResourceDefinition`](README.md#resourcedefinition)\<`unknown`\>[]
 setRender(nextRender): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:61](packages/runtime/src/lit.ts#L61)
+Defined in: [packages/runtime/src/lit.ts:64](packages/runtime/src/lit.ts#L64)
 
 ###### Parameters
 
@@ -431,7 +455,7 @@ Defined in: [packages/runtime/src/lit.ts:61](packages/runtime/src/lit.ts#L61)
 setResources(nextResources): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:62](packages/runtime/src/lit.ts#L62)
+Defined in: [packages/runtime/src/lit.ts:65](packages/runtime/src/lit.ts#L65)
 
 ###### Parameters
 
@@ -449,7 +473,7 @@ readonly [`ResourceDefinition`](README.md#resourcedefinition)\<`unknown`\>[]
 update(nextContext?): void;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:60](packages/runtime/src/lit.ts#L60)
+Defined in: [packages/runtime/src/lit.ts:63](packages/runtime/src/lit.ts#L63)
 
 ###### Parameters
 
@@ -465,7 +489,7 @@ Defined in: [packages/runtime/src/lit.ts:60](packages/runtime/src/lit.ts#L60)
 
 ### LitMountOptions
 
-Defined in: [packages/runtime/src/lit.ts:42](packages/runtime/src/lit.ts#L42)
+Defined in: [packages/runtime/src/lit.ts:43](packages/runtime/src/lit.ts#L43)
 
 Clients and resources wired into a mount; omit clients in tests to render without a backend.
 
@@ -481,7 +505,7 @@ Clients and resources wired into a mount; omit clients in tests to render withou
 optional actionClient?: ActionClient;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:45](packages/runtime/src/lit.ts#L45)
+Defined in: [packages/runtime/src/lit.ts:46](packages/runtime/src/lit.ts#L46)
 
 ##### analytics?
 
@@ -489,7 +513,27 @@ Defined in: [packages/runtime/src/lit.ts:45](packages/runtime/src/lit.ts#L45)
 optional analytics?: AnalyticsClient;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:47](packages/runtime/src/lit.ts#L47)
+Defined in: [packages/runtime/src/lit.ts:48](packages/runtime/src/lit.ts#L48)
+
+##### onUnhandledAction?
+
+```ts
+optional onUnhandledAction?: (event) => void;
+```
+
+Defined in: [packages/runtime/src/lit.ts:50](packages/runtime/src/lit.ts#L50)
+
+Override the runtime diagnostic for a semantic target with no local or app handler.
+
+###### Parameters
+
+###### event
+
+[`WavexActionEvent`](README.md#wavexactionevent)
+
+###### Returns
+
+`void`
 
 ##### resolveActionKind?
 
@@ -497,7 +541,7 @@ Defined in: [packages/runtime/src/lit.ts:47](packages/runtime/src/lit.ts#L47)
 optional resolveActionKind?: ActionKindResolver;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:46](packages/runtime/src/lit.ts#L46)
+Defined in: [packages/runtime/src/lit.ts:47](packages/runtime/src/lit.ts#L47)
 
 ##### resourceClient?
 
@@ -505,7 +549,7 @@ Defined in: [packages/runtime/src/lit.ts:46](packages/runtime/src/lit.ts#L46)
 optional resourceClient?: ResourceClient;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:44](packages/runtime/src/lit.ts#L44)
+Defined in: [packages/runtime/src/lit.ts:45](packages/runtime/src/lit.ts#L45)
 
 ##### resources?
 
@@ -513,13 +557,13 @@ Defined in: [packages/runtime/src/lit.ts:44](packages/runtime/src/lit.ts#L44)
 optional resources?: readonly ResourceDefinition<unknown>[];
 ```
 
-Defined in: [packages/runtime/src/lit.ts:43](packages/runtime/src/lit.ts#L43)
+Defined in: [packages/runtime/src/lit.ts:44](packages/runtime/src/lit.ts#L44)
 
 ***
 
 ### WavexPageModule
 
-Defined in: [packages/runtime/src/lit.ts:51](packages/runtime/src/lit.ts#L51)
+Defined in: [packages/runtime/src/lit.ts:54](packages/runtime/src/lit.ts#L54)
 
 The exports of a compiled `.wx` page module, as loaded by the bootstrap/router.
 
@@ -537,7 +581,7 @@ The exports of a compiled `.wx` page module, as loaded by the bootstrap/router.
 optional default?: RenderFunction<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:52](packages/runtime/src/lit.ts#L52)
+Defined in: [packages/runtime/src/lit.ts:55](packages/runtime/src/lit.ts#L55)
 
 ##### render?
 
@@ -545,7 +589,7 @@ Defined in: [packages/runtime/src/lit.ts:52](packages/runtime/src/lit.ts#L52)
 optional render?: RenderFunction<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:53](packages/runtime/src/lit.ts#L53)
+Defined in: [packages/runtime/src/lit.ts:56](packages/runtime/src/lit.ts#L56)
 
 ##### resources?
 
@@ -553,7 +597,7 @@ Defined in: [packages/runtime/src/lit.ts:53](packages/runtime/src/lit.ts#L53)
 optional resources?: readonly ResourceDefinition<unknown>[];
 ```
 
-Defined in: [packages/runtime/src/lit.ts:54](packages/runtime/src/lit.ts#L54)
+Defined in: [packages/runtime/src/lit.ts:57](packages/runtime/src/lit.ts#L57)
 
 ## Functions
 
@@ -567,7 +611,7 @@ function mountLit<Result>(
 options?): LitMount<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:110](packages/runtime/src/lit.ts#L110)
+Defined in: [packages/runtime/src/lit.ts:113](packages/runtime/src/lit.ts#L113)
 
 Mount a render function into a root element with the full runtime wired up:
 resource subscriptions (rerendering on every value/state change), semantic
@@ -611,7 +655,7 @@ identity and focus survive rerenders.
 function mountLitApp<Result>(options): LitApp<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:238](packages/runtime/src/lit.ts#L238)
+Defined in: [packages/runtime/src/lit.ts:240](packages/runtime/src/lit.ts#L240)
 
 Compose [mountLit](#mountlit) and the client router for an app-owned entry module.
 
@@ -647,7 +691,7 @@ function mountLitPage<Result>(
 options?): LitMount<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:288](packages/runtime/src/lit.ts#L288)
+Defined in: [packages/runtime/src/lit.ts:292](packages/runtime/src/lit.ts#L292)
 
 Mount a compiled `.wx` page module (render export + inferred resources) — the bootstrap entry point.
 

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { page } from "vitest/browser";
 import {
   type ActionClient,
@@ -176,5 +176,20 @@ describe("Swell Conf browser flows", () => {
     await expect.poll(() => root?.textContent).toContain("Auth: authenticated (user-1)");
     expect(root.firstElementChild).toBe(mountedShell);
     expect(app.router.current?.route.path).toBe("/auth-fixture");
+
+    await page.getByRole("button", { name: "Increment local" }).click();
+    await expect.poll(() => root?.textContent).toContain("Local count: 1");
+    expect(root.firstElementChild).toBe(mountedShell);
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      await page.getByRole("button", { name: "Missing local" }).click();
+      await expect.poll(() => consoleError.mock.calls.length).toBe(1);
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: expect.stringContaining('"missingLocal" has no compiled local handler') })
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });

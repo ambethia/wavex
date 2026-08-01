@@ -35,7 +35,8 @@ import {
   type ResourceClient,
   type ResourceController,
   type ResourceDefinition,
-  type RouteContext
+  type RouteContext,
+  type WavexActionEvent
 } from "./index.js";
 
 /** Clients and resources wired into a mount; omit clients in tests to render without a backend. */
@@ -45,6 +46,8 @@ export interface LitMountOptions {
   actionClient?: ActionClient;
   resolveActionKind?: ActionKindResolver;
   analytics?: AnalyticsClient;
+  /** Override the runtime diagnostic for a semantic target with no local or app handler. */
+  onUnhandledAction?: (event: WavexActionEvent) => void;
 }
 
 /** The exports of a compiled `.wx` page module, as loaded by the bootstrap/router. */
@@ -146,21 +149,20 @@ export function mountLit<Result = unknown>(
     });
   };
 
-  if (options.actionClient) {
-    const dispatcher = createSemanticActionDispatcher(context, {
-      actionClient: options.actionClient,
-      dispatch: context.dispatch,
-      resolveActionKind: options.resolveActionKind,
-      analytics: options.analytics
-    });
-    // Action lifecycle states (pending/idle/error) must rerender the page:
-    // once synchronously after dispatch marks pending, and again on settle.
-    context.dispatch = (event) => {
-      const dispatched = dispatcher(event);
-      requestUpdate();
-      return Promise.resolve(dispatched).finally(() => requestUpdate());
-    };
-  }
+  const dispatcher = createSemanticActionDispatcher(context, {
+    actionClient: options.actionClient,
+    dispatch: context.dispatch,
+    resolveActionKind: options.resolveActionKind,
+    analytics: options.analytics,
+    onUnhandledAction: options.onUnhandledAction
+  });
+  // Semantic local handlers and Convex action lifecycle states must rerender
+  // the page once synchronously after dispatch and again on async settlement.
+  context.dispatch = (event) => {
+    const dispatched = dispatcher(event);
+    requestUpdate();
+    return Promise.resolve(dispatched).finally(() => requestUpdate());
+  };
 
   const disposeDelegation = installSemanticEventDelegation(root, context);
   resourceController = createResourceController(context, resourceDefinitions, {
@@ -247,6 +249,7 @@ export function mountLitApp<Result = unknown>(options: LitAppOptions): LitApp<Re
     actionClient,
     resolveActionKind,
     analytics,
+    onUnhandledAction,
     ...routerOptions
   } = options;
   const mount = mountLit<Result>(root, () => undefined as Result, initialContext, {
@@ -254,7 +257,8 @@ export function mountLitApp<Result = unknown>(options: LitAppOptions): LitApp<Re
     resourceClient,
     actionClient,
     resolveActionKind,
-    analytics
+    analytics,
+    onUnhandledAction
   });
   const router = createClientRouter({ routes, host: mount, ...routerOptions });
   const hotGlobal = globalThis as typeof globalThis & {

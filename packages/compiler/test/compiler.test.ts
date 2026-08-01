@@ -351,6 +351,33 @@ describe("compileWavexModule", () => {
     expect(compiled.code).toContain(`?.error) : nothing}`);
   });
 
+  it("attaches page-prelude handlers to non-Convex semantic targets", () => {
+    const compiled = compileWavexModule(
+      `function reset(event: Event) { event.preventDefault(); }\nfunction opened() {}\n\n~~~\nbutton :click:reset :change:opened :track:form_reset Reset\n`,
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain('data-wx-click="reset"');
+    expect(compiled.code).toContain('data-wx-change="opened"');
+    expect(compiled.code).toContain('data-wx-track="form_reset"');
+    expect(compiled.code).toContain(
+      ' .__wavexSemanticHandlers=${{ "reset": typeof reset === "function" ? reset : undefined, "opened": typeof opened === "function" ? opened : undefined }}'
+    );
+    expect(compiled.code).not.toContain('"form_reset": form_reset');
+  });
+
+  it("guards unresolved local semantic targets until the runtime can diagnose them", () => {
+    const compiled = compileWavexModule(`~~~\nbutton :click:missingHandler Missing\n`, {
+      id: "src/pages/index.wx"
+    });
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain(
+      '"missingHandler": typeof missingHandler === "function" ? missingHandler : undefined'
+    );
+  });
+
   it("lowers inline Convex action args from semantic events to the runtime args property", () => {
     const compiled = compileWavexModule(
       `~~~\n@button :click:$$ai:summarize({ id: task._id })\n  +pending\n    @spinner\n    | Summarizing…\n  +idle\n    | Summarize\n`,

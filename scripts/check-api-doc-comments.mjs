@@ -11,7 +11,13 @@ const jsonPath = join(tempDir, "typedoc.json");
 try {
   const typedoc = spawnSync(
     process.execPath,
-    [join(repoRoot, "node_modules", "typedoc", "bin", "typedoc"), "--json", jsonPath],
+    [
+      join(repoRoot, "node_modules", "typedoc", "bin", "typedoc"),
+      "--json",
+      jsonPath,
+      "--out",
+      join(tempDir, "api")
+    ],
     { cwd: repoRoot, encoding: "utf8" }
   );
 
