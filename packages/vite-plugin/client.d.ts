@@ -19,3 +19,17 @@ declare module "virtual:wavex/routes" {
   export const routes: readonly ClientRoute[];
   export default routes;
 }
+
+declare module "virtual:wavex/manifest" {
+  import type { ActionKindResolver } from "@wavex/runtime";
+
+  export const actionKinds: Readonly<Record<string, "mutation" | "action">>;
+  export const viewTransitions: boolean;
+  export const resolveActionKind: ActionKindResolver;
+  const manifest: {
+    readonly actionKinds: typeof actionKinds;
+    readonly viewTransitions: typeof viewTransitions;
+    readonly resolveActionKind: typeof resolveActionKind;
+  };
+  export default manifest;
+}

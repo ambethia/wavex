@@ -5,7 +5,8 @@
  * Vite+ is the primary dev/build substrate by design — it provides the module
  * graph, HMR, package integration, and production bundling so WAVEx only owns
  * what is WAVEx-specific: the file-convention route table
- * (`virtual:wavex/routes`), the bootstrap entry (`/@wavex/bootstrap`, which
+ * (`virtual:wavex/routes`), generated app metadata
+ * (`virtual:wavex/manifest`), the bootstrap entry (`/@wavex/bootstrap`, which
  * renders the app directly under `<body>` with no framework mount div), and
  * `.wx` hot updates that preserve Convex client state across template edits.
  *
@@ -35,6 +36,8 @@ export interface WavexVitePluginOptions {
 
 const VIRTUAL_ROUTES_ID = "virtual:wavex/routes";
 const RESOLVED_VIRTUAL_ROUTES_ID = `\0${VIRTUAL_ROUTES_ID}`;
+const VIRTUAL_MANIFEST_ID = "virtual:wavex/manifest";
+const RESOLVED_VIRTUAL_MANIFEST_ID = `\0${VIRTUAL_MANIFEST_ID}`;
 const VIRTUAL_BOOTSTRAP_ID = "virtual:wavex/bootstrap";
 const BOOTSTRAP_PUBLIC_ID = "/@wavex/bootstrap";
 const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
@@ -117,6 +120,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     },
     resolveId(id) {
       if (id === VIRTUAL_ROUTES_ID) return RESOLVED_VIRTUAL_ROUTES_ID;
+      if (id === VIRTUAL_MANIFEST_ID) return RESOLVED_VIRTUAL_MANIFEST_ID;
       if (id === VIRTUAL_BOOTSTRAP_ID || id === BOOTSTRAP_PUBLIC_ID) return RESOLVED_VIRTUAL_BOOTSTRAP_ID;
       return undefined;
     },
@@ -142,6 +146,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
           ""
         ].join("\n");
       }
+      if (id === RESOLVED_VIRTUAL_MANIFEST_ID) return generateManifestModule(projectRoot, options);
       if (id === RESOLVED_VIRTUAL_BOOTSTRAP_ID) return generateBootstrapModule(config, projectRoot, options);
       return undefined;
     },
@@ -253,6 +258,16 @@ function actionKindMap(root: string): Record<string, "mutation" | "action"> {
   return kinds;
 }
 
+function generateManifestModule(root: string, options: WavexVitePluginOptions = {}): string {
+  return [
+    `export const actionKinds = ${JSON.stringify(actionKindMap(root))};`,
+    `export const viewTransitions = ${JSON.stringify(options.viewTransitions ?? true)};`,
+    `export const resolveActionKind = (definition) => actionKinds[definition.modulePath + ":" + definition.functionName];`,
+    `export default { actionKinds, viewTransitions, resolveActionKind };`,
+    ``
+  ].join("\n");
+}
+
 function generateBootstrapModule(config: ResolvedDirs, root: string, options: WavexVitePluginOptions = {}): string {
   const styleImport = existsSync(config.styleFile) ? `import ${JSON.stringify(publicImportPath(root, config.styleFile))};` : "";
   const apiImport = existsSync(config.convexApiFile)
@@ -260,10 +275,11 @@ function generateBootstrapModule(config: ResolvedDirs, root: string, options: Wa
     : `const convexApi = undefined;`;
 
   return [
-    `import { mountLit } from "@wavex/runtime/lit";`,
-    `import { createClientRouter, createConvexActionClient, createConvexResourceClient, createPostHogCaptureClient } from "@wavex/runtime";`,
+    `import { mountLitApp } from "@wavex/runtime/lit";`,
+    `import { createConvexActionClient, createConvexResourceClient, createPostHogCaptureClient } from "@wavex/runtime";`,
     `import { ConvexClient } from "convex/browser";`,
     `import routes from "virtual:wavex/routes";`,
+    `import { resolveActionKind, viewTransitions } from "virtual:wavex/manifest";`,
     styleImport,
     apiImport,
     ``,
@@ -282,29 +298,20 @@ function generateBootstrapModule(config: ResolvedDirs, root: string, options: Wa
     `  ? createPostHogCaptureClient({ apiKey: posthogKey, host: import.meta.env.VITE_POSTHOG_HOST })`,
     `  : undefined;`,
     ``,
-    `const convexFunctionKinds = ${JSON.stringify(actionKindMap(root))};`,
-    `const app = mountLit(root, () => undefined, {}, {`,
+    `const app = mountLitApp({`,
+    `  root,`,
+    `  routes,`,
     `  resourceClient: convex ? createConvexResourceClient(convex, { api: convexApi }) : undefined,`,
     `  actionClient: convex ? createConvexActionClient(convex, { api: convexApi }) : undefined,`,
-    `  resolveActionKind: (definition) => convexFunctionKinds[definition.modulePath + ":" + definition.functionName],`,
+    `  resolveActionKind,`,
     `  analytics,`,
-    `});`,
-    ``,
-    `const router = createClientRouter({`,
-    `  routes,`,
-    `  host: app,`,
-    `  viewTransitions: ${JSON.stringify(options.viewTransitions ?? true)},`,
+    `  viewTransitions,`,
     `  onNavigate: (route) => analytics?.capture("$pageview", { $current_url: location.href, path: route.path }),`,
+    `  onDispose: () => void convex?.close?.(),`,
     `});`,
-    `globalThis.__wavexHotReplacePage = (file, module) => router.hotReplacePage(file, module);`,
-    `void router.navigate(location.pathname + location.search, { replace: true });`,
-    ``,
     `if (import.meta.hot) {`,
     `  import.meta.hot.dispose(() => {`,
-    `    delete globalThis.__wavexHotReplacePage;`,
-    `    router.dispose();`,
     `    app.dispose();`,
-    `    void convex?.close?.();`,
     `  });`,
     `}`,
     ``
@@ -388,7 +395,7 @@ function invalidateWavexProject(server: ViteDevServer, config: ResolvedDirs): vo
 }
 
 function invalidateVirtualModules(server: ViteDevServer): void {
-  for (const id of [RESOLVED_VIRTUAL_ROUTES_ID, RESOLVED_VIRTUAL_BOOTSTRAP_ID]) {
+  for (const id of [RESOLVED_VIRTUAL_ROUTES_ID, RESOLVED_VIRTUAL_MANIFEST_ID, RESOLVED_VIRTUAL_BOOTSTRAP_ID]) {
     const module = server.moduleGraph.getModuleById(id);
     if (module) server.moduleGraph.invalidateModule(module);
   }

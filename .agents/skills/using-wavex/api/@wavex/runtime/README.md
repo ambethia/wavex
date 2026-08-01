@@ -616,9 +616,9 @@ Structural slice of the official Convex browser client the runtime depends on (s
 
 ```ts
 onUpdate(
-   query, 
-   args, 
-   callback, 
+   query,
+   args,
+   callback,
    onError?): ResourceTeardown;
 ```
 
@@ -1808,7 +1808,7 @@ Lifecycle of a live query resource; drives `+loading` / `+error` / `+empty` temp
 ### ResourceTeardown
 
 ```ts
-type ResourceTeardown = 
+type ResourceTeardown =
   | void
   | (() => void)
   | {
@@ -2062,8 +2062,8 @@ Normalize a partial context into a fully-populated [RenderContext](#rendercontex
 
 ```ts
 function createResourceController(
-   context, 
-   definitions?, 
+   context,
+   definitions?,
    options?): ResourceController;
 ```
 

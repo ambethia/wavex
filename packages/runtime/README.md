@@ -37,6 +37,11 @@ live deployment):
   back/forward navigation restores its saved offset on the frame after the
   atomic page swap. `scrollRestoration: false` opts out, while custom
   `getPosition`/`scrollTo` seams support non-window scroll containers.
+- `mountLitApp` (from `@wavex/runtime/lit`) — composes a Lit mount and the
+  client router for an app-owned entry module. The caller supplies initial
+  context, resource/action clients, analytics and router options, then receives
+  the live mount, router, initial-navigation promise and an idempotent disposer.
+  Client lifecycles remain app-owned through `onDispose`.
 - `applyHead` — reconciles `document.title` and `data-wx-head`-managed nodes;
   prerendered head output emits the same shape so served and hydrated
   documents agree.
@@ -49,7 +54,9 @@ live deployment):
   `@lit-labs/router`, `@lit/context`, `@lit-labs/ssr` are the reference
   points for future work).
 - **Open question:** the first-class state API for colocated TypeScript
-  (`state(0)`-style cells) is not designed yet; today templates work with
-  resource state, action state, and exported handlers.
+  (`state(0)`-style cells) is not designed yet. App integrations can put
+  client-only state in the render context and replace it with
+  `app.update({ state: ... })` without remounting; this intentionally does not
+  prescribe an auth or general state-management model.
 - **Deferral:** no SSR runtime beyond the prerender baseline; an edge SSR
   adapter is a possible later tier, not a default.

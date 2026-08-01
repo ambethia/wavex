@@ -206,7 +206,7 @@ Full Web Awesome component metadata for attribute completions and hover.
 ### WavexServiceOptionsResolver
 
 ```ts
-type WavexServiceOptionsResolver = 
+type WavexServiceOptionsResolver =
   | WavexServiceOptions
   | ((documentUri) => WavexServiceOptions);
 ```

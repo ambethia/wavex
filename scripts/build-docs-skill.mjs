@@ -83,8 +83,17 @@ function generate(targetDir) {
     process.stderr.write(typedoc.stderr ?? "");
     throw new Error(`typedoc exited with status ${typedoc.status}`);
   }
+  normalizeMarkdown(targetDir);
   writeFileSync(join(targetDir, "SKILL.md"), SKILL_MD);
   writeFileSync(join(targetDir, "_catalog.md"), buildCatalog(targetDir));
+}
+
+function normalizeMarkdown(targetDir) {
+  for (const file of listMarkdownFiles(targetDir)) {
+    const path = join(targetDir, file);
+    const content = readFileSync(path, "utf8");
+    writeFileSync(path, content.split("\n").map((line) => line.trimEnd()).join("\n"));
+  }
 }
 
 function buildCatalog(targetDir) {

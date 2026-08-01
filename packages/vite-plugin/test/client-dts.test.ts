@@ -29,7 +29,8 @@ describe("@wavex/vite-plugin/client types", () => {
         "export interface RenderContext { attrs?: Record<string, unknown> }",
         "export type RenderFunction<Result = unknown> = (context?: RenderContext) => Result;",
         "export interface ResourceDefinition { name: string; modulePath: string; functionName: string }",
-        "export interface ClientRoute { path: string; load(): Promise<unknown> }"
+        "export interface ClientRoute { path: string; load(): Promise<unknown> }",
+        "export type ActionKindResolver = (definition: { modulePath: string; functionName: string }) => 'mutation' | 'action' | undefined;"
       ].join("\n")
     );
 
@@ -40,6 +41,7 @@ describe("@wavex/vite-plugin/client types", () => {
         'import defaultRender, { headEntries, render, resources, wxFile } from "./page.wx";',
         'import type { RenderFunction, ResourceDefinition } from "@wavex/runtime";',
         'import routes, { routes as namedRoutes } from "virtual:wavex/routes";',
+        'import manifest, { actionKinds, resolveActionKind, viewTransitions } from "virtual:wavex/manifest";',
         "const defaultRenderCheck: RenderFunction = defaultRender;",
         "const namedRenderCheck: RenderFunction = render;",
         "const resourceCheck: readonly ResourceDefinition[] = resources;",
@@ -48,7 +50,11 @@ describe("@wavex/vite-plugin/client types", () => {
         "headEntries({ attrs: {} });",
         "const routePath: string | undefined = routes[0]?.path;",
         "const namedRoutePath: string | undefined = namedRoutes[0]?.path;",
-        "void defaultRenderCheck; void namedRenderCheck; void resourceCheck; void idCheck; void componentCheck; void routePath; void namedRoutePath;"
+        "const actionKind: 'mutation' | 'action' | undefined = actionKinds['tasks:create'];",
+        "const transitions: boolean = viewTransitions;",
+        "resolveActionKind({ modulePath: 'tasks', functionName: 'create' });",
+        "manifest.resolveActionKind({ modulePath: 'tasks', functionName: 'create' });",
+        "void defaultRenderCheck; void namedRenderCheck; void resourceCheck; void idCheck; void componentCheck; void routePath; void namedRoutePath; void actionKind; void transitions;"
       ].join("\n")
     );
 

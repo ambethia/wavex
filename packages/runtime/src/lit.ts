@@ -14,6 +14,12 @@
  */
 import { render as litRender } from "lit";
 import {
+  createClientRouter,
+  type ClientRoute,
+  type ClientRouter,
+  type ClientRouterOptions
+} from "./router.js";
+import {
   applyHead,
   createRenderContext,
   createResourceController,
@@ -66,6 +72,32 @@ export interface LitMount<Result = unknown> {
   dispose(): void;
   root: HTMLElement;
   result?: Result;
+}
+
+/** Options for composing a Lit mount with the WAVEx client router. */
+export interface LitAppOptions extends LitMountOptions, Omit<ClientRouterOptions, "routes" | "host"> {
+  /** File-convention routes, normally imported from `virtual:wavex/routes`. */
+  routes: readonly ClientRoute[];
+  /** Mount target (defaults to `document.body`). */
+  root?: HTMLElement;
+  /** App-owned context available to the first route render. */
+  initialContext?: RenderContext;
+  /** Initial URL passed to the router (defaults to the current path and query). */
+  initialPath?: string;
+  /** Called exactly once when the composed app is disposed; use it for caller-owned clients. */
+  onDispose?: () => void;
+}
+
+/** A mounted WAVEx Lit app with its router and initial-navigation lifecycle. */
+export interface LitApp<Result = unknown> {
+  mount: LitMount<Result>;
+  router: ClientRouter;
+  /** Settles after the initial route has loaded and committed. */
+  ready: Promise<void>;
+  /** Merge app-owned context and rerender without remounting the app. */
+  update(nextContext: RenderContext): void;
+  /** Dispose the router, mount, and caller lifecycle hook. Idempotent. */
+  dispose(): void;
 }
 
 /**
@@ -192,6 +224,62 @@ export function mountLit<Result = unknown>(
       resourceController = undefined;
       disposeDelegation();
       litRender(undefined, root);
+    }
+  };
+}
+
+/**
+ * Compose {@link mountLit} and the client router for an app-owned entry module.
+ *
+ * WAVEx owns the mount/router lifecycle while clients and app context remain
+ * caller-owned. This is the customization seam for authentication, analytics,
+ * and other startup concerns that must run before the first route renders.
+ */
+export function mountLitApp<Result = unknown>(options: LitAppOptions): LitApp<Result> {
+  const {
+    routes,
+    root = document.body,
+    initialContext = {},
+    initialPath,
+    onDispose,
+    resources,
+    resourceClient,
+    actionClient,
+    resolveActionKind,
+    analytics,
+    ...routerOptions
+  } = options;
+  const mount = mountLit<Result>(root, () => undefined as Result, initialContext, {
+    resources,
+    resourceClient,
+    actionClient,
+    resolveActionKind,
+    analytics
+  });
+  const router = createClientRouter({ routes, host: mount, ...routerOptions });
+  const hotGlobal = globalThis as typeof globalThis & {
+    __wavexHotReplacePage?: ClientRouter["hotReplacePage"];
+  };
+  const hotReplacePage: ClientRouter["hotReplacePage"] = (file, module) => router.hotReplacePage(file, module);
+  hotGlobal.__wavexHotReplacePage = hotReplacePage;
+  const win = routerOptions.window ?? window;
+  const ready = router.navigate(initialPath ?? `${win.location.pathname}${win.location.search}`, { replace: true });
+  let disposed = false;
+
+  return {
+    mount,
+    router,
+    ready,
+    update(nextContext) {
+      mount.update(nextContext);
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      if (hotGlobal.__wavexHotReplacePage === hotReplacePage) delete hotGlobal.__wavexHotReplacePage;
+      router.dispose();
+      mount.dispose();
+      onDispose?.();
     }
   };
 }

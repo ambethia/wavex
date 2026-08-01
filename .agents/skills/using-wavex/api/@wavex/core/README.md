@@ -44,7 +44,7 @@ Defined in: [packages/core/src/ast.ts:195](packages/core/src/ast.ts#L195)
 ##### kind
 
 ```ts
-kind: 
+kind:
   | "boolean"
   | "expression"
   | "literal"
@@ -1908,7 +1908,7 @@ Defined in: [packages/core/src/ast.ts:27](packages/core/src/ast.ts#L27)
 ### Attribute
 
 ```ts
-type Attribute = 
+type Attribute =
   | BooleanAttribute
   | LiteralAttribute
   | ExpressionAttribute
@@ -1934,7 +1934,7 @@ raw `addEventListener` escape hatch.
 ### DirectiveName
 
 ```ts
-type DirectiveName = 
+type DirectiveName =
   | "head"
   | "if"
   | "for"
@@ -1960,7 +1960,7 @@ necessarily become DOM nodes.
 ### RouteSegment
 
 ```ts
-type RouteSegment = 
+type RouteSegment =
   | {
   kind: "static";
   value: string;
@@ -1984,7 +1984,7 @@ One path segment: static text, a `[param]`, or a `[...splat]` catch-all.
 ### TemplateNode
 
 ```ts
-type TemplateNode = 
+type TemplateNode =
   | ElementNode
   | ComponentNode
   | DirectiveNode

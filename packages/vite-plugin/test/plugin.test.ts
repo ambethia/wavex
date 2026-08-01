@@ -115,7 +115,7 @@ describe("wavex Vite virtual modules", () => {
     expect(routes).toContain('{ file: "src/pages/talks/+error.wx", load: () => import("/src/pages/talks/+error.wx") }');
   });
 
-  it("generates the body bootstrap with app assets, action kinds, and configured view transitions", () => {
+  it("generates importable app metadata for action kinds and configured view transitions", () => {
     const root = fixtureRoot("wavex-vite-bootstrap-");
     writeFixture(root, "src/style.css", "body { margin: 0; }\n");
     writeFixture(root, "convex/_generated/api.js", "export const api = {};\n");
@@ -126,17 +126,35 @@ describe("wavex Vite virtual modules", () => {
     );
     const plugin = configuredPlugin(root, { viewTransitions: false });
 
+    const manifestId = plugin.resolveId("virtual:wavex/manifest");
+    const manifest = plugin.load(manifestId) as string;
+
+    expect(manifestId).toBe("\0virtual:wavex/manifest");
+    expect(manifest).toContain('"tasks:create":"mutation"');
+    expect(manifest).toContain('"tasks:run":"action"');
+    expect(manifest).not.toContain('"tasks:list":"query"');
+    expect(manifest).toContain("export const viewTransitions = false");
+    expect(manifest).toContain("export const resolveActionKind");
+  });
+
+  it("generates the default body bootstrap through the reusable app composition API", () => {
+    const root = fixtureRoot("wavex-vite-bootstrap-");
+    writeFixture(root, "src/style.css", "body { margin: 0; }\n");
+    writeFixture(root, "convex/_generated/api.js", "export const api = {};\n");
+    const plugin = configuredPlugin(root, { viewTransitions: false });
+
     const bootstrapId = plugin.resolveId("/@wavex/bootstrap");
     const bootstrap = plugin.load(bootstrapId) as string;
 
     expect(bootstrapId).toBe("\0virtual:wavex/bootstrap");
     expect(bootstrap).toContain('import "/src/style.css";');
     expect(bootstrap).toContain('import { api as convexApi } from "/convex/_generated/api.js";');
+    expect(bootstrap).toContain('import { mountLitApp } from "@wavex/runtime/lit";');
+    expect(bootstrap).toContain('from "virtual:wavex/manifest";');
     expect(bootstrap).toContain('const root = document.body;');
-    expect(bootstrap).toContain('viewTransitions: false');
-    expect(bootstrap).toContain('"tasks:create":"mutation"');
-    expect(bootstrap).toContain('"tasks:run":"action"');
-    expect(bootstrap).not.toContain('"tasks:list":"query"');
+    expect(bootstrap).toContain("const app = mountLitApp({");
+    expect(bootstrap).toContain("viewTransitions,");
+    expect(bootstrap).toContain("app.dispose();");
   });
 });
 
