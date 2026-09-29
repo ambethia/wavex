@@ -20,13 +20,25 @@ owns the WAVEx-specific dev/build surface:
   HMR event protocol.
 - Lit dedupe and Web Awesome dep-optimizer exclusions, so custom elements are
   served as native ESM and never registered twice.
+- Self-hosted Font Awesome icons. With a Font Awesome kit or SVG package
+  installed, the plugin collects the app's icons (literal `@icon` names,
+  value-position literals in dynamic names, `icon("…")` declarations from
+  `@wavex/runtime`, and Web Awesome's own default-library icons), fails the
+  build on unknown ones (WX103/WX104), and serves exactly those SVGs at
+  `<base><assetsDir>/wavex-icons/<folder>/<name>.svg`: dev middleware answers
+  only collected icons (anything else is a 404 with a logged explanation, so
+  dev matches the build) and the build emits them as assets.
+  `virtual:wavex/icons` calls Web Awesome's `setIconPath` with that base;
+  compiled `.wx` modules import it before their Web Awesome components. The
+  collection is rebuilt after app source edits. Without an SVG package the
+  module is empty and Web Awesome keeps its Font Awesome CDN default.
 - Monorepo-aware Convex discovery: the app's own `convex/`, or the nearest
   ancestor Convex project (`findConvexDir` from `@wavex/core/capabilities`),
   feeds function kinds, the bootstrap's generated `api` import (via `/@fs/`
   when it lives outside the Vite root), and the dev watcher.
 
 The `@wavex/vite-plugin/client` subpath ships ambient `*.wx` module
-declarations plus types for both virtual modules; apps reference it from
+declarations plus types for the virtual modules; apps reference it from
 tsconfig `types`.
 
 ## App-owned entry modules
@@ -78,6 +90,9 @@ if (import.meta.hot) {
 }
 ```
 
+Compiled `.wx` modules import `virtual:wavex/icons` themselves; an entry that
+renders Web Awesome icons outside `.wx` templates imports it first.
+
 Here `session` is deliberately an app API: it can be backed by passkeys,
 one-time codes, cookies, or anything else. WAVEx only carries `state.auth` into
 templates and rerenders when the app replaces it. Convex authentication stays
@@ -103,8 +118,10 @@ graph, HMR, package integration, and production bundling so WAVEx only owns
 what is WAVEx-specific: the file-convention route table
 (`virtual:wavex/routes`), generated app metadata
 (`virtual:wavex/manifest`), the bootstrap entry (`/@wavex/bootstrap`, which
-renders the app directly under `<body>` with no framework mount div), and
-`.wx` hot updates that preserve Convex client state across template edits.
+renders the app directly under `<body>` with no framework mount div),
+self-hosted Font Awesome icons (`virtual:wavex/icons` plus the collected
+SVGs, served in dev and emitted by the build), and `.wx` hot updates that
+preserve Convex client state across template edits.
 
 The `@wavex/vite-plugin/client` subpath ships ambient module declarations
 for `*.wx` imports; apps reference it from their tsconfig `types`.
@@ -113,7 +130,7 @@ for `*.wx` imports; apps reference it from their tsconfig `types`.
 
 ### WavexVitePluginOptions
 
-Defined in: [packages/vite-plugin/src/index.ts:27](packages/vite-plugin/src/index.ts#L27)
+Defined in: [packages/vite-plugin/src/index.ts:54](packages/vite-plugin/src/index.ts#L54)
 
 Options for [wavex](#wavex).
 
@@ -125,7 +142,7 @@ Options for [wavex](#wavex).
 optional viewTransitions?: boolean;
 ```
 
-Defined in: [packages/vite-plugin/src/index.ts:34](packages/vite-plugin/src/index.ts#L34)
+Defined in: [packages/vite-plugin/src/index.ts:61](packages/vite-plugin/src/index.ts#L61)
 
 Wrap client navigations in `document.startViewTransition` (default true).
 Skipped automatically when unsupported or under `prefers-reduced-motion`.
@@ -136,7 +153,7 @@ Skipped automatically when unsupported or under `prefers-reduced-motion`.
 optional webAwesomeComponents?: readonly string[];
 ```
 
-Defined in: [packages/vite-plugin/src/index.ts:29](packages/vite-plugin/src/index.ts#L29)
+Defined in: [packages/vite-plugin/src/index.ts:56](packages/vite-plugin/src/index.ts#L56)
 
 Override the Web Awesome component set; by default it is detected from the installed package.
 
@@ -148,7 +165,7 @@ Override the Web Awesome component set; by default it is detected from the insta
 function wavex(options?): Plugin;
 ```
 
-Defined in: [packages/vite-plugin/src/index.ts:52](packages/vite-plugin/src/index.ts#L52)
+Defined in: [packages/vite-plugin/src/index.ts:83](packages/vite-plugin/src/index.ts#L83)
 
 The WAVEx Vite plugin. Compiles `.wx` files to Lit render modules on
 demand, serves `virtual:wavex/routes` (the file-convention route table with

@@ -565,7 +565,7 @@ describe("validateComponentReferences", () => {
     const diagnostics = validateComponentReferences(parsed, {
       localComponents: ["task-card"],
       webAwesome,
-      fontAwesome: { kits: ["@awesome.me/kit-x"], packages: [] }
+      fontAwesome: { iconSources: [{ packageName: "@awesome.me/kit-x", svgDir: "/kit-x/icons/svgs" }] }
     });
     expect(diagnostics).toEqual([]);
   });
@@ -576,7 +576,7 @@ describe("validateComponentReferences", () => {
     const diagnostics = validateComponentReferences(parsed, {
       localComponents: [],
       webAwesome,
-      fontAwesome: { kits: [], packages: [] }
+      fontAwesome: { iconSources: [] }
     });
     expect(diagnostics).toMatchObject([
       { code: "WX101", severity: "error" },
@@ -586,13 +586,13 @@ describe("validateComponentReferences", () => {
     expect(diagnostics[1]!.message).toContain("wa-chart");
   });
 
-  it("downgrades @icon to info when only bundled free icons are available", async () => {
+  it("notes with an info diagnostic that @icon loads from the CDN when no Font Awesome SVGs are installed", async () => {
     const { validateComponentReferences } = await import("../src/capabilities.js");
     const parsed = parseWavex(`~~~\n@icon name:plus\n`);
     const diagnostics = validateComponentReferences(parsed, {
       localComponents: [],
       webAwesome,
-      fontAwesome: { kits: [], packages: [] }
+      fontAwesome: { iconSources: [] }
     });
     expect(diagnostics).toMatchObject([{ code: "WX101", severity: "info" }]);
   });

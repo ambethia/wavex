@@ -42,6 +42,7 @@ describe("@wavex/vite-plugin/client types", () => {
         'import type { RenderFunction, ResourceDefinition } from "@wavex/runtime";',
         'import routes, { routes as namedRoutes } from "virtual:wavex/routes";',
         'import manifest, { actionKinds, resolveActionKind, viewTransitions } from "virtual:wavex/manifest";',
+        'import "virtual:wavex/icons";',
         "const defaultRenderCheck: RenderFunction = defaultRender;",
         "const namedRenderCheck: RenderFunction = render;",
         "const resourceCheck: readonly ResourceDefinition[] = resources;",

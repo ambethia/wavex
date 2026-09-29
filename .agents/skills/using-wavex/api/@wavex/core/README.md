@@ -351,7 +351,7 @@ Defined in: [packages/core/src/ast.ts:68](packages/core/src/ast.ts#L68)
 
 ### ComponentResolutionOptions
 
-Defined in: [packages/core/src/model.ts:50](packages/core/src/model.ts#L50)
+Defined in: [packages/core/src/model.ts:52](packages/core/src/model.ts#L52)
 
 Known component names used by [componentReferenceToTag](#componentreferencetotag) to resolve
 `@name` references. When omitted, a built-in set of common Web Awesome
@@ -366,7 +366,7 @@ component names is used; real projects should pass names detected by
 optional localComponents?: ReadonlySet<string> | readonly string[];
 ```
 
-Defined in: [packages/core/src/model.ts:51](packages/core/src/model.ts#L51)
+Defined in: [packages/core/src/model.ts:53](packages/core/src/model.ts#L53)
 
 ##### webAwesomeComponents?
 
@@ -374,7 +374,7 @@ Defined in: [packages/core/src/model.ts:51](packages/core/src/model.ts#L51)
 optional webAwesomeComponents?: ReadonlySet<string> | readonly string[];
 ```
 
-Defined in: [packages/core/src/model.ts:52](packages/core/src/model.ts#L52)
+Defined in: [packages/core/src/model.ts:54](packages/core/src/model.ts#L54)
 
 ***
 
@@ -582,7 +582,7 @@ Defined in: [packages/core/src/ast.ts:50](packages/core/src/ast.ts#L50)
 
 ### Diagnostic
 
-Defined in: [packages/core/src/model.ts:36](packages/core/src/model.ts#L36)
+Defined in: [packages/core/src/model.ts:38](packages/core/src/model.ts#L38)
 
 A structured problem report with a 1-based source position. The parser and
 compiler collect diagnostics instead of throwing, so tooling (CLI, LSP,
@@ -596,7 +596,7 @@ Vite plugin) can surface every problem in a file at once.
 code: string;
 ```
 
-Defined in: [packages/core/src/model.ts:37](packages/core/src/model.ts#L37)
+Defined in: [packages/core/src/model.ts:39](packages/core/src/model.ts#L39)
 
 ##### column
 
@@ -604,7 +604,7 @@ Defined in: [packages/core/src/model.ts:37](packages/core/src/model.ts#L37)
 column: number;
 ```
 
-Defined in: [packages/core/src/model.ts:41](packages/core/src/model.ts#L41)
+Defined in: [packages/core/src/model.ts:43](packages/core/src/model.ts#L43)
 
 ##### line
 
@@ -612,7 +612,7 @@ Defined in: [packages/core/src/model.ts:41](packages/core/src/model.ts#L41)
 line: number;
 ```
 
-Defined in: [packages/core/src/model.ts:40](packages/core/src/model.ts#L40)
+Defined in: [packages/core/src/model.ts:42](packages/core/src/model.ts#L42)
 
 ##### message
 
@@ -620,7 +620,7 @@ Defined in: [packages/core/src/model.ts:40](packages/core/src/model.ts#L40)
 message: string;
 ```
 
-Defined in: [packages/core/src/model.ts:38](packages/core/src/model.ts#L38)
+Defined in: [packages/core/src/model.ts:40](packages/core/src/model.ts#L40)
 
 ##### severity
 
@@ -628,7 +628,7 @@ Defined in: [packages/core/src/model.ts:38](packages/core/src/model.ts#L38)
 severity: "error" | "warning" | "info";
 ```
 
-Defined in: [packages/core/src/model.ts:39](packages/core/src/model.ts#L39)
+Defined in: [packages/core/src/model.ts:41](packages/core/src/model.ts#L41)
 
 ***
 
@@ -1403,7 +1403,7 @@ Defined in: [packages/core/src/ast.ts:165](packages/core/src/ast.ts#L165)
 
 ### RouteDefinition
 
-Defined in: [packages/core/src/model.ts:18](packages/core/src/model.ts#L18)
+Defined in: [packages/core/src/model.ts:20](packages/core/src/model.ts#L20)
 
 A file-derived route: `src/pages/tasks/[id].wx` → `/tasks/:id`.
 
@@ -1419,7 +1419,7 @@ A file-derived route: `src/pages/tasks/[id].wx` → `/tasks/:id`.
 file: string;
 ```
 
-Defined in: [packages/core/src/model.ts:20](packages/core/src/model.ts#L20)
+Defined in: [packages/core/src/model.ts:22](packages/core/src/model.ts#L22)
 
 ##### id
 
@@ -1427,7 +1427,7 @@ Defined in: [packages/core/src/model.ts:20](packages/core/src/model.ts#L20)
 id: string;
 ```
 
-Defined in: [packages/core/src/model.ts:19](packages/core/src/model.ts#L19)
+Defined in: [packages/core/src/model.ts:21](packages/core/src/model.ts#L21)
 
 ##### path
 
@@ -1435,7 +1435,7 @@ Defined in: [packages/core/src/model.ts:19](packages/core/src/model.ts#L19)
 path: string;
 ```
 
-Defined in: [packages/core/src/model.ts:21](packages/core/src/model.ts#L21)
+Defined in: [packages/core/src/model.ts:23](packages/core/src/model.ts#L23)
 
 ##### segments
 
@@ -1443,13 +1443,13 @@ Defined in: [packages/core/src/model.ts:21](packages/core/src/model.ts#L21)
 segments: RouteSegment[];
 ```
 
-Defined in: [packages/core/src/model.ts:22](packages/core/src/model.ts#L22)
+Defined in: [packages/core/src/model.ts:24](packages/core/src/model.ts#L24)
 
 ***
 
 ### RouteMatch
 
-Defined in: [packages/core/src/model.ts:161](packages/core/src/model.ts#L161)
+Defined in: [packages/core/src/model.ts:163](packages/core/src/model.ts#L163)
 
 Successful route match result, including the matched route definition and decoded params.
 
@@ -1461,7 +1461,7 @@ Successful route match result, including the matched route definition and decode
 params: Record<string, string>;
 ```
 
-Defined in: [packages/core/src/model.ts:163](packages/core/src/model.ts#L163)
+Defined in: [packages/core/src/model.ts:165](packages/core/src/model.ts#L165)
 
 ##### route
 
@@ -1469,7 +1469,7 @@ Defined in: [packages/core/src/model.ts:163](packages/core/src/model.ts#L163)
 route: RouteDefinition;
 ```
 
-Defined in: [packages/core/src/model.ts:162](packages/core/src/model.ts#L162)
+Defined in: [packages/core/src/model.ts:164](packages/core/src/model.ts#L164)
 
 ***
 
@@ -1825,7 +1825,7 @@ Defined in: [packages/core/src/ast.ts:116](packages/core/src/ast.ts#L116)
 
 ### WavexConfig
 
-Defined in: [packages/core/src/model.ts:9](packages/core/src/model.ts#L9)
+Defined in: [packages/core/src/model.ts:11](packages/core/src/model.ts#L11)
 
 Fixed directory layout of a WAVEx app. The structure is framework law, not
 configuration: routes live in `src/pages`, reusable template components in
@@ -1842,7 +1842,7 @@ the nearest ancestor Convex project (see `findConvexDir` in
 apiDir: string;
 ```
 
-Defined in: [packages/core/src/model.ts:13](packages/core/src/model.ts#L13)
+Defined in: [packages/core/src/model.ts:15](packages/core/src/model.ts#L15)
 
 ##### componentsDir
 
@@ -1850,7 +1850,7 @@ Defined in: [packages/core/src/model.ts:13](packages/core/src/model.ts#L13)
 componentsDir: string;
 ```
 
-Defined in: [packages/core/src/model.ts:12](packages/core/src/model.ts#L12)
+Defined in: [packages/core/src/model.ts:14](packages/core/src/model.ts#L14)
 
 ##### pagesDir
 
@@ -1858,7 +1858,7 @@ Defined in: [packages/core/src/model.ts:12](packages/core/src/model.ts#L12)
 pagesDir: string;
 ```
 
-Defined in: [packages/core/src/model.ts:11](packages/core/src/model.ts#L11)
+Defined in: [packages/core/src/model.ts:13](packages/core/src/model.ts#L13)
 
 ##### publicDir
 
@@ -1866,7 +1866,7 @@ Defined in: [packages/core/src/model.ts:11](packages/core/src/model.ts#L11)
 publicDir: string;
 ```
 
-Defined in: [packages/core/src/model.ts:14](packages/core/src/model.ts#L14)
+Defined in: [packages/core/src/model.ts:16](packages/core/src/model.ts#L16)
 
 ##### sourceDir
 
@@ -1874,7 +1874,7 @@ Defined in: [packages/core/src/model.ts:14](packages/core/src/model.ts#L14)
 sourceDir: string;
 ```
 
-Defined in: [packages/core/src/model.ts:10](packages/core/src/model.ts#L10)
+Defined in: [packages/core/src/model.ts:12](packages/core/src/model.ts#L12)
 
 ***
 
@@ -2011,7 +2011,7 @@ type RouteSegment =
 };
 ```
 
-Defined in: [packages/core/src/model.ts:26](packages/core/src/model.ts#L26)
+Defined in: [packages/core/src/model.ts:28](packages/core/src/model.ts#L28)
 
 One path segment: static text, a `[param]`, or a `[...splat]` catch-all.
 
@@ -2044,7 +2044,7 @@ shorthand: native elements, `@` components, `+` directives, text,
 function componentReferenceToTag(reference, options?): string;
 ```
 
-Defined in: [packages/core/src/model.ts:331](packages/core/src/model.ts#L331)
+Defined in: [packages/core/src/model.ts:333](packages/core/src/model.ts#L333)
 
 Resolve an `@name` component reference to a custom-element tag.
 
@@ -2076,7 +2076,7 @@ Explicit prefixes bypass the lookup: `@wa/card` always means `<wa-card>`,
 function createDefaultConfig(): WavexConfig;
 ```
 
-Defined in: [packages/core/src/model.ts:83](packages/core/src/model.ts#L83)
+Defined in: [packages/core/src/model.ts:85](packages/core/src/model.ts#L85)
 
 The standard WAVEx app layout (see [WavexConfig](#wavexconfig)).
 
@@ -2092,7 +2092,7 @@ The standard WAVEx app layout (see [WavexConfig](#wavexconfig)).
 function createRouteDefinition(file, pagesDir?): RouteDefinition | undefined;
 ```
 
-Defined in: [packages/core/src/model.ts:149](packages/core/src/model.ts#L149)
+Defined in: [packages/core/src/model.ts:151](packages/core/src/model.ts#L151)
 
 Build a full [RouteDefinition](#routedefinition) from a page file path, or undefined if the file is not routable.
 
@@ -2118,7 +2118,7 @@ Build a full [RouteDefinition](#routedefinition) from a page file path, or undef
 function expandUtilityClassList(tokens): string[];
 ```
 
-Defined in: [packages/core/src/model.ts:300](packages/core/src/model.ts#L300)
+Defined in: [packages/core/src/model.ts:302](packages/core/src/model.ts#L302)
 
 Expand `[utility]` tokens into concrete `wa-*` class names, dropping empty tokens.
 
@@ -2140,7 +2140,7 @@ readonly `string`[]
 function expandUtilityToken(token): string;
 ```
 
-Defined in: [packages/core/src/model.ts:293](packages/core/src/model.ts#L293)
+Defined in: [packages/core/src/model.ts:295](packages/core/src/model.ts#L295)
 
 Expand one `[utility]` token to its class name. This is plain `wa-` prefix
 expansion by design — there is no semantic mapping table or `name:value`
@@ -2164,7 +2164,7 @@ utility grammar, so `[stack gap-xl]` is exactly `wa-stack wa-gap-xl`.
 function extractAttrsTypeKeys(prelude): string[] | undefined;
 ```
 
-Defined in: [packages/core/src/model.ts:361](packages/core/src/model.ts#L361)
+Defined in: [packages/core/src/model.ts:371](packages/core/src/model.ts#L371)
 
 Top-level keys of a component's `type Attrs = { ... }` (or `interface Attrs`)
 prelude declaration. Components declaring Attrs get each attribute as a bare,
@@ -2188,11 +2188,38 @@ typed local in their template. Returns undefined when no Attrs is declared.
 function formatDiagnostic(diagnostic): string;
 ```
 
-Defined in: [packages/core/src/model.ts:348](packages/core/src/model.ts#L348)
+Defined in: [packages/core/src/model.ts:350](packages/core/src/model.ts#L350)
 
 Render a diagnostic as a single `SEVERITY code line:column message` line for CLI/log output.
 
 #### Parameters
+
+##### diagnostic
+
+[`Diagnostic`](#diagnostic)
+
+#### Returns
+
+`string`
+
+***
+
+### formatFileDiagnostic()
+
+```ts
+function formatFileDiagnostic(file, diagnostic): string;
+```
+
+Defined in: [packages/core/src/model.ts:358](packages/core/src/model.ts#L358)
+
+Render a diagnostic with its file as `file:line:column SEVERITY code message`,
+the location form terminals and editors turn into links.
+
+#### Parameters
+
+##### file
+
+`string`
 
 ##### diagnostic
 
@@ -2210,7 +2237,7 @@ Render a diagnostic as a single `SEVERITY code line:column message` line for CLI
 function inferResourceBindingName(modulePath, functionName): string;
 ```
 
-Defined in: [packages/core/src/model.ts:260](packages/core/src/model.ts#L260)
+Defined in: [packages/core/src/model.ts:262](packages/core/src/model.ts#L262)
 
 Infer the template binding name for a `$$module:function` Convex resource.
 The rules are intentionally simple: the last module path segment is the
@@ -2240,7 +2267,7 @@ plural, singleton-style functions (`get`, `byId`, `me`, …) bind singular.
 function lastPathSegment(path): string;
 ```
 
-Defined in: [packages/core/src/model.ts:267](packages/core/src/model.ts#L267)
+Defined in: [packages/core/src/model.ts:269](packages/core/src/model.ts#L269)
 
 Return the final non-empty slash-delimited segment from a module or file path.
 
@@ -2262,7 +2289,7 @@ Return the final non-empty slash-delimited segment from a module or file path.
 function matchRoutePath(routes, pathname): RouteMatch | undefined;
 ```
 
-Defined in: [packages/core/src/model.ts:172](packages/core/src/model.ts#L172)
+Defined in: [packages/core/src/model.ts:174](packages/core/src/model.ts#L174)
 
 Match a pathname against route definitions using the same segment
 semantics as createRouteDefinition. Static segments win over params,
@@ -2291,7 +2318,7 @@ readonly [`RouteDefinition`](#routedefinition)[]
 function mergeClassNames(...values): string;
 ```
 
-Defined in: [packages/core/src/model.ts:305](packages/core/src/model.ts#L305)
+Defined in: [packages/core/src/model.ts:307](packages/core/src/model.ts#L307)
 
 Join whitespace-separated class name fragments while ignoring falsey values.
 
@@ -2313,7 +2340,7 @@ Join whitespace-separated class name fragments while ignoring falsey values.
 function normalizeSlashes(path): string;
 ```
 
-Defined in: [packages/core/src/model.ts:94](packages/core/src/model.ts#L94)
+Defined in: [packages/core/src/model.ts:96](packages/core/src/model.ts#L96)
 
 Normalize Windows path separators to the POSIX-style slash form used by route and component IDs.
 
@@ -2377,7 +2404,7 @@ attributes); a bare identifier value on one of them is an expression, so
 function parseQueryString(search): Record<string, string>;
 ```
 
-Defined in: [packages/core/src/model.ts:237](packages/core/src/model.ts#L237)
+Defined in: [packages/core/src/model.ts:239](packages/core/src/model.ts#L239)
 
 Parse a search string into a flat record; the first occurrence of a repeated key wins.
 
@@ -2436,7 +2463,7 @@ attribute of the Web Awesome component it resolves to (see
 function pluralize(name): string;
 ```
 
-Defined in: [packages/core/src/model.ts:282](packages/core/src/model.ts#L282)
+Defined in: [packages/core/src/model.ts:284](packages/core/src/model.ts#L284)
 
 Lightweight English pluralization used for inferred Convex resource binding names.
 
@@ -2458,7 +2485,7 @@ Lightweight English pluralization used for inferred Convex resource binding name
 function routeIdFromFile(file): string;
 ```
 
-Defined in: [packages/core/src/model.ts:141](packages/core/src/model.ts#L141)
+Defined in: [packages/core/src/model.ts:143](packages/core/src/model.ts#L143)
 
 Convert a page file path into the stable dotted route id used by generated modules.
 
@@ -2480,7 +2507,7 @@ Convert a page file path into the stable dotted route id used by generated modul
 function routePathFromPageFile(file, pagesDir?): string | undefined;
 ```
 
-Defined in: [packages/core/src/model.ts:103](packages/core/src/model.ts#L103)
+Defined in: [packages/core/src/model.ts:105](packages/core/src/model.ts#L105)
 
 Derive a route path from a page file path, or undefined for non-routable
 files (`+layout.wx`, `+error.wx`, non-`.wx` files). `index.wx` maps to the
@@ -2508,7 +2535,7 @@ directory path, `[id]` to `:id`, and `[...slug]` to `*slug`.
 function routeSegmentsFromPath(path): RouteSegment[];
 ```
 
-Defined in: [packages/core/src/model.ts:129](packages/core/src/model.ts#L129)
+Defined in: [packages/core/src/model.ts:131](packages/core/src/model.ts#L131)
 
 Convert a route path (`/tasks/:id`) into matchable route segment records.
 
@@ -2530,7 +2557,7 @@ Convert a route path (`/tasks/:id`) into matchable route segment records.
 function singularize(name): string;
 ```
 
-Defined in: [packages/core/src/model.ts:272](packages/core/src/model.ts#L272)
+Defined in: [packages/core/src/model.ts:274](packages/core/src/model.ts#L274)
 
 Lightweight English singularization used for inferred Convex resource binding names.
 
@@ -2552,7 +2579,7 @@ Lightweight English singularization used for inferred Convex resource binding na
 function toKebabCase(value): string;
 ```
 
-Defined in: [packages/core/src/model.ts:313](packages/core/src/model.ts#L313)
+Defined in: [packages/core/src/model.ts:315](packages/core/src/model.ts#L315)
 
 Convert component and property identifiers to kebab-case custom-element names.
 

@@ -727,6 +727,36 @@ Defined in: [packages/runtime/src/index.ts:235](packages/runtime/src/index.ts#L2
 
 ***
 
+### IconOptions
+
+Defined in: [packages/runtime/src/index.ts:249](packages/runtime/src/index.ts#L249)
+
+Font Awesome family/variant for an [icon](#icon) declaration (Web Awesome's `@icon family:`/`variant:`).
+
+#### Properties
+
+##### family?
+
+```ts
+optional family?: string;
+```
+
+Defined in: [packages/runtime/src/index.ts:251](packages/runtime/src/index.ts#L251)
+
+Icon family, e.g. `"sharp"` or `"duotone"`; defaults to `"classic"`.
+
+##### variant?
+
+```ts
+optional variant?: string;
+```
+
+Defined in: [packages/runtime/src/index.ts:253](packages/runtime/src/index.ts#L253)
+
+Icon variant, e.g. `"regular"` or `"light"`; defaults to `"solid"`.
+
+***
+
 ### NavigationState
 
 Defined in: [packages/runtime/src/index.ts:79](packages/runtime/src/index.ts#L79)
@@ -1883,7 +1913,7 @@ Conventional analytics event name for a semantic Convex action target, e.g. "$$t
 function applyHead(entries, documentRef?): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:550](packages/runtime/src/index.ts#L550)
+Defined in: [packages/runtime/src/index.ts:583](packages/runtime/src/index.ts#L583)
 
 Reconcile `document.title` and `data-wx-head`-managed meta/link nodes with
 the given entries. Only nodes the runtime created are touched, so static
@@ -1995,7 +2025,7 @@ back/forward.
 function createConvexActionClient(client, options?): ActionClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:381](packages/runtime/src/index.ts#L381)
+Defined in: [packages/runtime/src/index.ts:414](packages/runtime/src/index.ts#L414)
 
 Adapt the Convex client to the [ActionClient](#actionclient) seam; dispatches by inferred kind (mutation vs action).
 
@@ -2021,7 +2051,7 @@ Adapt the Convex client to the [ActionClient](#actionclient) seam; dispatches by
 function createConvexResourceClient(client, options?): ResourceClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:366](packages/runtime/src/index.ts#L366)
+Defined in: [packages/runtime/src/index.ts:399](packages/runtime/src/index.ts#L399)
 
 Adapt the official Convex browser client to the [ResourceClient](#resourceclient)
 seam. Function addresses resolve through the generated `api` object when
@@ -2073,7 +2103,7 @@ stays optional — apps enable it with VITE_POSTHOG_KEY / VITE_POSTHOG_HOST.
 function createRenderContext(context?): RenderContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:260](packages/runtime/src/index.ts#L260)
+Defined in: [packages/runtime/src/index.ts:293](packages/runtime/src/index.ts#L293)
 
 Normalize a partial context into a fully-populated [RenderContext](#rendercontext) with empty defaults.
 
@@ -2098,7 +2128,7 @@ function createResourceController(
    options?): ResourceController;
 ```
 
-Defined in: [packages/runtime/src/index.ts:281](packages/runtime/src/index.ts#L281)
+Defined in: [packages/runtime/src/index.ts:314](packages/runtime/src/index.ts#L314)
 
 Subscribe the context's resources through a [ResourceClient](#resourceclient) and keep
 `context.resources` / `context.resourceStates` current. Subscriptions are
@@ -2133,7 +2163,7 @@ readonly [`ResourceDefinition`](#resourcedefinition)\<`unknown`\>[] = `[]`
 function createRouteContext(input?): RouteContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:249](packages/runtime/src/index.ts#L249)
+Defined in: [packages/runtime/src/index.ts:282](packages/runtime/src/index.ts#L282)
 
 Build a [RouteContext](#routecontext) from a URL (defaults to the current location); params are filled in by the router.
 
@@ -2155,7 +2185,7 @@ Build a [RouteContext](#routecontext) from a URL (defaults to the current locati
 function createSemanticActionDispatcher(context, options?): (event) => Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:402](packages/runtime/src/index.ts#L402)
+Defined in: [packages/runtime/src/index.ts:435](packages/runtime/src/index.ts#L435)
 
 Build the dispatcher behind `context.dispatch`. `$$module:fn` targets go
 through the action client with full lifecycle handling — pending state,
@@ -2180,13 +2210,62 @@ through to `options.dispatch` for app-level targets.
 
 ***
 
+### icon()
+
+```ts
+function icon<N>(name, options?): N;
+```
+
+Defined in: [packages/runtime/src/index.ts:276](packages/runtime/src/index.ts#L276)
+
+Declare a Font Awesome icon name that TypeScript computes, so WAVEx can
+collect, validate, and self-host it; returns `name` unchanged.
+
+Template icons written as literals (`@icon name:box`, or the literal
+branches of `name:{{ done ? "box" : "truck-fast" }}`) are collected
+automatically. Names chosen in TypeScript are not visible to the template
+scan, so wrap each possible literal where it is written:
+
+```ts
+import { icon } from "@wavex/runtime";
+
+const SUBJECT_ICONS = { survey: icon("clipboard-list"), payment: icon("credit-card") } as const;
+```
+
+`wavex check` and the Vite plugin find literal `icon()` calls in the app's
+`src/` files (and `.wx` preludes), report names the installed Font Awesome
+package lacks, and serve them with the template's icons. Arguments must be
+string literals.
+
+#### Type Parameters
+
+##### N
+
+`N` *extends* `string`
+
+#### Parameters
+
+##### name
+
+`N`
+
+##### options?
+
+[`IconOptions`](#iconoptions)
+
+#### Returns
+
+`N`
+
+***
+
 ### installSemanticEventDelegation()
 
 ```ts
 function installSemanticEventDelegation(root, context): () => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:518](packages/runtime/src/index.ts#L518)
+Defined in: [packages/runtime/src/index.ts:551](packages/runtime/src/index.ts#L551)
 
 Listen for click/submit/change at the root (capture phase) and route
 `data-wx-*` action attributes — the compiled form of `:event:target` — to

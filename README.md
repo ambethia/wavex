@@ -92,8 +92,11 @@ tokens:
 pnpm install
 ```
 
-The demo apps depend on the public `@awesome.me/webawesome` package and the
-free icons bundled with Web Awesome. Do not add personal Font Awesome kit
+The demo apps depend on the public `@awesome.me/webawesome` package, whose
+default icon library loads free Font Awesome icons from the Font Awesome CDN.
+An app that installs a Font Awesome kit or `@fortawesome/fontawesome-free`
+(or `-pro`) instead gets its icons validated and served from the app by WAVEx
+(see the components guide). Do not add personal Font Awesome kit
 packages such as `@awesome.me/kit-*` to committed app manifests. If an app needs
 Web Awesome Pro or a Font Awesome Pro kit, use your own license, keep registry
 authentication in your user-level npm config or environment, and document the

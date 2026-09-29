@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
-import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes, parseWavex } from "@wavex/core";
+import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes, parseWavex, type Diagnostic } from "@wavex/core";
 
 export type ViteCommand = "dev" | "build";
 export type ViteRunner = (args: string[]) => void;
@@ -71,25 +71,63 @@ async function check(rootInput: string) {
   let errorCount = 0;
 
   // Capability context: the app root holds node_modules and src/components.
-  const { detectCapabilities, discoverConvexFunctionKinds, discoverLocalComponents, validateComponentReferences, validateConvexReferences } = await import("@wavex/core/capabilities");
+  const {
+    collectAppIcons,
+    detectCapabilities,
+    discoverConvexFunctionKinds,
+    discoverLocalComponents,
+    loadWebAwesomeIconFolder,
+    resolveIconAsset,
+    validateComponentReferences,
+    validateConvexReferences,
+    validateIconReferences
+  } = await import("@wavex/core/capabilities");
   const appRoot = resolveWavexAppRoot(root);
   const capabilities = detectCapabilities(appRoot);
   const localComponents = discoverLocalComponents(appRoot);
   const convexFunctionKinds = discoverConvexFunctionKinds(appRoot);
+  const parseOptions = { localComponents, webAwesomeBooleanAttributes: capabilities.webAwesome?.booleanAttributes };
+  const diagnosticsByFile = new Map<string, Diagnostic[]>();
+  const report = (file: string, diagnostics: readonly Diagnostic[]) => {
+    if (diagnostics.length > 0) diagnosticsByFile.set(file, [...(diagnosticsByFile.get(file) ?? []), ...diagnostics]);
+  };
 
   for (const file of files) {
-    const parsed = parseWavex(readFileSync(file, "utf8"), {
-      fileName: file,
-      localComponents,
-      webAwesomeBooleanAttributes: capabilities.webAwesome?.booleanAttributes
-    });
+    const parsed = parseWavex(readFileSync(file, "utf8"), { fileName: file, ...parseOptions });
     const capabilityDiagnostics = validateComponentReferences(parsed, {
       localComponents,
       webAwesome: capabilities.webAwesome,
       fontAwesome: capabilities.fontAwesome
     });
     const convexDiagnostics = validateConvexReferences(parsed, { functionKinds: convexFunctionKinds });
-    for (const diagnostic of [...parsed.diagnostics, ...capabilityDiagnostics, ...convexDiagnostics]) {
+    report(file, [...parsed.diagnostics, ...capabilityDiagnostics, ...convexDiagnostics]);
+  }
+
+  // Self-hosted icons: every icon the checked files use must exist in the installed Font Awesome SVGs.
+  const iconSources = capabilities.fontAwesome.iconSources;
+  const servedIcons = new Set<string>();
+  const folderOf =
+    capabilities.webAwesome && iconSources.length > 0
+      ? await loadWebAwesomeIconFolder(capabilities.webAwesome.packageDir).catch((error: unknown) => {
+          console.error(`wavex check: ${error instanceof Error ? error.message : String(error)}`);
+          errorCount += 1;
+          return undefined;
+        })
+      : undefined;
+  if (folderOf) {
+    for (const entry of collectAppIcons(appRoot, parseOptions)) {
+      if (!isInside(entry.file, root)) continue;
+      report(entry.file, [...entry.diagnostics, ...validateIconReferences(entry.icons, folderOf, iconSources)]);
+      for (const icon of entry.icons) {
+        const asset = resolveIconAsset(icon, folderOf, iconSources);
+        if (asset) servedIcons.add(`${asset.folder}/${asset.name}`);
+      }
+    }
+  }
+
+  for (const file of [...diagnosticsByFile.keys()].sort()) {
+    const diagnostics = diagnosticsByFile.get(file)!.sort((left, right) => left.line - right.line || left.column - right.column);
+    for (const diagnostic of diagnostics) {
       if (diagnostic.severity === "error") errorCount += 1;
       console.error(`${normalizeSlashes(relative(root, file))}: ${formatDiagnostic(diagnostic)}`);
     }
@@ -99,12 +137,18 @@ async function check(rootInput: string) {
     ? `Web Awesome: ${capabilities.webAwesome.packageName} (${capabilities.webAwesome.components.size} components)`
     : "Web Awesome: not installed";
   const fa = capabilities.fontAwesome;
+  const hosting = capabilities.webAwesome && iconSources.length > 0 ? ` (${servedIcons.size} icon${servedIcons.size === 1 ? "" : "s"} self-hosted)` : "";
   const faSummary =
     fa.kits.length > 0 || fa.packages.length > 0
-      ? `Font Awesome: ${[...fa.kits, ...fa.packages].join(", ")}`
+      ? `Font Awesome: ${[...fa.kits, ...fa.packages].join(", ")}${hosting}`
       : "Font Awesome: none installed";
   console.log(`Checked ${files.length} .wx file${files.length === 1 ? "" : "s"}. ${summary}; ${faSummary}.`);
   if (errorCount > 0) process.exitCode = 1;
+}
+
+function isInside(file: string, dir: string): boolean {
+  const relativePath = normalizeSlashes(relative(dir, file));
+  return relativePath === "" || (!relativePath.startsWith("../") && relativePath !== "..");
 }
 
 function routes(rootInput: string) {

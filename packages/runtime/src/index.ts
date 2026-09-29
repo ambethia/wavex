@@ -245,6 +245,39 @@ interface ActiveResource {
   teardown: ResourceTeardown;
 }
 
+/** Font Awesome family/variant for an {@link icon} declaration (Web Awesome's `@icon family:`/`variant:`). */
+export interface IconOptions {
+  /** Icon family, e.g. `"sharp"` or `"duotone"`; defaults to `"classic"`. */
+  family?: string;
+  /** Icon variant, e.g. `"regular"` or `"light"`; defaults to `"solid"`. */
+  variant?: string;
+}
+
+/**
+ * Declare a Font Awesome icon name that TypeScript computes, so WAVEx can
+ * collect, validate, and self-host it; returns `name` unchanged.
+ *
+ * Template icons written as literals (`@icon name:box`, or the literal
+ * branches of `name:{{ done ? "box" : "truck-fast" }}`) are collected
+ * automatically. Names chosen in TypeScript are not visible to the template
+ * scan, so wrap each possible literal where it is written:
+ *
+ * ```ts
+ * import { icon } from "@wavex/runtime";
+ *
+ * const SUBJECT_ICONS = { survey: icon("clipboard-list"), payment: icon("credit-card") } as const;
+ * ```
+ *
+ * `wavex check` and the Vite plugin find literal `icon()` calls in the app's
+ * `src/` files (and `.wx` preludes), report names the installed Font Awesome
+ * package lacks, and serve them with the template's icons. Arguments must be
+ * string literals.
+ */
+export function icon<const N extends string>(name: N, options?: IconOptions): N {
+  void options;
+  return name;
+}
+
 /** Build a {@link RouteContext} from a URL (defaults to the current location); params are filled in by the router. */
 export function createRouteContext(input: string | URL = globalThis.location?.href ?? "http://localhost/"): RouteContext {
   const url = input instanceof URL ? input : new URL(input, "http://localhost");

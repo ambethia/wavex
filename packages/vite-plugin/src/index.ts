@@ -7,19 +7,46 @@
  * what is WAVEx-specific: the file-convention route table
  * (`virtual:wavex/routes`), generated app metadata
  * (`virtual:wavex/manifest`), the bootstrap entry (`/@wavex/bootstrap`, which
- * renders the app directly under `<body>` with no framework mount div), and
- * `.wx` hot updates that preserve Convex client state across template edits.
+ * renders the app directly under `<body>` with no framework mount div),
+ * self-hosted Font Awesome icons (`virtual:wavex/icons` plus the collected
+ * SVGs, served in dev and emitted by the build), and `.wx` hot updates that
+ * preserve Convex client state across template edits.
  *
  * The `@wavex/vite-plugin/client` subpath ships ambient module declarations
  * for `*.wx` imports; apps reference it from their tsconfig `types`.
  *
  * @module @wavex/vite-plugin
  */
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
-import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes } from "@wavex/core";
-import { detectCapabilities, discoverConvexFunctionKinds, findConvexDir, type ProjectCapabilities } from "@wavex/core/capabilities";
+import {
+  createDefaultConfig,
+  createRouteDefinition,
+  formatDiagnostic,
+  formatFileDiagnostic,
+  normalizeSlashes,
+  type Diagnostic,
+  type ParseWavexOptions
+} from "@wavex/core";
+import {
+  collectAppIcons,
+  collectTemplateIcons,
+  detectCapabilities,
+  discoverConvexFunctionKinds,
+  findConvexDir,
+  isIconSourceFile,
+  loadWebAwesomeIconFolder,
+  readWebAwesomeDefaultLibraryIcons,
+  resolveIconAsset,
+  validateIconReferences,
+  type FontAwesomeIconSource,
+  type IconAsset,
+  type IconFolderResolver,
+  type IconReference,
+  type ProjectCapabilities
+} from "@wavex/core/capabilities";
 import type { Plugin, ViteDevServer } from "vite";
 import { transformWithOxc } from "vite";
 
@@ -41,6 +68,10 @@ const RESOLVED_VIRTUAL_MANIFEST_ID = `\0${VIRTUAL_MANIFEST_ID}`;
 const VIRTUAL_BOOTSTRAP_ID = "virtual:wavex/bootstrap";
 const BOOTSTRAP_PUBLIC_ID = "/@wavex/bootstrap";
 const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
+const VIRTUAL_ICONS_ID = "virtual:wavex/icons";
+const RESOLVED_VIRTUAL_ICONS_ID = `\0${VIRTUAL_ICONS_ID}`;
+/** Directory under `build.assetsDir` that serves self-hosted Font Awesome icons (dev and build). */
+const ICONS_DIR = "wavex-icons";
 
 /**
  * The WAVEx Vite plugin. Compiles `.wx` files to Lit render modules on
@@ -51,10 +82,27 @@ const RESOLVED_VIRTUAL_BOOTSTRAP_ID = `\0${VIRTUAL_BOOTSTRAP_ID}`;
  */
 export function wavex(options: WavexVitePluginOptions = {}): Plugin {
   let projectRoot = process.cwd();
+  let base = "/";
+  let assetsDir = "assets";
+  let command: "build" | "serve" = "serve";
+  let ssrBuild = false;
   let capabilities: ProjectCapabilities | undefined;
   let convexFunctionKinds: ReturnType<typeof discoverConvexFunctionKinds> | undefined;
+  let iconHostPromise: Promise<IconHost | undefined> | undefined;
+  // The app's collected icons; cleared when an app source file changes and rebuilt on demand.
+  let iconCollection: IconCollection | undefined;
   const projectCapabilities = () => (capabilities ??= detectCapabilities(projectRoot));
   const projectConvexFunctionKinds = () => (convexFunctionKinds ??= discoverConvexFunctionKinds(projectRoot));
+  const iconHost = () => (iconHostPromise ??= createIconHost(projectCapabilities()));
+  const parseContext = (): Omit<ParseWavexOptions, "fileName"> => ({
+    localComponents: discoverLocalComponents(resolveDirs(projectRoot).componentsDir),
+    webAwesomeBooleanAttributes: projectCapabilities().webAwesome?.booleanAttributes
+  });
+  const collectIcons = (host: IconHost): { collection: IconCollection; fresh: boolean } => {
+    if (iconCollection) return { collection: iconCollection, fresh: false };
+    iconCollection = collectAppIconAssets(projectRoot, host, parseContext());
+    return { collection: iconCollection, fresh: true };
+  };
 
   return {
     name: "wavex",
@@ -86,13 +134,23 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     },
     configResolved(config) {
       projectRoot = config.root;
+      base = config.base ?? "/";
+      assetsDir = config.build?.assetsDir ?? "assets";
+      command = config.command ?? "serve";
+      ssrBuild = Boolean(config.build?.ssr);
     },
-    configureServer(server) {
+    async configureServer(server) {
       const config = resolveDirs(server.config.root);
+      const sourceDir = resolve(server.config.root, createDefaultConfig().sourceDir);
       server.watcher.add(
         [config.pagesDir, config.componentsDir, config.convexDir].filter((dir): dir is string => dir !== undefined && existsSync(dir))
       );
+      // Any app source edit can add or remove icons (templates, preludes, icon() declarations).
+      const forgetIconsFor = (file: string) => {
+        if (isInside(file, sourceDir) && isIconSourceFile(file)) iconCollection = undefined;
+      };
       server.watcher.on("change", (file) => {
+        forgetIconsFor(file);
         if (isConvexSourceFile(file, config)) {
           convexFunctionKinds = undefined;
           sendWavexProjectFullReload(server, config);
@@ -102,6 +160,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         sendWavexHotUpdate(server, file);
       });
       server.watcher.on("add", (file) => {
+        forgetIconsFor(file);
         if (isConvexSourceFile(file, config)) {
           convexFunctionKinds = undefined;
           sendWavexProjectFullReload(server, config);
@@ -111,6 +170,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         sendWavexFullReload(server, file);
       });
       server.watcher.on("unlink", (file) => {
+        forgetIconsFor(file);
         if (isConvexSourceFile(file, config)) {
           convexFunctionKinds = undefined;
           sendWavexProjectFullReload(server, config);
@@ -119,11 +179,43 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         if (!isWavexTemplateFile(file, config)) return;
         sendWavexFullReload(server, file);
       });
+
+      // Self-hosted icons: serve exactly the collected icons, like the build emits them.
+      const host = await iconHost();
+      if (!host) return;
+      const logger = server.config.logger;
+      server.middlewares.use(
+        iconRequestHandler(`${base}${assetsDir}/${ICONS_DIR}/`, host, () => {
+          const { collection, fresh } = collectIcons(host);
+          // Template problems reach the overlay through transform errors; declarations only surface here.
+          const declarationProblems = collection.problems.filter((problem) => !problem.file.endsWith(".wx"));
+          if (fresh && declarationProblems.length > 0) logger.error(formatIconProblems(declarationProblems, projectRoot));
+          return collection;
+        }, (message) => logger.error(message))
+      );
+    },
+    async buildStart() {
+      const host = await iconHost();
+      if (!host) return;
+      iconCollection = undefined;
+      const { collection } = collectIcons(host);
+      if (collection.problems.length === 0) return;
+      const message = formatIconProblems(collection.problems, projectRoot);
+      // A build must not ship an app whose icons cannot be served; dev keeps running and reports.
+      if (command === "build") this.error(message);
+      else this.warn(message);
+    },
+    generateBundle() {
+      if (command !== "build" || ssrBuild || !iconCollection) return;
+      for (const asset of iconCollection.assets.values()) {
+        this.emitFile({ type: "asset", fileName: `${assetsDir}/${ICONS_DIR}/${asset.folder}/${asset.name}.svg`, source: readFileSync(asset.file) });
+      }
     },
     resolveId(id) {
       if (id === VIRTUAL_ROUTES_ID) return RESOLVED_VIRTUAL_ROUTES_ID;
       if (id === VIRTUAL_MANIFEST_ID) return RESOLVED_VIRTUAL_MANIFEST_ID;
       if (id === VIRTUAL_BOOTSTRAP_ID || id === BOOTSTRAP_PUBLIC_ID) return RESOLVED_VIRTUAL_BOOTSTRAP_ID;
+      if (id === VIRTUAL_ICONS_ID) return RESOLVED_VIRTUAL_ICONS_ID;
       return undefined;
     },
     load(id) {
@@ -150,6 +242,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
       }
       if (id === RESOLVED_VIRTUAL_MANIFEST_ID) return generateManifestModule(projectRoot, options);
       if (id === RESOLVED_VIRTUAL_BOOTSTRAP_ID) return generateBootstrapModule(config, projectRoot, options);
+      if (id === RESOLVED_VIRTUAL_ICONS_ID) return iconHost().then((host) => generateIconsModule(host, assetsDir));
       return undefined;
     },
     async transform(code, id) {
@@ -168,6 +261,11 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         webAwesomeBooleanAttributes: detected.webAwesome?.booleanAttributes,
         convexFunctionKinds: projectConvexFunctionKinds()
       });
+      const host = await iconHost();
+      if (host) {
+        const found = collectTemplateIcons(compiled.ast, { localComponents });
+        compiled.ast.diagnostics.push(...found.diagnostics, ...validateIconReferences(found.icons, host.folderOf, host.sources));
+      }
 
       const warnings = compiled.ast.diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
       for (const warning of warnings) {
@@ -189,14 +287,15 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
       }
 
       // Capability-driven imports: load only the Web Awesome components this
-      // template uses, from whichever package (free/pro) is installed.
+      // template uses, from whichever package (free/pro) is installed. With
+      // self-hosted icons, the icon path is set before any component loads.
       let moduleCode = compiled.code;
       if (detected.webAwesome && compiled.usedWebAwesomeComponents.length > 0) {
-        const importLines = compiled.usedWebAwesomeComponents
+        const componentImports = compiled.usedWebAwesomeComponents
           .filter((name) => detected.webAwesome!.components.has(name))
-          .map((name) => `import "${detected.webAwesome!.packageName}/dist/components/${name}/${name}.js";`)
-          .join("\n");
-        if (importLines) moduleCode = `${importLines}\n${moduleCode}`;
+          .map((name) => `import "${detected.webAwesome!.packageName}/dist/components/${name}/${name}.js";`);
+        const importLines = [...(host && componentImports.length > 0 ? [`import "${VIRTUAL_ICONS_ID}";`] : []), ...componentImports];
+        if (importLines.length > 0) moduleCode = `${importLines.join("\n")}\n${moduleCode}`;
       }
 
       // Page modules self-accept so route-level HMR works for dynamically
@@ -494,4 +593,110 @@ function isWavexTemplateFile(file: string, config: ResolvedDirs): boolean {
 
 function isConvexSourceFile(file: string, config: ResolvedDirs): boolean {
   return config.convexDir !== undefined && file.endsWith(".ts") && !file.endsWith(".d.ts") && isInside(file, config.convexDir);
+}
+
+/** Font Awesome self-hosting context: present when Web Awesome and a Font Awesome package with SVG files are installed. */
+interface IconHost {
+  webAwesomePackageName: string;
+  sources: readonly FontAwesomeIconSource[];
+  folderOf: IconFolderResolver;
+  /** Icons Web Awesome's own components request from the default library (e.g. `<wa-page>`'s `bars`). */
+  builtinIcons: ReadonlyArray<Pick<IconReference, "name" | "family" | "variant">>;
+}
+
+/** The app's servable icons (keyed `folder/name`) plus icon problems per source file. */
+interface IconCollection {
+  assets: Map<string, IconAsset>;
+  problems: Array<{ file: string; diagnostic: Diagnostic }>;
+}
+
+async function createIconHost(capabilities: ProjectCapabilities): Promise<IconHost | undefined> {
+  const webAwesome = capabilities.webAwesome;
+  const sources = capabilities.fontAwesome.iconSources;
+  if (!webAwesome || sources.length === 0) return undefined;
+  return {
+    webAwesomePackageName: webAwesome.packageName,
+    sources,
+    folderOf: await loadWebAwesomeIconFolder(webAwesome.packageDir),
+    builtinIcons: readWebAwesomeDefaultLibraryIcons(webAwesome.packageDir)
+  };
+}
+
+function collectAppIconAssets(root: string, host: IconHost, parseOptions: Omit<ParseWavexOptions, "fileName">): IconCollection {
+  const assets = new Map<string, IconAsset>();
+  const problems: IconCollection["problems"] = [];
+  const serve = (icon: Pick<IconReference, "name" | "family" | "variant">) => {
+    const asset = resolveIconAsset(icon, host.folderOf, host.sources);
+    if (asset) assets.set(`${asset.folder}/${asset.name}`, asset);
+  };
+  for (const entry of collectAppIcons(root, parseOptions)) {
+    const diagnostics = [...entry.diagnostics, ...validateIconReferences(entry.icons, host.folderOf, host.sources)];
+    diagnostics.sort((left, right) => left.line - right.line || left.column - right.column);
+    for (const diagnostic of diagnostics) problems.push({ file: entry.file, diagnostic });
+    entry.icons.forEach(serve);
+  }
+  host.builtinIcons.forEach(serve);
+  return { assets, problems };
+}
+
+function generateIconsModule(host: IconHost | undefined, assetsDir: string): string {
+  if (!host) {
+    return [
+      `// No installed Font Awesome package ships SVG files, so Web Awesome's default`,
+      `// icon library keeps loading icons from the Font Awesome CDN.`,
+      `export {};`,
+      ``
+    ].join("\n");
+  }
+  return [
+    `// Web Awesome's default icon library loads the app's collected Font Awesome icons`,
+    `// (${host.sources.map((source) => source.packageName).join(", ")}) from this app instead of the CDN.`,
+    `import { setIconPath } from ${JSON.stringify(`${host.webAwesomePackageName}/dist/utilities/base-path.js`)};`,
+    `setIconPath(import.meta.env.BASE_URL + ${JSON.stringify(`${assetsDir}/${ICONS_DIR}`)});`,
+    ``
+  ].join("\n");
+}
+
+/** Dev-server handler for `<base><assetsDir>/wavex-icons/<folder>/<name>.svg`: collected icons only, like the build. */
+function iconRequestHandler(
+  prefix: string,
+  host: IconHost,
+  currentIcons: () => IconCollection,
+  logError: (message: string) => void
+): (req: IncomingMessage, res: ServerResponse, next: () => void) => void {
+  return (req, res, next) => {
+    const pathname = (req.url ?? "").replace(/[?#].*$/, "");
+    if (!pathname.startsWith(prefix)) {
+      next();
+      return;
+    }
+    const match = /^([a-z0-9-]+)\/([a-z0-9-]+)\.svg$/.exec(pathname.slice(prefix.length));
+    const asset = match ? currentIcons().assets.get(`${match[1]}/${match[2]}`) : undefined;
+    if (!asset) {
+      res.statusCode = 404;
+      res.end();
+      logError(uncollectedIconMessage(pathname, match?.[1], match?.[2], host));
+      return;
+    }
+    res.setHeader("Content-Type", "image/svg+xml");
+    res.setHeader("Cache-Control", "no-cache");
+    res.end(readFileSync(asset.file));
+  };
+}
+
+function uncollectedIconMessage(pathname: string, folder: string | undefined, name: string | undefined, host: IconHost): string {
+  if (!folder || !name) return `[wavex] ${pathname} is not a Font Awesome icon URL WAVEx serves.`;
+  const packages = host.sources.map((source) => source.packageName).join(", ");
+  const installed = host.sources.some((source) => existsSync(join(source.svgDir, folder, `${name}.svg`)));
+  const declaration = folder === "solid" ? `icon("${name}")` : `icon("${name}", { family, variant })`;
+  return [
+    `[wavex] Icon ${folder}/${name}.svg was requested but the app does not reference it, so WAVEx does not serve it (a build would not include it either).`,
+    installed ? "" : ` ${packages} has no ${folder}/${name}.svg.`,
+    ` Write the name as a literal (@icon name:${name}), as a string literal in the name:{{ … }} expression,`,
+    ` or declare it where TypeScript computes it with ${declaration} from @wavex/runtime.`
+  ].join("");
+}
+
+function formatIconProblems(problems: IconCollection["problems"], root: string): string {
+  return problems.map(({ file, diagnostic }) => formatFileDiagnostic(normalizeSlashes(relative(root, file)), diagnostic)).join("\n");
 }

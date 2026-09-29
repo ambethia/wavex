@@ -13,7 +13,9 @@ single source of truth for the WAVEx language.
 - **`@wavex/core/capabilities`** — Node-side detection of installed Web
   Awesome / Font Awesome packages, local `.wx` components, and Convex function
   kinds, plus capability diagnostics for templates that use something the app
-  doesn't have installed.
+  doesn't have installed, and Font Awesome icon collection (template literals,
+  value-position literals in dynamic names, `icon()` declarations) validated
+  against the installed kit or SVG package.
 - **`docs/`** — the hand-curated `.wx` language guides (syntax, directives,
   Convex references, forms). These are the authority on the language surface
   and ship in the generated `using-wavex` agent skill.
@@ -41,6 +43,11 @@ single source of truth for the WAVEx language.
   monorepo the nearest ancestor Convex project (`convex/_generated`, or
   `convex/` next to `convex.json`); every tool calls it instead of assuming
   `<app root>/convex`.
+- **Web Awesome owns the icon folder mapping.** Which Font Awesome folder an
+  icon lives in (`solid`, `sharp-regular`, `jelly-regular`, …) is Web
+  Awesome's `getIconFolder`; `loadWebAwesomeIconFolder` imports it from the
+  installed package instead of replicating it, so collected icons always match
+  the URLs the default icon library requests.
 - **Capability-based, BYO license.** Free Web Awesome / Font Awesome packages
   unlock the free surface; Pro packages unlock Pro. WAVEx stays
   open-sourceable because it never bundles or requires licensed assets.

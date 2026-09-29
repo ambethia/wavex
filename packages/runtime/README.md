@@ -54,6 +54,10 @@ live deployment):
   documents agree.
 - Analytics is a minimal PostHog capture bridge (no official client
   dependency); apps opt in with `VITE_POSTHOG_KEY`.
+- `icon(name, { family, variant })` is an identity function that marks a Font
+  Awesome icon name computed in TypeScript, so the Vite plugin and `wavex
+  check` can collect, validate, and self-host it (the runtime does nothing
+  with it).
 
 ## Design notes
 

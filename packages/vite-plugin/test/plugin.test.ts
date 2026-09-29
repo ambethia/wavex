@@ -1,8 +1,11 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { wavex } from "../src/index.js";
+
+const installedWebAwesome = realpathSync(fileURLToPath(new URL("../../../apps/swell/node_modules/@awesome.me/webawesome", import.meta.url)));
 
 const tempDirs: string[] = [];
 
@@ -34,7 +37,7 @@ function createDevServer(root: string, modulesByFile: Map<string, Set<any>>) {
   const fileHandlers = new Map<string, (file: string) => void>();
   let closeHandler: (() => void) | undefined;
   const server = {
-    config: { root },
+    config: { root, logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } },
     watcher: {
       add: vi.fn(),
       on: vi.fn((event: string, handler: (file: string) => void) => {
@@ -408,5 +411,139 @@ describe("wavex Vite monorepo Convex discovery", () => {
 
     expect(server.watcher.add).toHaveBeenCalledWith([join(root, "src/pages"), join(workspace, "convex")]);
     expect(server.ws.send).toHaveBeenCalledWith({ type: "full-reload", path: "*" });
+  });
+});
+
+describe("wavex Vite self-hosted Font Awesome icons", () => {
+  const svgFor = (name: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" data-icon="${name}"><path d="M0 0h1v1z"/></svg>`;
+
+  function iconApp(prefix: string): string {
+    const root = fixtureRoot(prefix);
+    mkdirSync(join(root, "node_modules/@awesome.me"), { recursive: true });
+    symlinkSync(installedWebAwesome, join(root, "node_modules/@awesome.me/webawesome"), "dir");
+    for (const name of ["box", "truck-fast", "hourglass-half", "house", "bars", "plus", "minus", "gear"]) {
+      writeFixture(root, `node_modules/@fortawesome/fontawesome-free/svgs/solid/${name}.svg`, svgFor(name));
+    }
+    return root;
+  }
+
+  function buildPlugin(root: string) {
+    const plugin = wavex() as any;
+    plugin.configResolved({ root, base: "/", command: "build", build: { assetsDir: "assets" } });
+    return plugin;
+  }
+
+  function pluginContext() {
+    return {
+      addWatchFile: vi.fn(),
+      warn: vi.fn(),
+      emitFile: vi.fn(),
+      error(error: string | { message: string }) {
+        throw new Error(typeof error === "string" ? error : error.message);
+      }
+    };
+  }
+
+  const pageSource = "~~~\n@page\n  @icon name:box\n  @icon name:{{ done ? 'truck-fast' : 'hourglass-half' }}\n";
+
+  it("points Web Awesome at the app before its components load and emits exactly the collected icons", async () => {
+    const root = iconApp("wavex-vite-icons-build-");
+    const pageFile = writeFixture(root, "src/pages/index.wx", pageSource);
+    writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("house");\n');
+    const plugin = buildPlugin(root);
+    const context = pluginContext();
+
+    const code = (await plugin.transform.call(context, pageSource, pageFile)).code as string;
+    const iconsModule = await plugin.load(plugin.resolveId("virtual:wavex/icons"));
+    await plugin.buildStart.call(context);
+    plugin.generateBundle.call(context);
+
+    const iconsImport = code.indexOf('import "virtual:wavex/icons";');
+    expect(iconsImport).toBeGreaterThanOrEqual(0);
+    expect(iconsImport).toBeLessThan(code.indexOf('import "@awesome.me/webawesome/dist/components/icon/icon.js";'));
+    expect(iconsImport).toBeLessThan(code.indexOf('import "@awesome.me/webawesome/dist/components/page/page.js";'));
+    expect(iconsModule).toContain('import { setIconPath } from "@awesome.me/webawesome/dist/utilities/base-path.js";');
+    expect(iconsModule).toContain('setIconPath(import.meta.env.BASE_URL + "assets/wavex-icons");');
+    // Template literals, value-position literals, the TS declaration, and
+    // Web Awesome's own default-library icons (<wa-page>'s bars) — not gear.
+    expect(context.emitFile.mock.calls.map(([file]) => file.fileName).sort()).toEqual([
+      "assets/wavex-icons/solid/bars.svg",
+      "assets/wavex-icons/solid/box.svg",
+      "assets/wavex-icons/solid/hourglass-half.svg",
+      "assets/wavex-icons/solid/house.svg",
+      "assets/wavex-icons/solid/minus.svg",
+      "assets/wavex-icons/solid/plus.svg",
+      "assets/wavex-icons/solid/truck-fast.svg"
+    ]);
+    expect(String(context.emitFile.mock.calls.find(([file]) => file.fileName.endsWith("/box.svg"))![0].source)).toContain('data-icon="box"');
+  });
+
+  it("fails on unknown icons in templates and in icon() declarations", async () => {
+    const root = iconApp("wavex-vite-icons-unknown-");
+    const pageFile = writeFixture(root, "src/pages/index.wx", "~~~\n@icon name:trck\n");
+    writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("hose");\nexport const ANY = icon(name);\n');
+    const plugin = buildPlugin(root);
+
+    await expect(plugin.transform.call(pluginContext(), "~~~\n@icon name:trck\n", pageFile)).rejects.toThrow(
+      /WX103 2:12 Unknown Font Awesome icon "trck"/
+    );
+    await expect(plugin.buildStart.call(pluginContext())).rejects.toThrow(
+      /src\/labels\.ts:2:21 ERROR WX103 [\s\S]*"hose"[\s\S]*src\/labels\.ts:3:20 ERROR WX104/
+    );
+  });
+
+  it("serves collected icons in dev, 404s uncollected ones with a clear error, and recollects after edits", async () => {
+    const root = iconApp("wavex-vite-icons-dev-");
+    writeFixture(root, "src/pages/index.wx", pageSource);
+    const labels = writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("house");\n');
+    const plugin = configuredPlugin(root);
+    const { server, change } = createDevServer(root, new Map());
+
+    await plugin.configureServer(server);
+    const handler = server.middlewares.use.mock.calls[0]![0] as (req: unknown, res: unknown, next: () => void) => void;
+    const request = (url: string) => {
+      const response = { statusCode: 200, headers: {} as Record<string, string>, body: "" as unknown, setHeader: vi.fn(), end: vi.fn() };
+      response.setHeader.mockImplementation((name: string, value: string) => (response.headers[name] = value));
+      response.end.mockImplementation((body?: unknown) => (response.body = body));
+      const next = vi.fn();
+      handler({ url }, response, next);
+      return { ...response, next };
+    };
+
+    const box = request("/assets/wavex-icons/solid/box.svg?v=1");
+    expect(box.statusCode).toBe(200);
+    expect(box.headers["Content-Type"]).toBe("image/svg+xml");
+    expect(String(box.body)).toContain('data-icon="box"');
+    expect(request("/assets/wavex-icons/solid/bars.svg").statusCode).toBe(200);
+
+    const gear = request("/assets/wavex-icons/solid/gear.svg");
+    expect(gear.statusCode).toBe(404);
+    expect(server.config.logger.error).toHaveBeenCalledWith(expect.stringContaining('icon("gear")'));
+
+    expect(request("/src/main.ts").next).toHaveBeenCalled();
+
+    writeFileSync(labels, 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("house");\nexport const SETTINGS = icon("gear");\n');
+    change(labels);
+    expect(request("/assets/wavex-icons/solid/gear.svg").statusCode).toBe(200);
+  });
+
+  it("keeps Web Awesome's default CDN icons when no Font Awesome package ships SVG files", async () => {
+    const root = fixtureRoot("wavex-vite-icons-cdn-");
+    mkdirSync(join(root, "node_modules/@awesome.me"), { recursive: true });
+    symlinkSync(installedWebAwesome, join(root, "node_modules/@awesome.me/webawesome"), "dir");
+    writeFixture(root, "node_modules/@fortawesome/free-solid-svg-icons/index.js", "export {};\n");
+    const pageFile = writeFixture(root, "src/pages/index.wx", pageSource);
+    const plugin = configuredPlugin(root);
+    const { server } = createDevServer(root, new Map());
+
+    const code = (await plugin.transform.call(pluginContext(), pageSource, pageFile)).code as string;
+    const iconsModule = await plugin.load(plugin.resolveId("virtual:wavex/icons"));
+    await plugin.configureServer(server);
+
+    expect(code).not.toContain("virtual:wavex/icons");
+    expect(code).toContain('import "@awesome.me/webawesome/dist/components/icon/icon.js";');
+    expect(iconsModule).toContain("export {};");
+    expect(iconsModule).not.toContain("setIconPath");
+    expect(server.middlewares.use).not.toHaveBeenCalled();
   });
 });

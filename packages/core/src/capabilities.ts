@@ -20,8 +20,28 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { ComponentNode, ConvexCallNode, ConvexReferenceNode, TemplateNode, WavexFile } from "./ast.js";
+import { detectFontAwesomeIconSources, type FontAwesomeIconSource } from "./icons.js";
 import type { Diagnostic } from "./model.js";
 import { createDefaultConfig, toKebabCase } from "./model.js";
+
+export {
+  collectAppIcons,
+  collectDeclaredIcons,
+  collectTemplateIcons,
+  detectFontAwesomeIconSources,
+  expressionValueLiterals,
+  iconFolder,
+  isIconSourceFile,
+  loadWebAwesomeIconFolder,
+  readWebAwesomeDefaultLibraryIcons,
+  resolveIconAsset,
+  validateIconReferences,
+  type FontAwesomeIconSource,
+  type IconAsset,
+  type IconFolderResolver,
+  type IconReference,
+  type SourceIcons
+} from "./icons.js";
 
 /** Installed Web Awesome package details available to validation and code generation. */
 export interface WebAwesomeCapability {
@@ -42,10 +62,17 @@ export interface WebAwesomeCapability {
 
 /** Installed Font Awesome kits and packages available to icon-related validation. */
 export interface FontAwesomeCapability {
-  /** Installed kit packages (@awesome.me/kit-*). */
+  /** Installed kit packages (@awesome.me/kit-*), sorted. */
   kits: readonly string[];
-  /** Installed @fortawesome/* packages. */
+  /** Installed @fortawesome/* packages, sorted. */
   packages: readonly string[];
+  /**
+   * Packages that ship SVG files, in lookup order (kits, then SVG packages).
+   * When there is at least one and Web Awesome is installed, WAVEx validates
+   * icon names against them and serves the app's icons itself instead of Web
+   * Awesome's default Font Awesome CDN.
+   */
+  iconSources: readonly FontAwesomeIconSource[];
 }
 
 /** Capability snapshot discovered from an app root. */
@@ -95,7 +122,9 @@ function detectFontAwesome(root: string): FontAwesomeCapability {
   if (existsSync(fortawesome)) {
     for (const entry of readdirSync(fortawesome)) packages.push(`@fortawesome/${entry}`);
   }
-  return { kits, packages };
+  kits.sort();
+  packages.sort();
+  return { kits, packages, iconSources: detectFontAwesomeIconSources(root, kits, packages) };
 }
 
 interface CustomElementsManifest {
@@ -159,16 +188,20 @@ export function walkTemplateNodes(nodes: readonly TemplateNode[], visit: (node: 
 export interface ComponentValidationOptions {
   localComponents?: readonly string[];
   webAwesome?: Pick<WebAwesomeCapability, "packageName" | "components">;
-  fontAwesome?: FontAwesomeCapability;
+  fontAwesome?: Pick<FontAwesomeCapability, "iconSources">;
 }
 
-/** Capability diagnostics for component/icon references in a parsed .wx file. */
+/**
+ * Capability diagnostics for component/icon references in a parsed .wx file.
+ * Unknown components are WX101 errors; `@icon` gets a WX101 info note when no
+ * installed Font Awesome package ships SVG files, because Web Awesome then
+ * loads icons from the Font Awesome CDN and WAVEx cannot validate names.
+ */
 export function validateComponentReferences(file: WavexFile, options: ComponentValidationOptions): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const locals = new Set(options.localComponents ?? []);
   const webAwesome = options.webAwesome;
-  const hasFontAwesome =
-    (options.fontAwesome?.kits.length ?? 0) > 0 || (options.fontAwesome?.packages.length ?? 0) > 0;
+  const hasFontAwesomeSvgs = (options.fontAwesome?.iconSources.length ?? 0) > 0;
 
   walkTemplateNodes(file.nodes, (node) => {
     if (node.kind !== "component") return;
@@ -187,11 +220,11 @@ export function validateComponentReferences(file: WavexFile, options: ComponentV
       return;
     }
 
-    if (normalized === "icon" && webAwesome && !hasFontAwesome) {
+    if (normalized === "icon" && webAwesome && !hasFontAwesomeSvgs) {
       diagnostics.push({
         ...capabilityDiagnostic(
           component,
-          "@icon uses Web Awesome's bundled Font Awesome free icons; install a Font Awesome kit or package for Pro icon families."
+          "@icon loads icons from the Font Awesome CDN (Web Awesome's default library); install a Font Awesome kit or @fortawesome/fontawesome-free (or -pro) to validate icon names and serve them from the app."
         ),
         severity: "info"
       });

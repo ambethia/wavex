@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -199,6 +199,49 @@ describe("wavex check", () => {
     expect(output).toContain(
       "Checked 2 .wx files. Web Awesome: @awesome.me/webawesome (1 components); Font Awesome: none installed."
     );
+  });
+});
+
+describe("wavex check with self-hosted Font Awesome icons", () => {
+  const installedWebAwesome = realpathSync(fileURLToPath(new URL("../../../apps/swell/node_modules/@awesome.me/webawesome", import.meta.url)));
+
+  function iconApp(prefix: string): string {
+    const root = fixtureRoot(prefix);
+    mkdirSync(join(root, "node_modules/@awesome.me"), { recursive: true });
+    symlinkSync(installedWebAwesome, join(root, "node_modules/@awesome.me/webawesome"), "dir");
+    for (const name of ["box", "truck-fast", "house"]) {
+      writeFixture(root, `node_modules/@awesome.me/kit-abc123/icons/svgs/solid/${name}.svg`, "<svg></svg>");
+    }
+    return root;
+  }
+
+  it("passes when every template and declared icon exists in the installed kit", async () => {
+    const root = iconApp("wavex-cli-check-icons-ok-");
+    writeFixture(root, "src/pages/index.wx", "~~~\n@icon name:box\n@icon name:{{ shipped ? 'truck-fast' : 'box' }}\n");
+    writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("house");\n');
+    const { logs, errors } = captureConsole();
+
+    await runCli(["check", join(root, "src")]);
+
+    expect(errors).toEqual([]);
+    expect(process.exitCode).toBeUndefined();
+    expect(logs.join("\n")).toContain("Font Awesome: @awesome.me/kit-abc123 (3 icons self-hosted)");
+  });
+
+  it("reports unknown icons and uncollectable icon() declarations with their locations", async () => {
+    const root = iconApp("wavex-cli-check-icons-bad-");
+    writeFixture(root, "src/pages/index.wx", "~~~\n@icon name:trck\n");
+    writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("hose");\nexport const ANY = icon(name);\n');
+    const { errors } = captureConsole();
+
+    await runCli(["check", join(root, "src")]);
+
+    expect(errors).toEqual([
+      'labels.ts: ERROR WX103 2:21 Unknown Font Awesome icon "hose" (classic/solid): @awesome.me/kit-abc123 has no solid/hose.svg.',
+      expect.stringMatching(/^labels\.ts: ERROR WX104 3:20 icon\(\) declarations need string literal arguments/),
+      'pages/index.wx: ERROR WX103 2:12 Unknown Font Awesome icon "trck" (classic/solid): @awesome.me/kit-abc123 has no solid/trck.svg.'
+    ]);
+    expect(process.exitCode).toBe(1);
   });
 });
 

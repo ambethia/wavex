@@ -20,13 +20,25 @@ owns the WAVEx-specific dev/build surface:
   HMR event protocol.
 - Lit dedupe and Web Awesome dep-optimizer exclusions, so custom elements are
   served as native ESM and never registered twice.
+- Self-hosted Font Awesome icons. With a Font Awesome kit or SVG package
+  installed, the plugin collects the app's icons (literal `@icon` names,
+  value-position literals in dynamic names, `icon("…")` declarations from
+  `@wavex/runtime`, and Web Awesome's own default-library icons), fails the
+  build on unknown ones (WX103/WX104), and serves exactly those SVGs at
+  `<base><assetsDir>/wavex-icons/<folder>/<name>.svg`: dev middleware answers
+  only collected icons (anything else is a 404 with a logged explanation, so
+  dev matches the build) and the build emits them as assets.
+  `virtual:wavex/icons` calls Web Awesome's `setIconPath` with that base;
+  compiled `.wx` modules import it before their Web Awesome components. The
+  collection is rebuilt after app source edits. Without an SVG package the
+  module is empty and Web Awesome keeps its Font Awesome CDN default.
 - Monorepo-aware Convex discovery: the app's own `convex/`, or the nearest
   ancestor Convex project (`findConvexDir` from `@wavex/core/capabilities`),
   feeds function kinds, the bootstrap's generated `api` import (via `/@fs/`
   when it lives outside the Vite root), and the dev watcher.
 
 The `@wavex/vite-plugin/client` subpath ships ambient `*.wx` module
-declarations plus types for both virtual modules; apps reference it from
+declarations plus types for the virtual modules; apps reference it from
 tsconfig `types`.
 
 ## App-owned entry modules
@@ -77,6 +89,9 @@ if (import.meta.hot) {
   import.meta.hot.dispose(() => app.dispose());
 }
 ```
+
+Compiled `.wx` modules import `virtual:wavex/icons` themselves; an entry that
+renders Web Awesome icons outside `.wx` templates imports it first.
 
 Here `session` is deliberately an app API: it can be backed by passkeys,
 one-time codes, cookies, or anything else. WAVEx only carries `state.auth` into

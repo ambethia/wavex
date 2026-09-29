@@ -33,3 +33,11 @@ declare module "virtual:wavex/manifest" {
   };
   export default manifest;
 }
+
+declare module "virtual:wavex/icons" {
+  // Side-effect module. With a Font Awesome kit or SVG package installed it points
+  // Web Awesome's default icon library at the app's self-hosted icons; compiled
+  // .wx modules import it before any Web Awesome component. Import it first from
+  // an app-owned entry that renders Web Awesome icons outside .wx templates.
+  export {};
+}

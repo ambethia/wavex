@@ -20,7 +20,7 @@ Import from `@wavex/core/capabilities`.
 
 ### ComponentValidationOptions
 
-Defined in: [packages/core/src/capabilities.ts:159](packages/core/src/capabilities.ts#L159)
+Defined in: [packages/core/src/capabilities.ts:188](packages/core/src/capabilities.ts#L188)
 
 Detected capabilities to validate component/icon references against.
 
@@ -29,10 +29,10 @@ Detected capabilities to validate component/icon references against.
 ##### fontAwesome?
 
 ```ts
-optional fontAwesome?: FontAwesomeCapability;
+optional fontAwesome?: Pick<FontAwesomeCapability, "iconSources">;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:162](packages/core/src/capabilities.ts#L162)
+Defined in: [packages/core/src/capabilities.ts:191](packages/core/src/capabilities.ts#L191)
 
 ##### localComponents?
 
@@ -40,21 +40,21 @@ Defined in: [packages/core/src/capabilities.ts:162](packages/core/src/capabiliti
 optional localComponents?: readonly string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:160](packages/core/src/capabilities.ts#L160)
+Defined in: [packages/core/src/capabilities.ts:189](packages/core/src/capabilities.ts#L189)
 
 ##### webAwesome?
 
 ```ts
-optional webAwesome?: Pick<WebAwesomeCapability, "packageName" | "components">;
+optional webAwesome?: Pick<WebAwesomeCapability, "components" | "packageName">;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:161](packages/core/src/capabilities.ts#L161)
+Defined in: [packages/core/src/capabilities.ts:190](packages/core/src/capabilities.ts#L190)
 
 ***
 
 ### ConvexValidationOptions
 
-Defined in: [packages/core/src/capabilities.ts:225](packages/core/src/capabilities.ts#L225)
+Defined in: [packages/core/src/capabilities.ts:258](packages/core/src/capabilities.ts#L258)
 
 Inputs for validating whether Convex references are client-template callable.
 
@@ -66,7 +66,7 @@ Inputs for validating whether Convex references are client-template callable.
 optional functionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:227](packages/core/src/capabilities.ts#L227)
+Defined in: [packages/core/src/capabilities.ts:260](packages/core/src/capabilities.ts#L260)
 
 Map from normalized "module/path:function" references to detected Convex kind.
 
@@ -74,11 +74,24 @@ Map from normalized "module/path:function" references to detected Convex kind.
 
 ### FontAwesomeCapability
 
-Defined in: [packages/core/src/capabilities.ts:44](packages/core/src/capabilities.ts#L44)
+Defined in: [packages/core/src/capabilities.ts:64](packages/core/src/capabilities.ts#L64)
 
 Installed Font Awesome kits and packages available to icon-related validation.
 
 #### Properties
+
+##### iconSources
+
+```ts
+iconSources: readonly FontAwesomeIconSource[];
+```
+
+Defined in: [packages/core/src/capabilities.ts:75](packages/core/src/capabilities.ts#L75)
+
+Packages that ship SVG files, in lookup order (kits, then SVG packages).
+When there is at least one and Web Awesome is installed, WAVEx validates
+icon names against them and serves the app's icons itself instead of Web
+Awesome's default Font Awesome CDN.
 
 ##### kits
 
@@ -86,9 +99,9 @@ Installed Font Awesome kits and packages available to icon-related validation.
 kits: readonly string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:46](packages/core/src/capabilities.ts#L46)
+Defined in: [packages/core/src/capabilities.ts:66](packages/core/src/capabilities.ts#L66)
 
-Installed kit packages (@awesome.me/kit-*).
+Installed kit packages (@awesome.me/kit-*), sorted.
 
 ##### packages
 
@@ -96,15 +109,140 @@ Installed kit packages (@awesome.me/kit-*).
 packages: readonly string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:48](packages/core/src/capabilities.ts#L48)
+Defined in: [packages/core/src/capabilities.ts:68](packages/core/src/capabilities.ts#L68)
 
-Installed @fortawesome/* packages.
+Installed @fortawesome/* packages, sorted.
+
+***
+
+### FontAwesomeIconSource
+
+Defined in: [packages/core/src/icons.ts:16](packages/core/src/icons.ts#L16)
+
+One installed Font Awesome package WAVEx can serve SVG icons from: a kit
+(`@awesome.me/kit-*`, SVGs under `icons/svgs/`) or an SVG package such as
+`@fortawesome/fontawesome-free` / `fontawesome-pro` (under `svgs/`). Both
+lay icons out as `<folder>/<name>.svg` with Font Awesome's folder names
+(`solid`, `regular`, `brands`, `sharp-solid`, `duotone`, …).
+
+#### Properties
+
+##### packageName
+
+```ts
+packageName: string;
+```
+
+Defined in: [packages/core/src/icons.ts:17](packages/core/src/icons.ts#L17)
+
+##### svgDir
+
+```ts
+svgDir: string;
+```
+
+Defined in: [packages/core/src/icons.ts:19](packages/core/src/icons.ts#L19)
+
+Directory containing the `<folder>/<name>.svg` files.
+
+***
+
+### IconAsset
+
+Defined in: [packages/core/src/icons.ts:47](packages/core/src/icons.ts#L47)
+
+An icon resolved to the SVG file that serves it.
+
+#### Properties
+
+##### file
+
+```ts
+file: string;
+```
+
+Defined in: [packages/core/src/icons.ts:52](packages/core/src/icons.ts#L52)
+
+Absolute path of the SVG in the installed Font Awesome package.
+
+##### folder
+
+```ts
+folder: string;
+```
+
+Defined in: [packages/core/src/icons.ts:49](packages/core/src/icons.ts#L49)
+
+Font Awesome folder, e.g. "solid" or "sharp-regular".
+
+##### name
+
+```ts
+name: string;
+```
+
+Defined in: [packages/core/src/icons.ts:50](packages/core/src/icons.ts#L50)
+
+***
+
+### IconReference
+
+Defined in: [packages/core/src/icons.ts:30](packages/core/src/icons.ts#L30)
+
+A Font Awesome icon an app uses, as written: from a literal `@icon name:`,
+a string literal in a value position of a dynamic `name:{{ … }}`
+expression, or an `icon("…")` declaration imported from `@wavex/runtime`.
+`family`/`variant` are undefined when the source leaves them to Web
+Awesome's defaults (`classic`/`solid`). `line`/`column` are 1-based in the
+file that references the icon.
+
+#### Properties
+
+##### column
+
+```ts
+column: number;
+```
+
+Defined in: [packages/core/src/icons.ts:35](packages/core/src/icons.ts#L35)
+
+##### family?
+
+```ts
+optional family?: string;
+```
+
+Defined in: [packages/core/src/icons.ts:32](packages/core/src/icons.ts#L32)
+
+##### line
+
+```ts
+line: number;
+```
+
+Defined in: [packages/core/src/icons.ts:34](packages/core/src/icons.ts#L34)
+
+##### name
+
+```ts
+name: string;
+```
+
+Defined in: [packages/core/src/icons.ts:31](packages/core/src/icons.ts#L31)
+
+##### variant?
+
+```ts
+optional variant?: string;
+```
+
+Defined in: [packages/core/src/icons.ts:33](packages/core/src/icons.ts#L33)
 
 ***
 
 ### ProjectCapabilities
 
-Defined in: [packages/core/src/capabilities.ts:52](packages/core/src/capabilities.ts#L52)
+Defined in: [packages/core/src/capabilities.ts:79](packages/core/src/capabilities.ts#L79)
 
 Capability snapshot discovered from an app root.
 
@@ -116,7 +254,7 @@ Capability snapshot discovered from an app root.
 fontAwesome: FontAwesomeCapability;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:54](packages/core/src/capabilities.ts#L54)
+Defined in: [packages/core/src/capabilities.ts:81](packages/core/src/capabilities.ts#L81)
 
 ##### webAwesome?
 
@@ -124,13 +262,49 @@ Defined in: [packages/core/src/capabilities.ts:54](packages/core/src/capabilitie
 optional webAwesome?: WebAwesomeCapability;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:53](packages/core/src/capabilities.ts#L53)
+Defined in: [packages/core/src/capabilities.ts:80](packages/core/src/capabilities.ts#L80)
+
+***
+
+### SourceIcons
+
+Defined in: [packages/core/src/icons.ts:495](packages/core/src/icons.ts#L495)
+
+Icons referenced by one app source file, plus its `icon()` declaration diagnostics.
+
+#### Properties
+
+##### diagnostics
+
+```ts
+diagnostics: Diagnostic[];
+```
+
+Defined in: [packages/core/src/icons.ts:499](packages/core/src/icons.ts#L499)
+
+##### file
+
+```ts
+file: string;
+```
+
+Defined in: [packages/core/src/icons.ts:497](packages/core/src/icons.ts#L497)
+
+Absolute path of the `.wx` template or TypeScript/JavaScript file.
+
+##### icons
+
+```ts
+icons: IconReference[];
+```
+
+Defined in: [packages/core/src/icons.ts:498](packages/core/src/icons.ts#L498)
 
 ***
 
 ### WebAwesomeAttribute
 
-Defined in: [packages/core/src/capabilities.ts:395](packages/core/src/capabilities.ts#L395)
+Defined in: [packages/core/src/capabilities.ts:428](packages/core/src/capabilities.ts#L428)
 
 Attribute metadata for one Web Awesome component attribute.
 
@@ -142,7 +316,7 @@ Attribute metadata for one Web Awesome component attribute.
 optional default?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:399](packages/core/src/capabilities.ts#L399)
+Defined in: [packages/core/src/capabilities.ts:432](packages/core/src/capabilities.ts#L432)
 
 ##### description?
 
@@ -150,7 +324,7 @@ Defined in: [packages/core/src/capabilities.ts:399](packages/core/src/capabiliti
 optional description?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:397](packages/core/src/capabilities.ts#L397)
+Defined in: [packages/core/src/capabilities.ts:430](packages/core/src/capabilities.ts#L430)
 
 ##### name
 
@@ -158,7 +332,7 @@ Defined in: [packages/core/src/capabilities.ts:397](packages/core/src/capabiliti
 name: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:396](packages/core/src/capabilities.ts#L396)
+Defined in: [packages/core/src/capabilities.ts:429](packages/core/src/capabilities.ts#L429)
 
 ##### type?
 
@@ -166,13 +340,13 @@ Defined in: [packages/core/src/capabilities.ts:396](packages/core/src/capabiliti
 optional type?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:398](packages/core/src/capabilities.ts#L398)
+Defined in: [packages/core/src/capabilities.ts:431](packages/core/src/capabilities.ts#L431)
 
 ***
 
 ### WebAwesomeCapability
 
-Defined in: [packages/core/src/capabilities.ts:27](packages/core/src/capabilities.ts#L27)
+Defined in: [packages/core/src/capabilities.ts:47](packages/core/src/capabilities.ts#L47)
 
 Installed Web Awesome package details available to validation and code generation.
 
@@ -184,7 +358,7 @@ Installed Web Awesome package details available to validation and code generatio
 booleanAttributes: ReadonlyMap<string, ReadonlySet<string>>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:38](packages/core/src/capabilities.ts#L38)
+Defined in: [packages/core/src/capabilities.ts:58](packages/core/src/capabilities.ts#L58)
 
 Boolean attribute names per component (keyed without the wa- prefix), from
 the manifest's attribute types. Pass as `ParseWavexOptions.webAwesomeBooleanAttributes`
@@ -196,7 +370,7 @@ so bare tokens like `with-caret` on `@button` parse as boolean attributes.
 components: ReadonlySet<string>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:32](packages/core/src/capabilities.ts#L32)
+Defined in: [packages/core/src/capabilities.ts:52](packages/core/src/capabilities.ts#L52)
 
 Component names without the wa- prefix, from the package's custom-elements.json.
 
@@ -206,7 +380,7 @@ Component names without the wa- prefix, from the package's custom-elements.json.
 packageDir: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:40](packages/core/src/capabilities.ts#L40)
+Defined in: [packages/core/src/capabilities.ts:60](packages/core/src/capabilities.ts#L60)
 
 Installed package directory (for manifest details and stylesheet scans).
 
@@ -216,7 +390,7 @@ Installed package directory (for manifest details and stylesheet scans).
 packageName: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:29](packages/core/src/capabilities.ts#L29)
+Defined in: [packages/core/src/capabilities.ts:49](packages/core/src/capabilities.ts#L49)
 
 Installed package name, e.g. "@web.awesome.me/webawesome-pro" or "@awesome.me/webawesome".
 
@@ -226,13 +400,13 @@ Installed package name, e.g. "@web.awesome.me/webawesome-pro" or "@awesome.me/we
 pro: boolean;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:30](packages/core/src/capabilities.ts#L30)
+Defined in: [packages/core/src/capabilities.ts:50](packages/core/src/capabilities.ts#L50)
 
 ***
 
 ### WebAwesomeComponentDetail
 
-Defined in: [packages/core/src/capabilities.ts:403](packages/core/src/capabilities.ts#L403)
+Defined in: [packages/core/src/capabilities.ts:436](packages/core/src/capabilities.ts#L436)
 
 Manifest metadata for one Web Awesome component.
 
@@ -244,7 +418,7 @@ Manifest metadata for one Web Awesome component.
 attributes: WebAwesomeAttribute[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:407](packages/core/src/capabilities.ts#L407)
+Defined in: [packages/core/src/capabilities.ts:440](packages/core/src/capabilities.ts#L440)
 
 ##### name
 
@@ -252,7 +426,7 @@ Defined in: [packages/core/src/capabilities.ts:407](packages/core/src/capabiliti
 name: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:405](packages/core/src/capabilities.ts#L405)
+Defined in: [packages/core/src/capabilities.ts:438](packages/core/src/capabilities.ts#L438)
 
 Component name without the wa- prefix.
 
@@ -262,7 +436,7 @@ Component name without the wa- prefix.
 slots: object[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:408](packages/core/src/capabilities.ts#L408)
+Defined in: [packages/core/src/capabilities.ts:441](packages/core/src/capabilities.ts#L441)
 
 ###### description?
 
@@ -282,7 +456,7 @@ name: string;
 optional summary?: string;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:406](packages/core/src/capabilities.ts#L406)
+Defined in: [packages/core/src/capabilities.ts:439](packages/core/src/capabilities.ts#L439)
 
 ## Type Aliases
 
@@ -292,11 +466,159 @@ Defined in: [packages/core/src/capabilities.ts:406](packages/core/src/capabiliti
 type ConvexFunctionKind = "query" | "mutation" | "action" | "internal" | "httpAction";
 ```
 
-Defined in: [packages/core/src/capabilities.ts:58](packages/core/src/capabilities.ts#L58)
+Defined in: [packages/core/src/capabilities.ts:85](packages/core/src/capabilities.ts#L85)
 
 Convex function kinds relevant to client template validation.
 
+***
+
+### IconFolderResolver
+
+```ts
+type IconFolderResolver = (name, family, variant) => string;
+```
+
+Defined in: [packages/core/src/icons.ts:44](packages/core/src/icons.ts#L44)
+
+Maps an icon to its Font Awesome folder — Web Awesome's own
+`getIconFolder(name, family, variant)`, loaded from the installed package by
+[loadWebAwesomeIconFolder](#loadwebawesomeiconfolder) so WAVEx serves exactly the URLs Web
+Awesome's default icon library requests.
+
+#### Parameters
+
+##### name
+
+`string`
+
+##### family
+
+`string`
+
+##### variant
+
+`string`
+
+#### Returns
+
+`string`
+
 ## Functions
+
+### collectAppIcons()
+
+```ts
+function collectAppIcons(appRoot, parseOptions?): SourceIcons[];
+```
+
+Defined in: [packages/core/src/icons.ts:511](packages/core/src/icons.ts#L511)
+
+Scan an app's `src/` for the icons it uses: `.wx` templates and preludes
+([collectTemplateIcons](#collecttemplateicons)) and `icon()` declarations in
+TypeScript/JavaScript files ([collectDeclaredIcons](#collectdeclaredicons)). Files without
+icons or diagnostics are omitted. Pass the same parse options the compiler
+uses so component heads parse identically.
+
+#### Parameters
+
+##### appRoot
+
+`string`
+
+##### parseOptions?
+
+`Omit`\<[`ParseWavexOptions`](README.md#parsewavexoptions), `"fileName"`\> = `{}`
+
+#### Returns
+
+[`SourceIcons`](#sourceicons)[]
+
+***
+
+### collectDeclaredIcons()
+
+```ts
+function collectDeclaredIcons(source): object;
+```
+
+Defined in: [packages/core/src/icons.ts:371](packages/core/src/icons.ts#L371)
+
+`icon("…")` declarations in TypeScript/JavaScript source that imports
+`icon` from `@wavex/runtime` (named, aliased, or through a namespace
+import). Declarations must use string literals for the name and for any
+`family`/`variant` option so WAVEx can collect them; other calls are
+reported as WX104.
+
+#### Parameters
+
+##### source
+
+`string`
+
+#### Returns
+
+`object`
+
+##### diagnostics
+
+```ts
+diagnostics: Diagnostic[];
+```
+
+##### icons
+
+```ts
+icons: IconReference[];
+```
+
+***
+
+### collectTemplateIcons()
+
+```ts
+function collectTemplateIcons(file, options?): object;
+```
+
+Defined in: [packages/core/src/icons.ts:157](packages/core/src/icons.ts#L157)
+
+Icons a parsed `.wx` file uses through Web Awesome's default icon library:
+`@icon` / `@wa/icon` heads (not a local `icon.wx`, not another `library:`)
+whose `name:` is a literal, plus the string literals that can be the value
+of a dynamic `name:{{ … }}` expression (ternary branches, `||`/`??`
+operands, the last `&&` operand — never comparison operands), with the
+element's literal `family:`/`variant:`. Elements whose family or variant is
+dynamic cannot be collected; declare those icons with `icon()` instead.
+`icon("…")` declarations in the prelude are collected too.
+
+#### Parameters
+
+##### file
+
+[`WavexFile`](README.md#wavexfile)
+
+##### options?
+
+###### localComponents?
+
+readonly `string`[]
+
+#### Returns
+
+`object`
+
+##### diagnostics
+
+```ts
+diagnostics: Diagnostic[];
+```
+
+##### icons
+
+```ts
+icons: IconReference[];
+```
+
+***
 
 ### convexSemanticEventTargetReference()
 
@@ -304,7 +626,7 @@ Convex function kinds relevant to client template validation.
 function convexSemanticEventTargetReference(target): string | undefined;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:297](packages/core/src/capabilities.ts#L297)
+Defined in: [packages/core/src/capabilities.ts:330](packages/core/src/capabilities.ts#L330)
 
 Normalize a semantic `$$module:function` event target into a Convex function-kind lookup key.
 
@@ -326,7 +648,7 @@ Normalize a semantic `$$module:function` event target into a Convex function-kin
 function detectCapabilities(root): ProjectCapabilities;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:66](packages/core/src/capabilities.ts#L66)
+Defined in: [packages/core/src/capabilities.ts:93](packages/core/src/capabilities.ts#L93)
 
 Detect installed Web Awesome / Font Awesome capabilities from an app root.
 
@@ -342,13 +664,49 @@ Detect installed Web Awesome / Font Awesome capabilities from an app root.
 
 ***
 
+### detectFontAwesomeIconSources()
+
+```ts
+function detectFontAwesomeIconSources(
+   root,
+   kits,
+   packages): FontAwesomeIconSource[];
+```
+
+Defined in: [packages/core/src/icons.ts:65](packages/core/src/icons.ts#L65)
+
+Installed Font Awesome SVG sources in deterministic lookup order: kits
+(sorted), then `@fortawesome/*` packages that ship an `svgs/` directory
+(sorted). JS-only `*-svg-icons` packages have no SVG files and are not
+sources.
+
+#### Parameters
+
+##### root
+
+`string`
+
+##### kits
+
+readonly `string`[]
+
+##### packages
+
+readonly `string`[]
+
+#### Returns
+
+[`FontAwesomeIconSource`](#fontawesomeiconsource)[]
+
+***
+
 ### discoverConvexFunctionKinds()
 
 ```ts
 function discoverConvexFunctionKinds(root): Record<string, ConvexFunctionKind>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:350](packages/core/src/capabilities.ts#L350)
+Defined in: [packages/core/src/capabilities.ts:383](packages/core/src/capabilities.ts#L383)
 
 Classify Convex functions by scanning the app's Convex sources
 ("module/path:fn" -> kind), located with [findConvexDir](#findconvexdir). Public
@@ -374,7 +732,7 @@ compiler, Vite plugin, CLI, and LSP.
 function discoverLocalComponents(root): string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:376](packages/core/src/capabilities.ts#L376)
+Defined in: [packages/core/src/capabilities.ts:409](packages/core/src/capabilities.ts#L409)
 
 Local component references discovered from src/components (e.g. "talk-card", "tasks/item").
 
@@ -390,13 +748,39 @@ Local component references discovered from src/components (e.g. "talk-card", "ta
 
 ***
 
+### expressionValueLiterals()
+
+```ts
+function expressionValueLiterals(expression): string[];
+```
+
+Defined in: [packages/core/src/icons.ts:215](packages/core/src/icons.ts#L215)
+
+String literals that can be the value of a JavaScript expression: the
+expression itself when it is a literal, both ternary branches, every `||` /
+`??` operand, and the last `&&` operand, recursively. Conditions and
+comparison operands are never values, so `status === 'done' ? 'box' : 'truck'`
+yields `box` and `truck` only.
+
+#### Parameters
+
+##### expression
+
+`string`
+
+#### Returns
+
+`string`[]
+
+***
+
 ### findConvexDir()
 
 ```ts
 function findConvexDir(appRoot): string | undefined;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:319](packages/core/src/capabilities.ts#L319)
+Defined in: [packages/core/src/capabilities.ts:352](packages/core/src/capabilities.ts#L352)
 
 Find the Convex functions directory for a WAVEx app root.
 
@@ -420,13 +804,87 @@ on one Convex directory.
 
 ***
 
+### iconFolder()
+
+```ts
+function iconFolder(icon, folderOf): string;
+```
+
+Defined in: [packages/core/src/icons.ts:120](packages/core/src/icons.ts#L120)
+
+The Font Awesome folder for an icon, applying Web Awesome's family/variant defaults.
+
+#### Parameters
+
+##### icon
+
+`Pick`\<[`IconReference`](#iconreference), `"name"` \| `"family"` \| `"variant"`\>
+
+##### folderOf
+
+[`IconFolderResolver`](#iconfolderresolver)
+
+#### Returns
+
+`string`
+
+***
+
+### isIconSourceFile()
+
+```ts
+function isIconSourceFile(fileName): boolean;
+```
+
+Defined in: [packages/core/src/icons.ts:536](packages/core/src/icons.ts#L536)
+
+Whether a file name is one [collectAppIcons](#collectappicons) scans: a `.wx` template or a non-declaration TypeScript/JavaScript module.
+
+#### Parameters
+
+##### fileName
+
+`string`
+
+#### Returns
+
+`boolean`
+
+***
+
+### loadWebAwesomeIconFolder()
+
+```ts
+function loadWebAwesomeIconFolder(webAwesomePackageDir): Promise<IconFolderResolver>;
+```
+
+Defined in: [packages/core/src/icons.ts:85](packages/core/src/icons.ts#L85)
+
+Load Web Awesome's `getIconFolder` from the installed package
+(`dist/components/icon/library.default.js`). It is the source of truth for
+the folder the default icon library requests — including Pro+ families —
+so WAVEx does not replicate the mapping. Throws when the installed Web
+Awesome predates `setIconPath`/`getIconFolder` (3.8).
+
+#### Parameters
+
+##### webAwesomePackageDir
+
+`string`
+
+#### Returns
+
+`Promise`\<[`IconFolderResolver`](#iconfolderresolver)\>
+
+***
+
 ### readManifestComponentDetails()
 
 ```ts
 function readManifestComponentDetails(manifestPath): Map<string, WebAwesomeComponentDetail>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:412](packages/core/src/capabilities.ts#L412)
+Defined in: [packages/core/src/capabilities.ts:445](packages/core/src/capabilities.ts#L445)
 
 Full component metadata (descriptions, attributes, slots) from custom-elements.json; empty when the manifest is missing or malformed.
 
@@ -448,7 +906,7 @@ Full component metadata (descriptions, attributes, slots) from custom-elements.j
 function readManifestComponents(manifestPath): ReadonlySet<string>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:140](packages/core/src/capabilities.ts#L140)
+Defined in: [packages/core/src/capabilities.ts:169](packages/core/src/capabilities.ts#L169)
 
 Parse component names (without wa- prefix) from a custom-elements.json manifest.
 
@@ -470,7 +928,7 @@ Parse component names (without wa- prefix) from a custom-elements.json manifest.
 function readUtilityClasses(packageDir): string[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:456](packages/core/src/capabilities.ts#L456)
+Defined in: [packages/core/src/capabilities.ts:489](packages/core/src/capabilities.ts#L489)
 
 Utility class suffixes (wa-stack -> "stack") scraped from the installed package's stylesheets.
 
@@ -486,15 +944,77 @@ Utility class suffixes (wa-stack -> "stack") scraped from the installed package'
 
 ***
 
+### readWebAwesomeDefaultLibraryIcons()
+
+```ts
+function readWebAwesomeDefaultLibraryIcons(webAwesomePackageDir): Pick<IconReference, "name" | "family" | "variant">[];
+```
+
+Defined in: [packages/core/src/icons.ts:553](packages/core/src/icons.ts#L553)
+
+Icons Web Awesome's own components request from the default icon library
+(for example `<wa-page>`'s `bars` navigation toggle): literal
+`<wa-icon name="…">` tags without a `library` attribute in the installed
+package's bundled component code. Setting an icon path redirects these too,
+so a self-hosting app must serve them alongside its own icons.
+
+#### Parameters
+
+##### webAwesomePackageDir
+
+`string`
+
+#### Returns
+
+`Pick`\<[`IconReference`](#iconreference), `"name"` \| `"family"` \| `"variant"`\>[]
+
+***
+
+### resolveIconAsset()
+
+```ts
+function resolveIconAsset(
+   icon,
+   folderOf,
+   sources): IconAsset | undefined;
+```
+
+Defined in: [packages/core/src/icons.ts:105](packages/core/src/icons.ts#L105)
+
+Resolve an icon to its SVG file: the first icon source that has `<folder>/<name>.svg`.
+
+#### Parameters
+
+##### icon
+
+`Pick`\<[`IconReference`](#iconreference), `"name"` \| `"family"` \| `"variant"`\>
+
+##### folderOf
+
+[`IconFolderResolver`](#iconfolderresolver)
+
+##### sources
+
+readonly [`FontAwesomeIconSource`](#fontawesomeiconsource)[]
+
+#### Returns
+
+[`IconAsset`](#iconasset) \| `undefined`
+
+***
+
 ### validateComponentReferences()
 
 ```ts
 function validateComponentReferences(file, options): Diagnostic[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:166](packages/core/src/capabilities.ts#L166)
+Defined in: [packages/core/src/capabilities.ts:200](packages/core/src/capabilities.ts#L200)
 
 Capability diagnostics for component/icon references in a parsed .wx file.
+Unknown components are WX101 errors; `@icon` gets a WX101 info note when no
+installed Font Awesome package ships SVG files, because Web Awesome then
+loads icons from the Font Awesome CDN and WAVEx cannot validate names.
 
 #### Parameters
 
@@ -518,7 +1038,7 @@ Capability diagnostics for component/icon references in a parsed .wx file.
 function validateConvexReferences(file, options): Diagnostic[];
 ```
 
-Defined in: [packages/core/src/capabilities.ts:231](packages/core/src/capabilities.ts#L231)
+Defined in: [packages/core/src/capabilities.ts:264](packages/core/src/capabilities.ts#L264)
 
 Capability diagnostics for Convex references and bare $$ resource bindings.
 
@@ -538,13 +1058,46 @@ Capability diagnostics for Convex references and bare $$ resource bindings.
 
 ***
 
+### validateIconReferences()
+
+```ts
+function validateIconReferences(
+   icons,
+   folderOf,
+   sources): Diagnostic[];
+```
+
+Defined in: [packages/core/src/icons.ts:125](packages/core/src/icons.ts#L125)
+
+WX103 diagnostics for icons that no installed Font Awesome source provides.
+
+#### Parameters
+
+##### icons
+
+readonly [`IconReference`](#iconreference)[]
+
+##### folderOf
+
+[`IconFolderResolver`](#iconfolderresolver)
+
+##### sources
+
+readonly [`FontAwesomeIconSource`](#fontawesomeiconsource)[]
+
+#### Returns
+
+[`Diagnostic`](README.md#diagnostic)[]
+
+***
+
 ### walkTemplateNodes()
 
 ```ts
 function walkTemplateNodes(nodes, visit): void;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:151](packages/core/src/capabilities.ts#L151)
+Defined in: [packages/core/src/capabilities.ts:180](packages/core/src/capabilities.ts#L180)
 
 Depth-first visit of a template node tree.
 
@@ -570,7 +1123,7 @@ readonly [`TemplateNode`](README.md#templatenode)[]
 function webAwesomeBooleanAttributes(details): Map<string, ReadonlySet<string>>;
 ```
 
-Defined in: [packages/core/src/capabilities.ts:438](packages/core/src/capabilities.ts#L438)
+Defined in: [packages/core/src/capabilities.ts:471](packages/core/src/capabilities.ts#L471)
 
 Boolean attribute names per Web Awesome component (keyed without the wa-
 prefix): attributes whose manifest type is `boolean` (optionally unioned
