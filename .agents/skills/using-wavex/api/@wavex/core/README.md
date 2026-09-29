@@ -2365,7 +2365,7 @@ function parseAttributeToken(
    booleanAttributes?): Attribute | undefined;
 ```
 
-Defined in: [packages/core/src/parser.ts:739](packages/core/src/parser.ts#L739)
+Defined in: [packages/core/src/parser.ts:749](packages/core/src/parser.ts#L749)
 
 Parse one attribute token into its [Attribute](#attribute) form: boolean
 (`required`), literal (`variant:brand`), expression-shaped value

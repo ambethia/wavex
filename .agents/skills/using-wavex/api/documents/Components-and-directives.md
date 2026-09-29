@@ -127,6 +127,19 @@ So `+for task in tasks` can infer `key:task._id` for typical Convex documents. U
   @tasks/item task:
 ```
 
+Inside a loop — in its `key:` and throughout its body — `index` is the current
+item's zero-based position. In nested loops it is the innermost loop's
+position, and `index` cannot be used as the item name.
+
+```wx
++for found in findings key:index
+  li data-finding:{{ String(index) }} {{ index + 1 }}. {{ found.summary }}
+```
+
+A positional `key:index` suits lists that are only appended to or replaced
+wholesale; when items can be reordered or removed, key by identity so rendered
+elements move with their items.
+
 ### Async/resource states
 
 Resource and mutation/action state directives include:

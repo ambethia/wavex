@@ -488,6 +488,35 @@ describe("compileWavexModule", () => {
     expect(compiled.code).not.toContain("data-wx-click");
   });
 
+  it("binds the +for position as index in key: and body expressions", () => {
+    const compiled = compileWavexModule(
+      "const findings = [{ summary: \"Shipped\" }, { summary: \"Delivered\" }];\n~~~\nol\n  +for found in findings key:index\n    li data-finding:{{ String(index) }} {{ index + 1 }}. {{ found.summary }}\n",
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("repeat(findings ?? [], (found, index) => index, (found, index) => html`<li data-finding=${String(index)}>${index + 1}. ${found.summary}</li>`)");
+
+    const rendered: unknown[][] = [];
+    const javascript = ts.transpileModule(compiled.code, {
+      compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 }
+    }).outputText;
+    const executable = javascript.replace(/^import .*$/gm, "").replace(/^export default render;$/m, "").replace(/\bexport /g, "");
+    const html = (_strings: TemplateStringsArray, ...values: unknown[]) => values;
+    const repeat = <T>(items: readonly T[], key: (item: T, index: number) => unknown, renderItem: (item: T, index: number) => unknown) =>
+      items.map((item, index) => {
+        rendered.push([key(item, index), renderItem(item, index)]);
+        return undefined;
+      });
+    const render = Function("html", "nothing", "repeat", `${executable}; return render;`)(html, undefined, repeat) as () => unknown;
+    render();
+
+    expect(rendered).toEqual([
+      [0, ["0", 1, "Shipped"]],
+      [1, ["1", 2, "Delivered"]]
+    ]);
+  });
+
   it("diagnoses malformed +for and omits its children instead of rendering them unconditionally", () => {
     const compiled = compileWavexModule(`~~~\n+for task of tasks\n  p {{ task.text }}\n`, {
       id: "src/pages/index.wx"

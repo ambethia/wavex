@@ -374,7 +374,17 @@ function parseDirective(trimmed: string, raw: string, range: SourceRange, diagno
     attributes.push(...parsedFor.attributes);
     expression = tokens.map((token) => token.raw).join(" ") || undefined;
     expressionRange = rangeForTokenSpan(range, tokens);
-    if (!forDirective) {
+    if (forDirective?.itemName === "index") {
+      // `index` is the loop position in key: and the body; an item named index would shadow it.
+      diagnostics.push({
+        code: "WX010",
+        severity: "error",
+        line: range.start.line,
+        column: range.start.column,
+        message: "+for cannot name its item 'index': index is the loop position inside +for. Choose another item name."
+      });
+      forDirective = undefined;
+    } else if (!forDirective) {
       diagnostics.push({
         code: "WX010",
         severity: "error",

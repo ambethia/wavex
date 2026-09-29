@@ -449,6 +449,32 @@ describe("parseWavex", () => {
     expect(parsed.diagnostics).toHaveLength(1);
   });
 
+  it("parses index as the +for position in key: and body expressions and rejects it as the item name", () => {
+    const parsed = parseWavex("~~~\n+for found in findings key:index\n  li data-finding:{{ String(index) }} {{ index + 1 }}. {{ found.summary }}\n+for index in items\n  p {{ index }}\n");
+
+    expect(parsed.nodes[0]).toMatchObject({
+      kind: "directive",
+      name: "for",
+      for: { itemName: "found", collectionExpression: "findings", keyExpression: "index" }
+    });
+    expect(parsed.nodes[0]!.children[0]).toMatchObject({
+      kind: "element",
+      tag: "li",
+      attributes: [{ kind: "expression", name: "data-finding", expression: "String(index)" }],
+      inlineText: "{{ index + 1 }}. {{ found.summary }}"
+    });
+    expect(parsed.diagnostics).toEqual([
+      {
+        code: "WX010",
+        severity: "error",
+        line: 4,
+        column: 1,
+        message: "+for cannot name its item 'index': index is the loop position inside +for. Choose another item name."
+      }
+    ]);
+    expect(parsed.nodes[1]).toMatchObject({ kind: "directive", name: "for", for: undefined });
+  });
+
   it("diagnoses unknown directives and malformed +for headers", () => {
     const parsed = parseWavex(`~~~\n+maybe nope\n  p Ignored directive\n+for task of tasks\n  p {{ task.text }}\n`);
 
