@@ -19,7 +19,7 @@ export async function runCli(argv: readonly string[] = process.argv.slice(2), vi
 
   switch (command) {
     case "check":
-      await check(args[0] ?? process.cwd());
+      await check(args.length > 0 ? args : [process.cwd()]);
       break;
     case "routes":
       routes(args[0] ?? process.cwd());
@@ -61,7 +61,9 @@ function help() {
   console.log(`wavex
 
 Commands:
-  wavex check [root]       Parse, validate, and type-check .wx files; print diagnostics.
+  wavex check [paths...]   Parse, validate, and type-check .wx files; print diagnostics.
+                           Paths may be directories or files; files other than .wx are
+                           icon-scanned only, so a commit hook can pass every staged path.
   wavex routes [root]      Print file-based page routes.
   wavex compile <file.wx>  Compile one .wx file to a Lit render module.
   wavex dev [args...]      Proxy to vite dev; pass --host explicitly to expose it.
@@ -70,11 +72,40 @@ Commands:
 `);
 }
 
-async function check(rootInput: string) {
-  const root = requireExistingDirectory(rootInput, "check root");
-  if (!root) return;
+/**
+ * Checks `.wx` files named directly or found under directories, grouped by app root. Other
+ * files count only toward icon collection (their `icon()` calls), so a commit hook can pass
+ * every staged path and a directory checks everything under it.
+ */
+async function check(inputs: readonly string[]) {
+  const directories: string[] = [];
+  const named: string[] = [];
+  for (const input of inputs) {
+    const path = requireExistingPath(input, "check path", "any");
+    if (!path) return;
+    if (statSync(path).isDirectory()) directories.push(path);
+    else named.push(path);
+  }
+  const files = [...new Set([...directories.flatMap(walkWxFiles), ...named.filter((file) => file.endsWith(".wx"))])].sort();
+  const inScope = (file: string) => named.includes(file) || directories.some((dir) => isInside(file, dir));
+  const byApp = new Map<string, string[]>();
+  for (const file of files) {
+    const appRoot = resolveWavexAppRoot(dirname(file));
+    byApp.set(appRoot, [...(byApp.get(appRoot) ?? []), file]);
+  }
+  // Named non-template files (e.g. a staged labels.ts) still get their icon() calls validated.
+  for (const file of named.filter((file) => !file.endsWith(".wx"))) {
+    const appRoot = resolveWavexAppRoot(dirname(file));
+    if (!byApp.has(appRoot)) byApp.set(appRoot, []);
+  }
+  if (byApp.size === 0) {
+    console.log("Checked 0 .wx files.");
+    return;
+  }
+  for (const [appRoot, appFiles] of byApp) await checkApp(appRoot, appFiles, inScope);
+}
 
-  const files = walkWxFiles(root);
+async function checkApp(appRoot: string, files: readonly string[], inScope: (file: string) => boolean) {
   let errorCount = 0;
 
   // Capability context: the app root holds node_modules and src/components.
@@ -89,7 +120,6 @@ async function check(rootInput: string) {
     validateConvexReferences,
     validateIconReferences
   } = await import("@wavex/core/capabilities");
-  const appRoot = resolveWavexAppRoot(root);
   const capabilities = detectCapabilities(appRoot);
   const localComponents = discoverLocalComponents(appRoot);
   const convexFunctionKinds = discoverConvexFunctionKinds(appRoot);
@@ -123,7 +153,7 @@ async function check(rootInput: string) {
       : undefined;
   if (folderOf) {
     for (const entry of collectAppIcons(appRoot, parseOptions)) {
-      if (!isInside(entry.file, root)) continue;
+      if (!inScope(entry.file)) continue;
       report(entry.file, [...entry.diagnostics, ...validateIconReferences(entry.icons, folderOf, iconSources)]);
       for (const icon of entry.icons) {
         const asset = resolveIconAsset(icon, folderOf, iconSources);
@@ -134,7 +164,7 @@ async function check(rootInput: string) {
 
   // TypeScript: the same virtual code as the language server, under the app's tsconfig.
   const { typeCheckWavexFiles } = await import("@wavex/lsp");
-  const typeCheck = await typeCheckWavexFiles({ appRoot, files, parseOptionsFor: (fileName) => ({ fileName, ...parseOptions }) });
+  const typeCheck = await typeCheckWavexFiles({ appRoot, files: [...files], parseOptionsFor: (fileName) => ({ fileName, ...parseOptions }) });
   if (!typeCheck.tsconfig) {
     console.error(`wavex check: no tsconfig.json found for ${appRoot}; add one so .wx templates can be type-checked.`);
     errorCount += 1;
@@ -236,7 +266,7 @@ function requireExistingFile(pathInput: string, label: string): string | undefin
   return requireExistingPath(pathInput, label, "file");
 }
 
-function requireExistingPath(pathInput: string, label: string, kind: "directory" | "file"): string | undefined {
+function requireExistingPath(pathInput: string, label: string, kind: "directory" | "file" | "any"): string | undefined {
   const path = resolve(pathInput);
   let stats;
   try {
@@ -250,7 +280,7 @@ function requireExistingPath(pathInput: string, label: string, kind: "directory"
     throw error;
   }
 
-  const matchesKind = kind === "directory" ? stats.isDirectory() : stats.isFile();
+  const matchesKind = kind === "any" || (kind === "directory" ? stats.isDirectory() : stats.isFile());
   if (!matchesKind) {
     console.error(`wavex ${label} is not a ${kind}: ${path}`);
     process.exitCode = 1;

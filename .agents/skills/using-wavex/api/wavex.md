@@ -12,7 +12,10 @@ wavex build       # production build
 wavex prerender   # static prerender: emit dist/<path>/index.html per route
 ```
 
-`wavex check [root]` reports each problem as `file:line:col SEVERITY CODE
+`wavex check [paths...]` checks the `.wx` files under each directory and each
+`.wx` file named directly (other named files only contribute their `icon()`
+declarations), grouped by app root, so a commit hook can pass every staged
+path. It reports each problem as `file:line:col SEVERITY CODE
 message` (paths relative to the working directory) and exits non-zero on
 errors. Besides parser (WX0xx), capability and Convex (WX101/WX102), and icon
 (WX103/WX104) diagnostics, it type-checks every `.wx` file with the same

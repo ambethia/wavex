@@ -135,7 +135,7 @@ describe("wavex check", () => {
     await runCli(["check", missingRoot]);
 
     expect(logs).toEqual([]);
-    expect(errors).toEqual([`wavex check root does not exist: ${missingRoot}`]);
+    expect(errors).toEqual([`wavex check path does not exist: ${missingRoot}`]);
     expect(process.exitCode).toBe(1);
   });
 
@@ -152,6 +152,26 @@ describe("wavex check", () => {
     expect(errors).toEqual([
       "src/pages/index.wx:2:1 ERROR WX101 Unknown component @missing-widget: no src/components/missing-widget.wx and no Web Awesome package is installed."
     ]);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("checks named .wx files and skips other named files, so a commit hook can pass staged paths", async () => {
+    const root = fixtureRoot("wavex-cli-check-files-");
+    writeFixture(root, "tsconfig.json", minimalTsconfig);
+    writeFixture(root, "src/pages/index.wx", "~~~\n@missing-widget\n");
+    writeFixture(root, "src/pages/about.wx", "~~~\np About\n");
+    writeFixture(root, "src/main.ts", "export {}\n");
+    fromDirectory(root);
+    const { logs, errors } = captureConsole();
+
+    await runCli(["check", join(root, "src/pages/about.wx"), join(root, "src/main.ts")]);
+
+    expect(logs).toEqual(["Checked 1 .wx file. Web Awesome: not installed; Font Awesome: none installed; TypeScript: tsconfig.json."]);
+    expect(errors).toEqual([]);
+    expect(process.exitCode).not.toBe(1);
+
+    await runCli(["check", join(root, "src/pages/index.wx")]);
+    expect(errors).toEqual([expect.stringMatching(/^src\/pages\/index\.wx:2:1 ERROR WX101/)]);
     expect(process.exitCode).toBe(1);
   });
 

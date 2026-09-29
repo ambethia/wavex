@@ -35,3 +35,6 @@ Changes existing apps should know about:
   CDN; name icons computed in TypeScript with `icon()` from `@wavex/runtime`.
 - A monorepo's shared `convex/` directory is found from a workspace package.
 - `+for` bodies and keys can use `index`; `index` cannot be the item name.
+- `wavex check` takes any mix of directories and files: named `.wx` files are
+  checked (grouped by app root) and other named files only contribute their
+  `icon()` declarations, so a commit hook can pass every staged path.
