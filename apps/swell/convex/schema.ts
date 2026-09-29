@@ -25,7 +25,7 @@ export default defineSchema({
     author: v.string(),
     text: v.string(),
     votes: v.number(),
-  }).index("by_talk", ["talkSlug"]),
+  }).index("by_talk_votes", ["talkSlug", "votes"]),
 
   rsvps: defineTable({
     name: v.string(),

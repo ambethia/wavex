@@ -1,14 +1,16 @@
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+/** A talk's questions, most upvoted first, one page at a time (`paginate:` in the template). */
 export const listByTalk = query({
-  args: { talkSlug: v.string() },
+  args: { talkSlug: v.string(), paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
-    const questions = await ctx.db
+    return await ctx.db
       .query("questions")
-      .withIndex("by_talk", (q) => q.eq("talkSlug", args.talkSlug))
-      .collect();
-    return questions.sort((a, b) => b.votes - a.votes);
+      .withIndex("by_talk_votes", (q) => q.eq("talkSlug", args.talkSlug))
+      .order("desc")
+      .paginate(args.paginationOpts);
   },
 });
 

@@ -10,7 +10,9 @@ import {
 } from "@wavex/runtime";
 import { mountLitApp, type LitApp } from "@wavex/runtime/lit";
 import routes from "virtual:wavex/routes";
-import authStateFixture from "./components/auth-state-fixture.wx";
+import authStateFixture, {
+  resources as authStateFixtureResources,
+} from "./components/auth-state-fixture.wx";
 
 const talks = [
   {
@@ -33,12 +35,28 @@ const talks = [
   },
 ];
 
+// Twelve questions on the first talk, most upvoted first: more than one page of ten.
+const questions = Array.from({ length: 12 }, (_, index) => ({
+  _id: `question-${index + 1}`,
+  talkSlug: "realtime-by-default",
+  author: "Audience",
+  text: `Question ${String(index + 1).padStart(2, "0")}`,
+  votes: 12 - index,
+}));
+
 class SwellTestBackend implements ResourceClient, ActionClient {
   readonly invocations: ResolvedActionDefinition[] = [];
+  readonly subscriptions: Array<{
+    address: string;
+    args: Record<string, unknown>;
+    disposed: boolean;
+  }> = [];
 
   subscribe<T>(definition: ResolvedResourceDefinition, handlers: ResourceSubscriptionHandlers<T>) {
     const address = `${definition.modulePath}:${definition.functionName}`;
-    const args = definition.args as Record<string, string | undefined>;
+    const args = definition.args as Record<string, unknown>;
+    const subscription = { address, args, disposed: false };
+    this.subscriptions.push(subscription);
     let value: unknown;
     switch (address) {
       case "talks:list":
@@ -48,19 +66,48 @@ class SwellTestBackend implements ResourceClient, ActionClient {
         value = talks.find((talk) => talk.slug === args.slug) ?? null;
         break;
       case "speakers:list":
-        value = [];
+        value = [
+          {
+            _id: "speaker-1",
+            slug: "mara-lin",
+            name: "Mara Lin",
+            company: "Driftwave",
+            bio: "Realtime infrastructure.",
+          },
+        ];
         break;
       case "speakers:get":
         value = null;
         break;
-      case "questions:listByTalk":
-        value = [];
+      case "questions:listByTalk": {
+        // Convex pagination: cursors are opaque; here they are offsets.
+        const { cursor, numItems } = args.paginationOpts as {
+          cursor: string | null;
+          numItems: number;
+        };
+        const all = questions.filter((question) => question.talkSlug === args.talkSlug);
+        const start = cursor === null ? 0 : Number(cursor);
+        const end = start + numItems;
+        value = {
+          page: all.slice(start, end),
+          isDone: end >= all.length,
+          continueCursor: String(end),
+        };
         break;
+      }
       default:
         throw new Error(`Unexpected test resource ${address}`);
     }
     handlers.next(value as T);
-    return () => undefined;
+    return () => {
+      subscription.disposed = true;
+    };
+  }
+
+  live(address: string) {
+    return this.subscriptions.filter(
+      (subscription) => subscription.address === address && !subscription.disposed,
+    );
   }
 
   async invoke(definition: ResolvedActionDefinition): Promise<unknown> {
@@ -96,7 +143,8 @@ function mountSwell() {
     routes,
     resourceClient: backend,
     actionClient: backend,
-    resolveActionKind: (definition) => (definition.modulePath === "ai/summarize" ? "action" : "mutation"),
+    resolveActionKind: (definition) =>
+      definition.modulePath === "ai/summarize" ? "action" : "mutation",
     viewTransitions: false,
   });
   return { backend, app, router: app.router };
@@ -107,7 +155,7 @@ const authFixtureRoute: ClientRoute = {
   file: "src/components/auth-state-fixture.wx",
   path: "/auth-fixture",
   segments: [{ kind: "static", value: "auth-fixture" }],
-  load: async () => ({ default: authStateFixture }),
+  load: async () => ({ default: authStateFixture, resources: authStateFixtureResources }),
 };
 
 describe("Swell Conf browser flows", () => {
@@ -121,7 +169,9 @@ describe("Swell Conf browser flows", () => {
     await expect.poll(() => document.title).toBe("Schedule | Swell Conf");
     await expect.poll(() => root?.textContent).toContain("Realtime by Default");
 
-    const popped = new Promise<void>((resolve) => window.addEventListener("popstate", () => resolve(), { once: true }));
+    const popped = new Promise<void>((resolve) =>
+      window.addEventListener("popstate", () => resolve(), { once: true }),
+    );
     window.history.back();
     await popped;
     await expect.poll(() => document.title).toBe("Swell Conf");
@@ -133,6 +183,48 @@ describe("Swell Conf browser flows", () => {
     await mounted.router.navigate("/info/venue");
     await expect.poll(() => document.title).toBe("Info | Swell Conf");
     await expect.poll(() => root?.textContent).toContain("info / venue");
+  });
+
+  it("subscribes to a talk's questions only once the talk exists, and pages through them", async () => {
+    const mounted = mountSwell();
+    await mounted.router.navigate("/talks/not-a-talk");
+    await expect.poll(() => root?.textContent).toContain('No talk found for "not-a-talk"');
+    expect(
+      mounted.backend.subscriptions.filter(
+        (subscription) => subscription.address === "questions:listByTalk",
+      ),
+    ).toEqual([]);
+
+    await mounted.router.navigate("/talks/realtime-by-default");
+    await expect.poll(() => root?.textContent).toContain("Question 10");
+    expect(root?.textContent).not.toContain("Question 11");
+    expect(
+      mounted.backend.live("questions:listByTalk").map((subscription) => subscription.args),
+    ).toEqual([
+      { talkSlug: "realtime-by-default", paginationOpts: { cursor: null, numItems: 10 } },
+    ]);
+    const pageButton = (label: string) =>
+      [
+        ...root!.querySelectorAll<HTMLElement & { disabled: boolean }>(
+          'nav[aria-label="Question pages"] wa-button',
+        ),
+      ].find((button) => button.textContent?.trim() === label)!;
+    expect(pageButton("Previous").disabled).toBe(true);
+
+    await page.getByRole("button", { name: "More questions" }).click();
+    await expect.poll(() => root?.textContent).toContain("Question 12");
+    expect(root?.textContent).not.toContain("Question 01");
+    expect(
+      mounted.backend.live("questions:listByTalk").map((subscription) => subscription.args),
+    ).toEqual([
+      { talkSlug: "realtime-by-default", paginationOpts: { cursor: "10", numItems: 10 } },
+    ]);
+    await expect.poll(() => pageButton("More questions").disabled).toBe(true);
+
+    await page.getByRole("button", { name: "Previous" }).click();
+    await expect.poll(() => root?.textContent).toContain("Question 01");
+    expect(root?.textContent).not.toContain("Question 11");
+    await expect.poll(() => pageButton("Previous").disabled).toBe(true);
   });
 
   it("renders a deterministic mutation error through the real RSVP form bridge", async () => {
@@ -181,15 +273,47 @@ describe("Swell Conf browser flows", () => {
     await expect.poll(() => root?.textContent).toContain("Local count: 1");
     expect(root.firstElementChild).toBe(mountedShell);
 
+    // Without a resource client the signed-in-only resource subscribes but never loads.
+    expect(root?.textContent).toContain("Loading speakers…");
+
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     try {
       await page.getByRole("button", { name: "Missing local" }).click();
       await expect.poll(() => consoleError.mock.calls.length).toBe(1);
       expect(consoleError).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining('"missingLocal" has no compiled local handler') })
+        expect.objectContaining({
+          message: expect.stringContaining('"missingLocal" has no compiled local handler'),
+        }),
       );
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it("subscribes a signed-in-only resource while app state says authenticated and stops at sign-out", async () => {
+    window.history.replaceState({}, "", "/auth-fixture");
+    root = document.createElement("div");
+    document.body.append(root);
+    const backend = new SwellTestBackend();
+    app = mountLitApp({
+      root,
+      routes: [authFixtureRoute],
+      resourceClient: backend,
+      initialContext: { state: { auth: { status: "unauthenticated" } } },
+      viewTransitions: false,
+    });
+
+    await app.ready;
+    await expect.poll(() => root?.textContent).toContain("Auth: unauthenticated");
+    expect(backend.subscriptions).toEqual([]);
+
+    app.update({ state: { auth: { status: "authenticated", userId: "user-1" } } });
+    await expect.poll(() => root?.textContent).toContain("Speakers for user-1: 1");
+    expect(backend.live("speakers:list")).toHaveLength(1);
+
+    app.update({ state: { auth: { status: "unauthenticated" } } });
+    await expect.poll(() => root?.textContent).not.toContain("Speakers for");
+    expect(backend.live("speakers:list")).toEqual([]);
+    expect(backend.subscriptions).toHaveLength(1);
   });
 });

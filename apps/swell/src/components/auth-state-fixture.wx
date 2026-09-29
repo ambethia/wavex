@@ -11,3 +11,9 @@ section data-auth-status:{{ state.auth?.status ?? "missing" }}
   button :click:missingLocal Missing local
   p
     | Local count: {{ localCount }}
+  // Signed-in only: the +if gates the subscription, so it starts at sign-in and stops at sign-out.
+  +if state.auth?.status === "authenticated"
+    $$speakers:list
+      +loading
+        p Loading speakers…
+      p Speakers for {{ state.auth.userId }}: {{ speakers?.length ?? 0 }}

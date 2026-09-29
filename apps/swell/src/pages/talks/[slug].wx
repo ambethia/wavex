@@ -44,39 +44,50 @@
                 @callout variant:danger
                   = String(actionStates["$$ai/summarize:run"].error)
 
-      section [stack gap-m] class:qa-section
-        h2 [heading-l] Live Q&A
-        form :submit:$$questions:create :track:question_asked [stack gap-s]
-          input type:hidden name:talkSlug value:{{ route.params.slug }}
-          @input name:author label:"Your name" placeholder:"Anonymous" autocomplete:off
-          @input name:text label:"Your question" required autocomplete:off
-          div [cluster gap-s]
-            @button type:submit variant:brand
-              +pending
-                @spinner
-                | Asking…
-              +idle
-                | Ask
-          +mutation-error problem
-            @callout variant:danger
-              = String(problem)
-
-        $$questions:listByTalk talkSlug:route.params.slug
-          +loading
+// Questions subscribe only once the talk exists (+if gates the $$ line), ten at a time.
++if talk
+  section [stack gap-m] class:qa-section
+    h2 [heading-l] Live Q&A
+    form :submit:$$questions:create :track:question_asked [stack gap-s]
+      input type:hidden name:talkSlug value:{{ talk.slug }}
+      @input name:author label:"Your name" placeholder:"Anonymous" autocomplete:off
+      @input name:text label:"Your question" required autocomplete:off
+      div [cluster gap-s]
+        @button type:submit variant:brand
+          +pending
             @spinner
+            | Asking…
+          +idle
+            | Ask
+      +mutation-error problem
+        @callout variant:danger
+          = String(problem)
 
-          +empty
-            div [stack gap-xs align-items-center] class:empty-state
-              @icon name:comments class:empty-state-icon
-              p [heading-s] No questions yet
-              p [caption-m] Be the first to ask.
+    $$questions:listByTalk talkSlug:talk.slug paginate:10
+      +loading
+        @spinner
 
-          div [stack gap-s] class:question-list
-            +for question in questions key:question._id
-              div [cluster gap-s align-items-center justify-content-space-between] class:question-item
-                div [stack gap-2xs]
-                  p class:question-text {{ question.text }}
-                  p [caption-s] {{ question.author }}
-                @button size:s appearance:plain data-id:{{ question._id }} :click:$$questions:upvote :track:question_upvoted
-                  @icon name:arrow-up
-                  |  {{ question.votes }}
+      +empty
+        div [stack gap-xs align-items-center] class:empty-state
+          @icon name:comments class:empty-state-icon
+          p [heading-s] No questions yet
+          p [caption-m] Be the first to ask.
+
+      +error problem
+        @callout variant:danger
+          = String(problem)
+
+      div [stack gap-s] class:question-list
+        +for question in questions key:question._id
+          div [cluster gap-s align-items-center justify-content-space-between] class:question-item
+            div [stack gap-2xs]
+              p class:question-text {{ question.text }}
+              p [caption-s] {{ question.author }}
+            @button size:s appearance:plain data-id:{{ question._id }} :click:$$questions:upvote :track:question_upvoted
+              @icon name:arrow-up
+              |  {{ question.votes }}
+
+      +if resourceStates.questions?.hasPreviousPage || resourceStates.questions?.hasNextPage
+        nav aria-label:"Question pages" [cluster gap-s]
+          @button size:s appearance:outlined :click:questions.previousPage disabled:{{ !resourceStates.questions?.hasPreviousPage }} Previous
+          @button size:s appearance:outlined :click:questions.nextPage disabled:{{ !resourceStates.questions?.hasNextPage }} More questions
