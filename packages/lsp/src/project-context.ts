@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import type { ParseWavexOptions } from "@wavex/core";
 import {
   detectCapabilities,
   discoverConvexFunctionKinds,
@@ -17,7 +18,8 @@ import type { WavexServiceOptions } from "./service.js";
  * of caching per app root. Editors ask for this context after file-system
  * changes (new local components, installed Web Awesome manifests, generated
  * Convex functions); a stale cache makes completions and diagnostics lie until
- * the language server restarts.
+ * the language server restarts. (The manifest parse itself is memoized by file
+ * mtime in `@wavex/core/capabilities`, which cannot go stale.)
  */
 export function optionsForDocument(documentUri: string): WavexServiceOptions {
   const uri = URI.parse(documentUri);
@@ -29,11 +31,28 @@ export function optionsForDocument(documentUri: string): WavexServiceOptions {
   return {
     localComponents: discoverLocalComponents(root),
     webAwesomeComponents: capabilities.webAwesome ? [...capabilities.webAwesome.components].sort() : [],
+    webAwesomeBooleanAttributes: capabilities.webAwesome?.booleanAttributes,
     webAwesomeDetails: capabilities.webAwesome
       ? readManifestComponentDetails(join(capabilities.webAwesome.packageDir, "dist", "custom-elements.json"))
       : undefined,
     utilityClasses: capabilities.webAwesome ? readUtilityClasses(capabilities.webAwesome.packageDir) : [],
     ...discoverConvexServiceOptions(root)
+  };
+}
+
+/**
+ * Parse options for a `.wx` file on disk: the app's local components and
+ * installed Web Awesome boolean attributes, so the LSP's virtual code parses
+ * component heads exactly like the compiler does. Read fresh per call, like
+ * {@link optionsForDocument}.
+ */
+export function parseOptionsForFile(fileName: string): ParseWavexOptions {
+  const root = findAppRoot(dirname(fileName));
+  if (!root) return { fileName };
+  return {
+    fileName,
+    localComponents: discoverLocalComponents(root),
+    webAwesomeBooleanAttributes: detectCapabilities(root).webAwesome?.booleanAttributes
   };
 }
 

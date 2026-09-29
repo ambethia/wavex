@@ -21,6 +21,13 @@ export interface CompileWavexOptions {
   localComponents?: readonly string[];
   /** Web Awesome component names (without `wa-`) detected from the installed package. */
   webAwesomeComponents?: readonly string[];
+  /**
+   * Boolean attributes per Web Awesome component (keyed without `wa-`), usually
+   * `detectCapabilities(root).webAwesome.booleanAttributes`. Bare tokens naming
+   * them on `@component` heads parse as boolean attributes, and dynamic values
+   * for them bind as Lit boolean attributes (`?with-caret=${…}`).
+   */
+  webAwesomeBooleanAttributes?: ReadonlyMap<string, ReadonlySet<string>>;
   /** Detected Convex function kind map keyed by normalized `module/path:function`. */
   convexFunctionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 }
@@ -119,7 +126,11 @@ interface AttrsKeyEntry {
  * on `result.ast.diagnostics`, not thrown.
  */
 export function compileWavexModule(source: string, options: CompileWavexOptions = {}): CompileWavexResult {
-  const ast = parseWavex(source, { fileName: options.id });
+  const ast = parseWavex(source, {
+    fileName: options.id,
+    localComponents: options.localComponents,
+    webAwesomeBooleanAttributes: options.webAwesomeBooleanAttributes
+  });
   ast.diagnostics.push(...validateConvexReferences(ast, { functionKinds: options.convexFunctionKinds }));
   diagnoseDuplicateResourceBindings(ast, options.convexFunctionKinds);
   const renderNodes = ast.nodes.filter((node) => !(node.kind === "directive" && node.name === "head"));
@@ -683,7 +694,8 @@ function compileComponent(node: ComponentNode, options: InternalCompileOptions, 
     webAwesomeComponents: options.webAwesomeComponents
   });
   if (tag.startsWith("wa-")) options.usedWebAwesomeComponents?.add(tag.slice(3));
-  const attrs = compileAttributes(node.attributes, node.utilities, options);
+  const booleanAttributes = tag.startsWith("wa-") ? options.webAwesomeBooleanAttributes?.get(tag.slice(3)) : undefined;
+  const attrs = compileAttributes(node.attributes, node.utilities, options, booleanAttributes);
   const inlineText = node.inlineText ? compileInlineText(node.inlineText) : "";
   const children = compileNodes(node.children, options, scopeForChildren(node.attributes, scope, options.convexFunctionKinds));
   return `<${tag}${attrs}>${inlineText}${children}</${tag}>`;
@@ -939,7 +951,12 @@ function isConvexActionTarget(target: string): boolean {
   return /^[A-Za-z0-9_./-]+$/.test(modulePath) && /^[A-Za-z_$][\w$]*$/.test(functionName);
 }
 
-function compileAttributes(attributes: readonly Attribute[], utilities: readonly string[], options: InternalCompileOptions): string {
+function compileAttributes(
+  attributes: readonly Attribute[],
+  utilities: readonly string[],
+  options: InternalCompileOptions,
+  booleanAttributes?: ReadonlySet<string>
+): string {
   const emitted: string[] = [];
   const staticClasses: string[] = expandUtilityClassList(utilities);
   const dynamicClasses: string[] = [];
@@ -961,10 +978,10 @@ function compileAttributes(attributes: readonly Attribute[], utilities: readonly
         emitted.push(` ${attribute.name}=\"${escapeStaticAttribute(attribute.value)}\"`);
         break;
       case "expression":
-        emitted.push(compileExpressionAttribute(attribute.name, attribute.expression));
+        emitted.push(compileExpressionAttribute(attribute.name, attribute.expression, booleanAttributes));
         break;
       case "same-name":
-        emitted.push(compileExpressionAttribute(attribute.name, attribute.name));
+        emitted.push(compileExpressionAttribute(attribute.name, attribute.name, booleanAttributes));
         break;
       case "semantic-event":
         emitted.push(...compileSemanticEventAttribute(attribute, options));
@@ -997,8 +1014,11 @@ function compileAttributes(attributes: readonly Attribute[], utilities: readonly
   return emitted.join("");
 }
 
-function compileExpressionAttribute(name: string, expression: string): string {
+function compileExpressionAttribute(name: string, expression: string, booleanAttributes?: ReadonlySet<string>): string {
   if (/^[A-Za-z_$][\w$]*$/.test(name)) return ` .${name}=\${${expression}}`;
+  // Dashed boolean attributes have no same-named property; a plain attribute
+  // binding would stringify false to "false" and still switch them on.
+  if (booleanAttributes?.has(name)) return ` ?${name}=\${${expression}}`;
   return ` ${name}=\${${expression}}`;
 }
 

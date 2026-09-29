@@ -33,7 +33,7 @@ re-exports of the most common compiler and core entry points.
 function compileWavexModule(source, options?): CompileWavexResult;
 ```
 
-Defined in: [packages/compiler/dist/compiler.d.ts:33](packages/compiler/dist/compiler.d.ts#L33)
+Defined in: [packages/compiler/dist/compiler.d.ts:40](packages/compiler/dist/compiler.d.ts#L40)
 
 Compile `.wx` source into a Lit render module.
 
@@ -106,10 +106,10 @@ Build a full [RouteDefinition](@wavex/core/README.md#routedefinition) from a pag
 ### parseWavex()
 
 ```ts
-function parseWavex(source, _options?): WavexFile;
+function parseWavex(source, options?): WavexFile;
 ```
 
-Defined in: [packages/core/dist/parser.d.ts:15](packages/core/dist/parser.d.ts#L15)
+Defined in: [packages/core/dist/parser.d.ts:41](packages/core/dist/parser.d.ts#L41)
 
 Parse a complete `.wx` source file into a [WavexFile](@wavex/core/README.md#wavexfile).
 
@@ -119,13 +119,18 @@ parsed into TemplateNode trees with source ranges. Parse problems
 are collected as diagnostics on the result rather than thrown, so a file
 with errors still yields a best-effort AST for the LSP and compiler.
 
+Bare tokens before inline text are boolean attributes when they name a
+native HTML boolean attribute or, on an `@component` head, a boolean
+attribute of the Web Awesome component it resolves to (see
+[ParseWavexOptions.webAwesomeBooleanAttributes](@wavex/core/README.md#webawesomebooleanattributes)).
+
 #### Parameters
 
 ##### source
 
 `string`
 
-##### \_options?
+##### options?
 
 [`ParseWavexOptions`](@wavex/core/README.md#parsewavexoptions)
 

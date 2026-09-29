@@ -11,6 +11,8 @@ export interface WavexServiceOptions {
   localComponents?: readonly string[];
   /** Web Awesome component names without the wa- prefix. */
   webAwesomeComponents?: readonly string[];
+  /** Boolean attributes per Web Awesome component, so diagnostics parse component heads like the compiler. */
+  webAwesomeBooleanAttributes?: ReadonlyMap<string, ReadonlySet<string>>;
   /** Full Web Awesome component metadata for attribute completions and hover. */
   webAwesomeDetails?: ReadonlyMap<string, WebAwesomeComponentDetail>;
   /** Utility class suffixes (stack, gap-xl, ...) for [bracket-group] completions. */
@@ -65,8 +67,11 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
       return {
         provideDiagnostics(document) {
           if (document.languageId !== WAVEX_LANGUAGE_ID) return undefined;
-          const parsed = parseWavex(document.getText());
           const options = sourceOptions(document.uri);
+          const parsed = parseWavex(document.getText(), {
+            localComponents: options.localComponents,
+            webAwesomeBooleanAttributes: options.webAwesomeBooleanAttributes
+          });
           const diagnostics = [
             ...parsed.diagnostics,
             ...validateConvexReferences(parsed, { functionKinds: options.convexFunctionKinds })
@@ -146,7 +151,9 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
 
           // Attribute completions for the line's Web Awesome component head.
           const componentHead = /^\s*@([\w/-]+)\s/.exec(text.slice(lineStart, text.indexOf("\n", lineStart) === -1 ? text.length : text.indexOf("\n", lineStart)));
-          const detail = componentHead ? options.webAwesomeDetails?.get(webAwesomeDetailName(componentHead[1]!)) : undefined;
+          const detailName = componentHead ? webAwesomeDetailName(componentHead[1]!) : undefined;
+          const detail = detailName ? options.webAwesomeDetails?.get(detailName) : undefined;
+          const booleanAttributes = detailName ? options.webAwesomeBooleanAttributes?.get(detailName) : undefined;
           if (detail && /\s[\w-]*$/.test(linePrefix)) {
             const items: vscode.CompletionItem[] = [
               ...detail.attributes.map((attribute) => ({
@@ -154,7 +161,8 @@ export function createWavexServicePlugin(optionsOrResolver: WavexServiceOptionsR
                 kind: 10 as vscode.CompletionItemKind,
                 detail: attribute.type ?? "attribute",
                 documentation: markdownDoc(attributeDoc(attribute)),
-                insertText: `${attribute.name}:`
+                // Boolean attributes are written bare (`with-caret`), like native ones.
+                insertText: booleanAttributes?.has(attribute.name) ? attribute.name : `${attribute.name}:`
               })),
               ...detail.slots
                 .filter((slot) => slot.name)

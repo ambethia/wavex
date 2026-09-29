@@ -13,5 +13,5 @@
  *
  * @module @wavex/lsp
  */
-export { createWavexLanguagePlugin, WavexVirtualCode, WAVEX_LANGUAGE_ID } from "./language.js";
+export { createWavexLanguagePlugin, WavexVirtualCode, WAVEX_LANGUAGE_ID, type WavexParseOptionsResolver } from "./language.js";
 export { createWavexServicePlugin, type WavexServiceOptions, type WavexServiceOptionsResolver } from "./service.js";

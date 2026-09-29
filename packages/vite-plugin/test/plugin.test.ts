@@ -187,6 +187,40 @@ describe("wavex Vite transform", () => {
     expect(code).toContain("__wavexHotReplacePage");
   });
 
+  it("parses the installed Web Awesome component's boolean attributes on @component heads", async () => {
+    const root = fixtureRoot("wavex-vite-transform-booleans-");
+    writeFixture(
+      root,
+      "node_modules/@awesome.me/webawesome/dist/custom-elements.json",
+      JSON.stringify({
+        modules: [
+          {
+            declarations: [
+              { tagName: "wa-button", attributes: [{ name: "with-caret", type: { text: "boolean" } }] },
+              { tagName: "wa-dropdown" }
+            ]
+          }
+        ]
+      })
+    );
+    const source = "~~~\n@dropdown\n  @button slot:trigger appearance:plain with-caret class:snooze\n    | Snooze\n";
+    const pageFile = writeFixture(root, "src/pages/index.wx", source);
+    const plugin = configuredPlugin(root);
+    const context = {
+      addWatchFile: vi.fn(),
+      warn: vi.fn(),
+      error(error: { message: string }) {
+        throw new Error(error.message);
+      }
+    };
+
+    const result = await plugin.transform.call(context, source, pageFile);
+    const code = result.code as string;
+
+    expect(code).toContain("?with-caret=${true}");
+    expect(code).not.toContain(">with-caret");
+  });
+
   it("surfaces every transform diagnostic in the thrown Vite error", async () => {
     const root = fixtureRoot("wavex-vite-transform-errors-");
     const pageFile = writeFixture(root, "src/pages/index.wx", "~~~\n+maybe nope\n+for task of tasks\n");

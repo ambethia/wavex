@@ -64,7 +64,7 @@ Options for [compileWavexModule](#compilewavexmodule).
 optional convexFunctionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:25](packages/compiler/src/compiler.ts#L25)
+Defined in: [packages/compiler/src/compiler.ts:32](packages/compiler/src/compiler.ts#L32)
 
 Detected Convex function kind map keyed by normalized `module/path:function`.
 
@@ -88,6 +88,19 @@ Defined in: [packages/compiler/src/compiler.ts:21](packages/compiler/src/compile
 
 Local `src/components/` references; these shadow Web Awesome names in `@` lookup.
 
+##### webAwesomeBooleanAttributes?
+
+```ts
+optional webAwesomeBooleanAttributes?: ReadonlyMap<string, ReadonlySet<string>>;
+```
+
+Defined in: [packages/compiler/src/compiler.ts:30](packages/compiler/src/compiler.ts#L30)
+
+Boolean attributes per Web Awesome component (keyed without `wa-`), usually
+`detectCapabilities(root).webAwesome.booleanAttributes`. Bare tokens naming
+them on `@component` heads parse as boolean attributes, and dynamic values
+for them bind as Lit boolean attributes (`?with-caret=${…}`).
+
 ##### webAwesomeComponents?
 
 ```ts
@@ -102,7 +115,7 @@ Web Awesome component names (without `wa-`) detected from the installed package.
 
 ### CompileWavexResult
 
-Defined in: [packages/compiler/src/compiler.ts:29](packages/compiler/src/compiler.ts#L29)
+Defined in: [packages/compiler/src/compiler.ts:36](packages/compiler/src/compiler.ts#L36)
 
 Result of [compileWavexModule](#compilewavexmodule): the parsed AST plus the generated module source.
 
@@ -114,7 +127,7 @@ Result of [compileWavexModule](#compilewavexmodule): the parsed AST plus the gen
 ast: WavexFile;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:30](packages/compiler/src/compiler.ts#L30)
+Defined in: [packages/compiler/src/compiler.ts:37](packages/compiler/src/compiler.ts#L37)
 
 ##### code
 
@@ -122,7 +135,7 @@ Defined in: [packages/compiler/src/compiler.ts:30](packages/compiler/src/compile
 code: string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:32](packages/compiler/src/compiler.ts#L32)
+Defined in: [packages/compiler/src/compiler.ts:39](packages/compiler/src/compiler.ts#L39)
 
 Generated TypeScript module source (render function, resources, head entries).
 
@@ -132,7 +145,7 @@ Generated TypeScript module source (render function, resources, head entries).
 usedWebAwesomeComponents: readonly string[];
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:34](packages/compiler/src/compiler.ts#L34)
+Defined in: [packages/compiler/src/compiler.ts:41](packages/compiler/src/compiler.ts#L41)
 
 Web Awesome component names (without the wa- prefix) referenced by this template.
 
@@ -144,7 +157,7 @@ Web Awesome component names (without the wa- prefix) referenced by this template
 function compileWavexModule(source, options?): CompileWavexResult;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:121](packages/compiler/src/compiler.ts#L121)
+Defined in: [packages/compiler/src/compiler.ts:128](packages/compiler/src/compiler.ts#L128)
 
 Compile `.wx` source into a Lit render module.
 
@@ -178,7 +191,7 @@ on `result.ast.diagnostics`, not thrown.
 function componentTagForReference(reference, options?): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:1128](packages/compiler/src/compiler.ts#L1128)
+Defined in: [packages/compiler/src/compiler.ts:1148](packages/compiler/src/compiler.ts#L1148)
 
 Resolve an `@name` reference to its custom-element tag using the compile
 options' component sets (local components shadow Web Awesome).
@@ -205,7 +218,7 @@ options' component sets (local components shadow Web Awesome).
 function utilityClassForToken(token): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:1133](packages/compiler/src/compiler.ts#L1133)
+Defined in: [packages/compiler/src/compiler.ts:1153](packages/compiler/src/compiler.ts#L1153)
 
 Expand one `[utility]` token to its `wa-` class (plain prefix expansion, no mapping table).
 

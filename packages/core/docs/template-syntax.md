@@ -117,15 +117,35 @@ Attributes use colon syntax.
 @input label:"Full name" required
 ```
 
-Recognized HTML and WAVEx-defined boolean attributes omit the value.
+Boolean attributes omit the value. A bare word before inline text is a boolean
+attribute when it names a native HTML boolean attribute (`disabled`, `required`,
+`open`, `muted`, …) or, on an `@component` head, a boolean attribute of the Web
+Awesome component that head resolves to, as declared in the installed
+package's `custom-elements.json`.
 
 ```wx
 video autoplay muted loop
 @card with-header
 @input required
+@button slot:trigger appearance:plain with-caret
 ```
 
 Bare prose is still text, so hyphenated text such as `p easy-going folks` does not become an attribute.
+
+The rule is deterministic for a given install:
+
+- Native elements know only the HTML boolean attributes.
+- A Web Awesome component (`@button`, `@wa/button`) also knows its own manifest
+  booleans, so `with-caret` is an attribute on `@button` but prose on `@card`
+  or `div`.
+- Local components shadow Web Awesome names in `@` lookup, so their heads know
+  only the HTML boolean attributes; pass values explicitly
+  (`featured:{{ true }}`).
+
+Because the names come from the installed package, upgrading Web Awesome can
+add boolean attributes. A boolean attribute name that appears later in the
+head's inline text is reported (WX007); write such prose on an explicit `|`
+line.
 
 Quoted values are strings.
 
@@ -145,8 +165,11 @@ attributes concise.
 Dynamic values use expression-shaped TypeScript: member paths, calls,
 object/array literals, numeric literals, unambiguous operators, or one of the
 built-in roots (`route`, `attrs`, `state`, `api`, `ctx`, `context`). Bare
-identifier values on boolean attributes are also expressions so
-`checked:isDone` binds the boolean value instead of the string `"isDone"`.
+identifier values on boolean attributes (native, or the component's Web
+Awesome booleans) are also expressions so `checked:isDone` and
+`with-caret:hasMenu` bind the boolean value instead of a string. A dynamic
+boolean attribute is present only while its value is truthy, so
+`with-caret:{{ false }}` removes the caret.
 Ambiguous hyphenated bare values remain static strings; use `{{ ... }}` to mark
 them explicitly as expressions.
 

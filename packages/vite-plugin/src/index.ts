@@ -163,6 +163,7 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
         webAwesomeComponents:
           options.webAwesomeComponents ??
           (detected.webAwesome ? [...detected.webAwesome.components] : undefined),
+        webAwesomeBooleanAttributes: detected.webAwesome?.booleanAttributes,
         convexFunctionKinds: projectConvexFunctionKinds()
       });
 

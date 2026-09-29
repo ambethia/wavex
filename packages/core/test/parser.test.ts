@@ -330,6 +330,68 @@ describe("parseWavex", () => {
     });
   });
 
+  it("promotes a Web Awesome component's boolean attributes on its @component head", () => {
+    const webAwesomeBooleanAttributes = new Map([
+      ["button", new Set(["with-caret", "loading"])],
+      ["card", new Set(["with-header"])]
+    ]);
+    const source = "~~~\n@button slot:trigger appearance:plain with-caret\n@wa/button with-caret loading Save\n@card with-header\n@button with-header Save\ndiv with-caret Text\n";
+
+    const parsed = parseWavex(source, { webAwesomeBooleanAttributes });
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.nodes[0]).toMatchObject({
+      kind: "component",
+      reference: "button",
+      attributes: [
+        { kind: "literal", name: "slot", value: "trigger" },
+        { kind: "literal", name: "appearance", value: "plain" },
+        { kind: "boolean", name: "with-caret" }
+      ]
+    });
+    expect(parsed.nodes[0]).toMatchObject({ inlineText: undefined });
+    expect(parsed.nodes[1]).toMatchObject({
+      attributes: [{ kind: "boolean", name: "with-caret" }, { kind: "boolean", name: "loading" }],
+      inlineText: "Save"
+    });
+    expect(parsed.nodes[2]).toMatchObject({ attributes: [{ kind: "boolean", name: "with-header" }] });
+    // Another component's boolean names stay prose, and native elements keep the HTML list.
+    expect(parsed.nodes[3]).toMatchObject({ attributes: [], inlineText: "with-header Save" });
+    expect(parsed.nodes[4]).toMatchObject({ kind: "element", attributes: [], inlineText: "with-caret Text" });
+  });
+
+  it("keeps Web Awesome boolean names as text without component context or when a local component shadows the name", () => {
+    const webAwesomeBooleanAttributes = new Map([["card", new Set(["with-header"])]]);
+
+    const withoutContext = parseWavex("~~~\n@card with-header\n");
+    const shadowed = parseWavex("~~~\n@card with-header\n", { webAwesomeBooleanAttributes, localComponents: ["card"] });
+    const explicit = parseWavex("~~~\n@wa/card with-header\n", { webAwesomeBooleanAttributes, localComponents: ["card"] });
+
+    expect(withoutContext.nodes[0]).toMatchObject({ attributes: [], inlineText: "with-header" });
+    expect(shadowed.nodes[0]).toMatchObject({ attributes: [], inlineText: "with-header" });
+    expect(explicit.nodes[0]).toMatchObject({ attributes: [{ kind: "boolean", name: "with-header" }] });
+  });
+
+  it("treats bare identifier values on component boolean attributes as expressions", () => {
+    const webAwesomeBooleanAttributes = new Map([["button", new Set(["with-caret"])]]);
+
+    const parsed = parseWavex("~~~\n@button with-caret:hasMenu variant:brand Go\n", { webAwesomeBooleanAttributes });
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.nodes[0]).toMatchObject({
+      attributes: [
+        { kind: "expression", name: "with-caret", expression: "hasMenu" },
+        { kind: "literal", name: "variant", value: "brand" }
+      ],
+      inlineText: "Go"
+    });
+    expect(parseAttributeToken("with-caret:hasMenu")).toMatchObject({ kind: "literal", value: "hasMenu" });
+    expect(parseAttributeToken("with-caret:hasMenu", undefined, new Set(["with-caret"]))).toMatchObject({
+      kind: "expression",
+      expression: "hasMenu"
+    });
+  });
+
   it("parses colon-bearing prose as inline text instead of a same-name attribute", () => {
     const parsed = parseWavex(`~~~\np Total: {{ n }}\n`);
 

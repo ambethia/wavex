@@ -10,7 +10,7 @@
 import { createConnection, createServer, createTypeScriptProject, loadTsdkByPath } from "@volar/language-server/node.js";
 import { create as createTypeScriptServices } from "volar-service-typescript";
 import { createWavexLanguagePlugin } from "./language.js";
-import { optionsForDocument } from "./project-context.js";
+import { optionsForDocument, parseOptionsForFile } from "./project-context.js";
 import { createWavexServicePlugin } from "./service.js";
 
 const connection = createConnection();
@@ -28,7 +28,7 @@ connection.onInitialize((params) => {
   return server.initialize(
     params,
     createTypeScriptProject(tsdk.typescript, tsdk.diagnosticMessages, () => ({
-      languagePlugins: [createWavexLanguagePlugin()]
+      languagePlugins: [createWavexLanguagePlugin(parseOptionsForFile)]
     })),
     [...createTypeScriptServices(tsdk.typescript), createWavexServicePlugin(optionsForDocument)]
   );

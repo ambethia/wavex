@@ -78,7 +78,11 @@ async function check(rootInput: string) {
   const convexFunctionKinds = discoverConvexFunctionKinds(appRoot);
 
   for (const file of files) {
-    const parsed = parseWavex(readFileSync(file, "utf8"), { fileName: file });
+    const parsed = parseWavex(readFileSync(file, "utf8"), {
+      fileName: file,
+      localComponents,
+      webAwesomeBooleanAttributes: capabilities.webAwesome?.booleanAttributes
+    });
     const capabilityDiagnostics = validateComponentReferences(parsed, {
       localComponents,
       webAwesome: capabilities.webAwesome,
@@ -126,10 +130,15 @@ async function compile(fileInput: string | undefined) {
   if (!file) return;
 
   const source = readFileSync(file, "utf8");
-  const { discoverConvexFunctionKinds } = await import("@wavex/core/capabilities");
+  const { detectCapabilities, discoverConvexFunctionKinds, discoverLocalComponents } = await import("@wavex/core/capabilities");
+  const appRoot = resolveWavexAppRoot(dirname(file));
+  const capabilities = detectCapabilities(appRoot);
   const compiled = compileWavexModule(source, {
     id: normalizeSlashes(file),
-    convexFunctionKinds: discoverConvexFunctionKinds(resolveWavexAppRoot(dirname(file)))
+    localComponents: discoverLocalComponents(appRoot),
+    webAwesomeComponents: capabilities.webAwesome ? [...capabilities.webAwesome.components] : undefined,
+    webAwesomeBooleanAttributes: capabilities.webAwesome?.booleanAttributes,
+    convexFunctionKinds: discoverConvexFunctionKinds(appRoot)
   });
   for (const diagnostic of compiled.ast.diagnostics) console.error(formatDiagnostic(diagnostic));
   if (compiled.ast.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {

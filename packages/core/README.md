@@ -28,6 +28,12 @@ single source of truth for the WAVEx language.
 - **Diagnostics, not exceptions.** Parsing collects `Diagnostic` values and
   always yields a best-effort AST, so the LSP and compiler can report every
   problem in a file with positions.
+- **Parse context is explicit.** Whether a bare word on an `@component` head is
+  a boolean attribute or inline text depends on the installed Web Awesome
+  manifest (`with-caret` is a `wa-button` boolean). The parser never reads the
+  file system; the compiler, Vite plugin, CLI, and LSP each pass the same
+  `ParseWavexOptions` built from `detectCapabilities` and local component
+  discovery, so they parse an app identically.
 - **Directory structure is framework law.** Routes in `src/pages`, components
   in `src/components`, Convex in `convex`, static assets in `public`. There is
   deliberately no configuration to move these.

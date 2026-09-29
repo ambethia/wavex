@@ -165,6 +165,26 @@ describe("compileWavexModule", () => {
     expect(() => render({})).not.toThrow();
   });
 
+  it("compiles Web Awesome boolean attributes, bare or dynamic, as Lit boolean attribute bindings", () => {
+    const compiled = compileWavexModule(
+      `const hasMenu = false;\n~~~\n@button slot:trigger appearance:plain with-caret\n@button with-caret:hasMenu disabled:hasMenu Save\n@button with-caret:{{ !hasMenu }} Go\n`,
+      {
+        id: "src/pages/index.wx",
+        webAwesomeComponents: ["button"],
+        webAwesomeBooleanAttributes: new Map([["button", new Set(["with-caret", "disabled"])]])
+      }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain('<wa-button slot="trigger" appearance="plain" ?with-caret=${true}></wa-button>');
+    expect(compiled.code).toContain("<wa-button ?with-caret=${hasMenu} .disabled=${hasMenu}>Save</wa-button>");
+    expect(compiled.code).toContain("<wa-button ?with-caret=${!hasMenu}>Go</wa-button>");
+    expect(compiled.code).not.toContain(" with-caret=${");
+
+    const render = evaluateGeneratedRender(compiled.code);
+    expect(() => render({})).not.toThrow();
+  });
+
   it("compiles boolean identifier and numeric attribute values as expressions", () => {
     const compiled = compileWavexModule(`const isDone = false;\n~~~\ninput checked:isDone count:42 value:3.14\n`, {
       id: "src/pages/index.wx"

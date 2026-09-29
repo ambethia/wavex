@@ -167,8 +167,10 @@ export interface ResourceBinding {
 
 /**
  * One parsed attribute token. The colon grammar is the language's backbone:
- * bare names are booleans in attribute contexts (element and component heads
- * only promote recognized bare names before inline text), unquoted
+ * bare names are booleans in attribute contexts (element heads only promote
+ * native HTML boolean attributes before inline text; `@component` heads also
+ * promote the boolean attributes of the Web Awesome component they resolve
+ * to), unquoted
  * `name:value` is a static string unless the value is expression-shaped,
  * numeric, or a bare identifier on a boolean attribute,
  * `name:{{ expr }}` is an explicit TypeScript

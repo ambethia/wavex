@@ -7,6 +7,7 @@ import "@volar/typescript";
 import {
   extractAttrsTypeKeys,
   parseWavex,
+  type ParseWavexOptions,
   type ResourceBinding,
   type SourceRange,
   type TemplateNode,
@@ -28,19 +29,31 @@ const FULL_CAPABILITIES: CodeMapping["data"] = {
 };
 
 /**
+ * Resolves the parse options (component context such as installed Web Awesome
+ * boolean attributes) for a `.wx` file path, so virtual code parses component
+ * heads exactly like the compiler.
+ */
+export type WavexParseOptionsResolver = (fileName: string) => ParseWavexOptions;
+
+/**
  * Volar language plugin: recognizes `.wx` files and produces a
  * {@link WavexVirtualCode} per document, with the embedded TypeScript code
  * registered as the TypeScript service script so prelude and template
  * expressions are type-checked by the real TS language service.
+ *
+ * Pass `parseOptionsFor` (the language server passes the app's detected
+ * component context) so bare boolean attributes on `@component` heads parse
+ * the same way they compile.
  */
-export function createWavexLanguagePlugin(): LanguagePlugin<URI> {
+export function createWavexLanguagePlugin(parseOptionsFor?: WavexParseOptionsResolver): LanguagePlugin<URI> {
   return {
     getLanguageId(uri) {
       return uri.path.endsWith(".wx") ? WAVEX_LANGUAGE_ID : undefined;
     },
     createVirtualCode(uri, languageId, snapshot) {
       if (languageId !== WAVEX_LANGUAGE_ID) return undefined;
-      return new WavexVirtualCode(snapshot, uri.scheme === "file" ? uri.fsPath : undefined);
+      const fsPath = uri.scheme === "file" ? uri.fsPath : undefined;
+      return new WavexVirtualCode(snapshot, fsPath, fsPath && parseOptionsFor ? parseOptionsFor(fsPath) : {});
     },
     typescript: {
       extraFileExtensions: [{ extension: "wx", isMixedContent: true, scriptKind: 7 }],
@@ -74,9 +87,9 @@ export class WavexVirtualCode implements VirtualCode {
   embeddedCodes: VirtualCode[] = [];
   ast: WavexFile;
 
-  constructor(public snapshot: ts.IScriptSnapshot, fsPath?: string) {
+  constructor(public snapshot: ts.IScriptSnapshot, fsPath?: string, parseOptions: ParseWavexOptions = {}) {
     const source = snapshot.getText(0, snapshot.getLength());
-    this.ast = parseWavex(source);
+    this.ast = parseWavex(source, parseOptions);
     // The root code keeps the document text for non-TS features.
     this.mappings = [
       {

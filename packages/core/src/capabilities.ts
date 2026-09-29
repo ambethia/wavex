@@ -17,7 +17,7 @@
  *
  * @module capabilities
  */
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { ComponentNode, ConvexCallNode, ConvexReferenceNode, TemplateNode, WavexFile } from "./ast.js";
 import type { Diagnostic } from "./model.js";
@@ -30,6 +30,12 @@ export interface WebAwesomeCapability {
   pro: boolean;
   /** Component names without the wa- prefix, from the package's custom-elements.json. */
   components: ReadonlySet<string>;
+  /**
+   * Boolean attribute names per component (keyed without the wa- prefix), from
+   * the manifest's attribute types. Pass as `ParseWavexOptions.webAwesomeBooleanAttributes`
+   * so bare tokens like `with-caret` on `@button` parse as boolean attributes.
+   */
+  booleanAttributes: ReadonlyMap<string, ReadonlySet<string>>;
   /** Installed package directory (for manifest details and stylesheet scans). */
   packageDir: string;
 }
@@ -62,10 +68,12 @@ export function detectCapabilities(root: string): ProjectCapabilities {
   for (const candidate of WEB_AWESOME_PACKAGES) {
     const packageDir = join(root, "node_modules", ...candidate.name.split("/"));
     if (!existsSync(packageDir)) continue;
+    const details = readManifestComponentDetails(join(packageDir, "dist", "custom-elements.json"));
     webAwesome = {
       packageName: candidate.name,
       pro: candidate.pro,
-      components: readManifestComponents(join(packageDir, "dist", "custom-elements.json")),
+      components: new Set(details.keys()),
+      booleanAttributes: webAwesomeBooleanAttributes(details),
       packageDir
     };
     break;
@@ -90,22 +98,53 @@ function detectFontAwesome(root: string): FontAwesomeCapability {
   return { kits, packages };
 }
 
+interface CustomElementsManifest {
+  modules?: Array<{
+    declarations?: Array<{
+      tagName?: string;
+      summary?: string;
+      description?: string;
+      attributes?: Array<{ name?: string; description?: string; type?: { text?: string }; default?: string }>;
+      slots?: Array<{ name?: string; description?: string }>;
+    }>;
+  }>;
+}
+
+const manifestCache = new Map<string, { mtimeMs: number; size: number; manifest: CustomElementsManifest | undefined }>();
+
+/**
+ * Parse a custom-elements.json once per file version. The cache is keyed by
+ * the file's mtime and size, so editors can ask for component context on every
+ * keystroke without re-parsing the (large) manifest or ever serving a stale one.
+ */
+function readManifest(manifestPath: string): CustomElementsManifest | undefined {
+  let stats;
+  try {
+    stats = statSync(manifestPath);
+  } catch {
+    return undefined;
+  }
+  const cached = manifestCache.get(manifestPath);
+  if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) return cached.manifest;
+  let manifest: CustomElementsManifest | undefined;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as CustomElementsManifest;
+  } catch {
+    manifest = undefined;
+  }
+  manifestCache.set(manifestPath, { mtimeMs: stats.mtimeMs, size: stats.size, manifest });
+  return manifest;
+}
+
 /** Parse component names (without wa- prefix) from a custom-elements.json manifest. */
 export function readManifestComponents(manifestPath: string): ReadonlySet<string> {
-  try {
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
-      modules?: Array<{ declarations?: Array<{ tagName?: string }> }>;
-    };
-    const components = new Set<string>();
-    for (const module of manifest.modules ?? []) {
-      for (const declaration of module.declarations ?? []) {
-        if (declaration.tagName?.startsWith("wa-")) components.add(declaration.tagName.slice(3));
-      }
+  const components = new Set<string>();
+  for (const module of readManifest(manifestPath)?.modules ?? []) {
+    for (const declaration of module.declarations ?? []) {
+      if (declaration.tagName?.startsWith("wa-")) components.add(declaration.tagName.slice(3));
     }
-    return components;
-  } catch {
-    return new Set();
   }
+  return components;
 }
 
 /** Depth-first visit of a template node tree. */
@@ -332,41 +371,48 @@ export interface WebAwesomeComponentDetail {
   slots: Array<{ name: string; description?: string }>;
 }
 
-/** Full component metadata (descriptions, attributes, slots) from custom-elements.json. */
+/** Full component metadata (descriptions, attributes, slots) from custom-elements.json; empty when the manifest is missing or malformed. */
 export function readManifestComponentDetails(manifestPath: string): Map<string, WebAwesomeComponentDetail> {
   const details = new Map<string, WebAwesomeComponentDetail>();
-  try {
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
-      modules?: Array<{
-        declarations?: Array<{
-          tagName?: string;
-          summary?: string;
-          description?: string;
-          attributes?: Array<{ name?: string; description?: string; type?: { text?: string }; default?: string }>;
-          slots?: Array<{ name?: string; description?: string }>;
-        }>;
-      }>;
-    };
-    for (const module of manifest.modules ?? []) {
-      for (const declaration of module.declarations ?? []) {
-        if (!declaration.tagName?.startsWith("wa-")) continue;
-        const name = declaration.tagName.slice(3);
-        details.set(name, {
-          name,
-          summary: declaration.summary ?? declaration.description,
-          attributes: (declaration.attributes ?? []).flatMap((attribute) =>
-            attribute.name ? [{ name: attribute.name, description: attribute.description, type: attribute.type?.text, default: attribute.default }] : []
-          ),
-          slots: (declaration.slots ?? []).flatMap((slot) =>
-            slot.name !== undefined ? [{ name: slot.name, description: slot.description }] : []
-          )
-        });
-      }
+  for (const module of readManifest(manifestPath)?.modules ?? []) {
+    for (const declaration of module.declarations ?? []) {
+      if (!declaration.tagName?.startsWith("wa-")) continue;
+      const name = declaration.tagName.slice(3);
+      details.set(name, {
+        name,
+        summary: declaration.summary ?? declaration.description,
+        attributes: (declaration.attributes ?? []).flatMap((attribute) =>
+          attribute.name ? [{ name: attribute.name, description: attribute.description, type: attribute.type?.text, default: attribute.default }] : []
+        ),
+        slots: (declaration.slots ?? []).flatMap((slot) =>
+          slot.name !== undefined ? [{ name: slot.name, description: slot.description }] : []
+        )
+      });
     }
-  } catch {
-    // missing or malformed manifest: no details
   }
   return details;
+}
+
+/**
+ * Boolean attribute names per Web Awesome component (keyed without the wa-
+ * prefix): attributes whose manifest type is `boolean` (optionally unioned
+ * with `undefined`/`null`). Components without boolean attributes are omitted.
+ */
+export function webAwesomeBooleanAttributes(
+  details: ReadonlyMap<string, WebAwesomeComponentDetail>
+): Map<string, ReadonlySet<string>> {
+  const booleans = new Map<string, ReadonlySet<string>>();
+  for (const [name, detail] of details) {
+    const names = detail.attributes.filter((attribute) => isBooleanAttributeType(attribute.type)).map((attribute) => attribute.name);
+    if (names.length > 0) booleans.set(name, new Set(names));
+  }
+  return booleans;
+}
+
+function isBooleanAttributeType(type: string | undefined): boolean {
+  if (!type) return false;
+  const members = type.split("|").map((member) => member.trim());
+  return members.includes("boolean") && members.every((member) => member === "boolean" || member === "undefined" || member === "null");
 }
 
 /** Utility class suffixes (wa-stack -> "stack") scraped from the installed package's stylesheets. */

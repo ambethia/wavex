@@ -16,7 +16,7 @@ TextMate grammar; the grammar is cosmetic, while this LSP uses the
 
 ### WavexVirtualCode
 
-Defined in: [packages/lsp/src/language.ts:70](packages/lsp/src/language.ts#L70)
+Defined in: [packages/lsp/src/language.ts:83](packages/lsp/src/language.ts#L83)
 
 The Volar virtual code for one `.wx` document: parses with the
 `@wavex/core` parser (the single parser), keeps the AST for non-TS
@@ -32,10 +32,13 @@ and every `{{ … }}` / attribute expression back to its `.wx` source range.
 ##### Constructor
 
 ```ts
-new WavexVirtualCode(snapshot, fsPath?): WavexVirtualCode;
+new WavexVirtualCode(
+   snapshot,
+   fsPath?,
+   parseOptions?): WavexVirtualCode;
 ```
 
-Defined in: [packages/lsp/src/language.ts:77](packages/lsp/src/language.ts#L77)
+Defined in: [packages/lsp/src/language.ts:90](packages/lsp/src/language.ts#L90)
 
 ###### Parameters
 
@@ -46,6 +49,10 @@ Defined in: [packages/lsp/src/language.ts:77](packages/lsp/src/language.ts#L77)
 ###### fsPath?
 
 `string`
+
+###### parseOptions?
+
+[`ParseWavexOptions`](../core/README.md#parsewavexoptions) = `{}`
 
 ###### Returns
 
@@ -59,7 +66,7 @@ Defined in: [packages/lsp/src/language.ts:77](packages/lsp/src/language.ts#L77)
 ast: WavexFile;
 ```
 
-Defined in: [packages/lsp/src/language.ts:75](packages/lsp/src/language.ts#L75)
+Defined in: [packages/lsp/src/language.ts:88](packages/lsp/src/language.ts#L88)
 
 ##### embeddedCodes
 
@@ -67,7 +74,7 @@ Defined in: [packages/lsp/src/language.ts:75](packages/lsp/src/language.ts#L75)
 embeddedCodes: VirtualCode[] = [];
 ```
 
-Defined in: [packages/lsp/src/language.ts:74](packages/lsp/src/language.ts#L74)
+Defined in: [packages/lsp/src/language.ts:87](packages/lsp/src/language.ts#L87)
 
 ###### Implementation of
 
@@ -81,7 +88,7 @@ VirtualCode.embeddedCodes
 id: string = "root";
 ```
 
-Defined in: [packages/lsp/src/language.ts:71](packages/lsp/src/language.ts#L71)
+Defined in: [packages/lsp/src/language.ts:84](packages/lsp/src/language.ts#L84)
 
 ###### Implementation of
 
@@ -95,7 +102,7 @@ VirtualCode.id
 languageId: string = WAVEX_LANGUAGE_ID;
 ```
 
-Defined in: [packages/lsp/src/language.ts:72](packages/lsp/src/language.ts#L72)
+Defined in: [packages/lsp/src/language.ts:85](packages/lsp/src/language.ts#L85)
 
 ###### Implementation of
 
@@ -109,7 +116,7 @@ VirtualCode.languageId
 mappings: CodeMapping[] = [];
 ```
 
-Defined in: [packages/lsp/src/language.ts:73](packages/lsp/src/language.ts#L73)
+Defined in: [packages/lsp/src/language.ts:86](packages/lsp/src/language.ts#L86)
 
 ###### Implementation of
 
@@ -123,7 +130,7 @@ VirtualCode.mappings
 snapshot: IScriptSnapshot;
 ```
 
-Defined in: [packages/lsp/src/language.ts:77](packages/lsp/src/language.ts#L77)
+Defined in: [packages/lsp/src/language.ts:90](packages/lsp/src/language.ts#L90)
 
 ###### Implementation of
 
@@ -147,7 +154,7 @@ Project context for completions/diagnostics, usually detected via `@wavex/core/c
 optional convexFunctionKinds?: Readonly<Record<string, ConvexFunctionKind>>;
 ```
 
-Defined in: [packages/lsp/src/service.ts:21](packages/lsp/src/service.ts#L21)
+Defined in: [packages/lsp/src/service.ts:23](packages/lsp/src/service.ts#L23)
 
 Detected Convex function kinds keyed by normalized `module/path:function`.
 
@@ -157,7 +164,7 @@ Detected Convex function kinds keyed by normalized `module/path:function`.
 optional convexFunctions?: readonly string[];
 ```
 
-Defined in: [packages/lsp/src/service.ts:19](packages/lsp/src/service.ts#L19)
+Defined in: [packages/lsp/src/service.ts:21](packages/lsp/src/service.ts#L21)
 
 Convex function references (e.g. "tasks:list").
 
@@ -177,9 +184,19 @@ Local component references (e.g. "talk-card", "tasks/item").
 optional utilityClasses?: readonly string[];
 ```
 
-Defined in: [packages/lsp/src/service.ts:17](packages/lsp/src/service.ts#L17)
+Defined in: [packages/lsp/src/service.ts:19](packages/lsp/src/service.ts#L19)
 
 Utility class suffixes (stack, gap-xl, ...) for [bracket-group] completions.
+
+##### webAwesomeBooleanAttributes?
+
+```ts
+optional webAwesomeBooleanAttributes?: ReadonlyMap<string, ReadonlySet<string>>;
+```
+
+Defined in: [packages/lsp/src/service.ts:15](packages/lsp/src/service.ts#L15)
+
+Boolean attributes per Web Awesome component, so diagnostics parse component heads like the compiler.
 
 ##### webAwesomeComponents?
 
@@ -197,11 +214,35 @@ Web Awesome component names without the wa- prefix.
 optional webAwesomeDetails?: ReadonlyMap<string, WebAwesomeComponentDetail>;
 ```
 
-Defined in: [packages/lsp/src/service.ts:15](packages/lsp/src/service.ts#L15)
+Defined in: [packages/lsp/src/service.ts:17](packages/lsp/src/service.ts#L17)
 
 Full Web Awesome component metadata for attribute completions and hover.
 
 ## Type Aliases
+
+### WavexParseOptionsResolver
+
+```ts
+type WavexParseOptionsResolver = (fileName) => ParseWavexOptions;
+```
+
+Defined in: [packages/lsp/src/language.ts:36](packages/lsp/src/language.ts#L36)
+
+Resolves the parse options (component context such as installed Web Awesome
+boolean attributes) for a `.wx` file path, so virtual code parses component
+heads exactly like the compiler.
+
+#### Parameters
+
+##### fileName
+
+`string`
+
+#### Returns
+
+[`ParseWavexOptions`](../core/README.md#parsewavexoptions)
+
+***
 
 ### WavexServiceOptionsResolver
 
@@ -211,7 +252,7 @@ type WavexServiceOptionsResolver =
   | ((documentUri) => WavexServiceOptions);
 ```
 
-Defined in: [packages/lsp/src/service.ts:25](packages/lsp/src/service.ts#L25)
+Defined in: [packages/lsp/src/service.ts:27](packages/lsp/src/service.ts#L27)
 
 Static options, or a per-document resolver so multi-project workspaces get the right context.
 
@@ -223,7 +264,7 @@ Static options, or a per-document resolver so multi-project workspaces get the r
 const WAVEX_LANGUAGE_ID: "wavex" = "wavex";
 ```
 
-Defined in: [packages/lsp/src/language.ts:19](packages/lsp/src/language.ts#L19)
+Defined in: [packages/lsp/src/language.ts:20](packages/lsp/src/language.ts#L20)
 
 The LSP language id for `.wx` documents.
 
@@ -232,15 +273,25 @@ The LSP language id for `.wx` documents.
 ### createWavexLanguagePlugin()
 
 ```ts
-function createWavexLanguagePlugin(): LanguagePlugin<URI>;
+function createWavexLanguagePlugin(parseOptionsFor?): LanguagePlugin<URI>;
 ```
 
-Defined in: [packages/lsp/src/language.ts:36](packages/lsp/src/language.ts#L36)
+Defined in: [packages/lsp/src/language.ts:48](packages/lsp/src/language.ts#L48)
 
 Volar language plugin: recognizes `.wx` files and produces a
 [WavexVirtualCode](#wavexvirtualcode) per document, with the embedded TypeScript code
 registered as the TypeScript service script so prelude and template
 expressions are type-checked by the real TS language service.
+
+Pass `parseOptionsFor` (the language server passes the app's detected
+component context) so bare boolean attributes on `@component` heads parse
+the same way they compile.
+
+#### Parameters
+
+##### parseOptionsFor?
+
+[`WavexParseOptionsResolver`](#wavexparseoptionsresolver)
 
 #### Returns
 
@@ -254,7 +305,7 @@ expressions are type-checked by the real TS language service.
 function createWavexServicePlugin(optionsOrResolver?): LanguageServicePlugin;
 ```
 
-Defined in: [packages/lsp/src/service.ts:47](packages/lsp/src/service.ts#L47)
+Defined in: [packages/lsp/src/service.ts:49](packages/lsp/src/service.ts#L49)
 
 Volar service plugin providing the WAVEx-specific editor features that
 aren't plain TypeScript: parser diagnostics, completions for `@` components

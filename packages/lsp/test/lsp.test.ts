@@ -7,8 +7,8 @@ import { createTypeScriptInferredChecker } from "@volar/kit";
 import ts from "typescript";
 import { create as createTypeScriptServices } from "volar-service-typescript";
 import { URI } from "vscode-uri";
-import { createWavexLanguagePlugin, createWavexServicePlugin } from "../src/index.js";
-import { optionsForDocument } from "../src/project-context.js";
+import { createWavexLanguagePlugin, createWavexServicePlugin, WavexVirtualCode } from "../src/index.js";
+import { optionsForDocument, parseOptionsForFile } from "../src/project-context.js";
 
 const fixturesDir = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures");
 const talkFixture = resolve(fixturesDir, "talk.wx");
@@ -151,7 +151,8 @@ describe("@wavex/lsp", () => {
           summary: "Buttons represent actions.",
           attributes: [
             { name: "variant", description: "The button's theme variant.", type: "'brand' | 'neutral'", default: "'neutral'" },
-            { name: "size", type: "'s' | 'm' | 'l'" }
+            { name: "size", type: "'s' | 'm' | 'l'" },
+            { name: "with-caret", type: "boolean" }
           ],
           slots: [{ name: "start", description: "Content before the label." }]
         }
@@ -160,6 +161,7 @@ describe("@wavex/lsp", () => {
     const plugin = createWavexServicePlugin({
       webAwesomeComponents: ["button"],
       webAwesomeDetails: details,
+      webAwesomeBooleanAttributes: new Map([["button", new Set(["with-caret"])]]),
       utilityClasses: ["stack", "gap-xl", "align-items-center"]
     });
     const instance = plugin.create({} as never);
@@ -178,8 +180,11 @@ describe("@wavex/lsp", () => {
       { line: 0, character: 10 },
       {} as never,
       {} as never
-    ) as { items: Array<{ label: string; detail?: string }> };
-    expect(attrList.items.map((item) => item.label)).toEqual(expect.arrayContaining(["variant", "size", "slot:start"]));
+    ) as { items: Array<{ label: string; detail?: string; insertText?: string }> };
+    expect(attrList.items.map((item) => item.label)).toEqual(expect.arrayContaining(["variant", "size", "with-caret", "slot:start"]));
+    // Boolean attributes complete bare, valued attributes with their colon.
+    expect(attrList.items.find((item) => item.label === "with-caret")?.insertText).toBe("with-caret");
+    expect(attrList.items.find((item) => item.label === "variant")?.insertText).toBe("variant:");
 
     const prefixedAttrList = instance.provideCompletionItems?.(
       documentFor("  @wa/button ") as never,
@@ -223,6 +228,62 @@ describe("@wavex/lsp", () => {
       {} as never
     ) as { contents: { value: string } };
     expect(prefixedAttributeHover.contents.value).toContain("theme variant");
+  });
+
+  it("parses Web Awesome boolean attributes with the project's component context", () => {
+    const text = "~~~\n@progress-bar indeterminate class:nav-progress\n";
+    const document = { languageId: "wavex", getText: () => text, uri: "file:///x.wx", version: 1 };
+    const webAwesomeBooleanAttributes = new Map([["progress-bar", new Set(["indeterminate"])]]);
+
+    const withContext = createWavexServicePlugin({ webAwesomeBooleanAttributes }).create({} as never);
+    const withoutContext = createWavexServicePlugin({}).create({} as never);
+
+    expect(withContext.provideDiagnostics?.(document as never, {} as never)).toEqual([]);
+    expect(withoutContext.provideDiagnostics?.(document as never, {} as never)).toEqual([
+      expect.objectContaining({ code: "WX007" })
+    ]);
+
+    const snapshot = {
+      getText: (start: number, end: number) => text.slice(start, end),
+      getLength: () => text.length,
+      getChangeRange: () => undefined
+    };
+    const resolved: string[] = [];
+    const languagePlugin = createWavexLanguagePlugin((fileName) => {
+      resolved.push(fileName);
+      return { fileName, webAwesomeBooleanAttributes };
+    });
+    const code = languagePlugin.createVirtualCode!(URI.file("/app/src/pages/index.wx"), "wavex", snapshot as never, {} as never) as WavexVirtualCode;
+
+    expect(resolved).toEqual([URI.file("/app/src/pages/index.wx").fsPath]);
+    expect(code.ast.diagnostics).toEqual([]);
+    expect(code.ast.nodes[0]).toMatchObject({
+      attributes: [{ kind: "boolean", name: "indeterminate" }, { kind: "literal", name: "class" }]
+    });
+  });
+
+  it("resolves parse options for a .wx file from the app's installed Web Awesome manifest", () => {
+    const root = mkdtempSync(join(tmpdir(), "wavex-lsp-parse-options-"));
+    try {
+      writeFileSync(join(root, "package.json"), '{"type":"module"}\n');
+      const manifest = join(root, "node_modules/@awesome.me/webawesome/dist/custom-elements.json");
+      mkdirSync(dirname(manifest), { recursive: true });
+      writeFileSync(
+        manifest,
+        JSON.stringify({ modules: [{ declarations: [{ tagName: "wa-button", attributes: [{ name: "with-caret", type: { text: "boolean" } }] }] }] })
+      );
+      mkdirSync(join(root, "src/components"), { recursive: true });
+      writeFileSync(join(root, "src/components/card.wx"), "~~~\nsection\n");
+      const page = join(root, "src/pages/index.wx");
+
+      expect(parseOptionsForFile(page)).toEqual({
+        fileName: page,
+        localComponents: ["card"],
+        webAwesomeBooleanAttributes: new Map([["button", new Set(["with-caret"])]])
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("refreshes project context after local component files change", () => {

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { compileWavexModule } from "@wavex/compiler";
 import type { DirectiveNode, TemplateNode } from "@wavex/core";
+import { detectCapabilities } from "@wavex/core/capabilities";
 import { runCli, viteArgsForWavexCommand } from "../src/cli-core.js";
 import { injectPrerender } from "../src/prerender.js";
 
@@ -76,21 +77,28 @@ describe("Swell validation app", () => {
     const appRoot = fileURLToPath(new URL("../../../apps/swell", import.meta.url));
     const files = readWxFiles(join(appRoot, "src"));
     const localComponents = localComponentsFor(appRoot);
+    const webAwesome = detectCapabilities(appRoot).webAwesome!;
+    const compileContext = {
+      localComponents,
+      webAwesomeComponents: [...webAwesome.components],
+      webAwesomeBooleanAttributes: webAwesome.booleanAttributes
+    };
     const styles = readFileSync(join(appRoot, "src/style.css"), "utf8");
     const manifest = JSON.parse(readFileSync(join(appRoot, "package.json"), "utf8")) as { scripts?: Record<string, string> };
 
     for (const [path, wxSource] of files) {
-      expect(compileWavexModule(wxSource, { id: path, localComponents }).ast.diagnostics).toEqual([]);
+      expect(compileWavexModule(wxSource, { id: path, ...compileContext }).ast.diagnostics).toEqual([]);
     }
 
-    const layout = compileWavexModule(files.get(join(appRoot, "src/pages/+layout.wx"))!, { localComponents });
+    const layout = compileWavexModule(files.get(join(appRoot, "src/pages/+layout.wx"))!, compileContext);
     expect(layout.code).toContain("navigation.pending");
     expect(layout.code).toContain("<wa-progress-bar");
+    expect(layout.code).toContain("?indeterminate=${true}");
     expect(layout.code).toContain("class=\"nav-progress\"");
     expect(styles).toContain("::view-transition-new(root)");
     expect(manifest.scripts?.prerender).toContain("wavex prerender .");
 
-    const live = compileWavexModule(files.get(join(appRoot, "src/pages/live.wx"))!, { localComponents });
+    const live = compileWavexModule(files.get(join(appRoot, "src/pages/live.wx"))!, compileContext);
     expect(live.ast.nodes.some((node) => node.kind === "convex-reference" && node.address.raw === "$talks:list")).toBe(true);
     expect(live.code).toContain('name: "talks"');
     expect(live.code).toContain('name: "systemsTalks"');
@@ -103,7 +111,7 @@ describe("Swell validation app", () => {
       ])
     );
 
-    const home = compileWavexModule(files.get(join(appRoot, "src/pages/index.wx"))!, { localComponents });
+    const home = compileWavexModule(files.get(join(appRoot, "src/pages/index.wx"))!, compileContext);
     expect(home.code).toContain("<wa-card>");
     expect(home.code).toContain("__wxc_conference_hero_stat");
   });
@@ -132,6 +140,25 @@ describe("wavex check", () => {
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("src/pages/index.wx: ");
     expect(errors[0]).toContain("WX101");
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("parses bare Web Awesome boolean attributes from the installed manifest", async () => {
+    const root = fixtureRoot("wavex-cli-check-booleans-");
+    writeFixture(
+      root,
+      "node_modules/@awesome.me/webawesome/dist/custom-elements.json",
+      JSON.stringify({ modules: [{ declarations: [{ tagName: "wa-button", attributes: [{ name: "with-caret", type: { text: "boolean" } }] }] }] })
+    );
+    writeFixture(root, "src/pages/index.wx", "~~~\n@button with-caret class:snooze Snooze\ndiv with-caret class:text\n");
+    const { errors } = captureConsole();
+
+    await runCli(["check", root]);
+
+    // Only the native div rejects the Web Awesome-only boolean name.
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("WX007");
+    expect(errors[0]).toContain('"class:text"');
     expect(process.exitCode).toBe(1);
   });
 

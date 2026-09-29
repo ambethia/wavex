@@ -33,6 +33,17 @@ Explicit Web Awesome lookup uses `@wa/`.
 
 Local components intentionally shadow Web Awesome components.
 
+Web Awesome boolean attributes are written bare, like native ones, because
+WAVEx reads each component's boolean attributes from the installed package's
+custom-elements manifest (see "Attributes and values" in the template syntax
+guide):
+
+```wx
+@card with-header
+@button slot:trigger appearance:plain with-caret
+@dialog label:Details light-dismiss
+```
+
 ### Component inputs
 
 Components receive the attributes written at their invocation site — the same colon-attribute syntax used everywhere else; there is no separate props concept. A component that declares `type Attrs = { ... }` in its prelude gets each declared attribute as a bare, typed local in its template:

@@ -1,4 +1,4 @@
-import { inferResourceBindingName, type Diagnostic } from "./model.js";
+import { componentReferenceToTag, inferResourceBindingName, type Diagnostic } from "./model.js";
 import type {
   Attribute,
   ComponentNode,
@@ -15,10 +15,34 @@ import type {
   WavexFile
 } from "./ast.js";
 
-/** Options for {@link parseWavex}. */
+/**
+ * Options for {@link parseWavex}.
+ *
+ * The component context decides which bare words on an `@component` head are
+ * boolean attributes rather than inline text, so every tool that parses the
+ * same app (compiler, Vite plugin, CLI, LSP) passes the same values — usually
+ * `webAwesome.booleanAttributes` from `detectCapabilities` and the local
+ * components from `discoverLocalComponents`.
+ */
 export interface ParseWavexOptions {
   fileName?: string;
+  /**
+   * Boolean attribute names per installed Web Awesome component, keyed by
+   * component name without the `wa-` prefix (from the package's
+   * custom-elements manifest). A bare token on an `@component` head that
+   * resolves to that component and names one of these attributes is a
+   * boolean attribute, exactly like a native HTML boolean attribute.
+   */
+  webAwesomeBooleanAttributes?: ReadonlyMap<string, ReadonlySet<string>>;
+  /**
+   * Local `src/components/` references. They shadow Web Awesome names in `@`
+   * lookup, so their heads only promote native HTML boolean attributes.
+   */
+  localComponents?: readonly string[];
 }
+
+/** Boolean attribute names recognized on one element or component head. */
+type BooleanAttributeNames = ReadonlySet<string>;
 
 interface LineRecord {
   raw: string;
@@ -78,12 +102,26 @@ const HTML_BOOLEAN_ATTRIBUTE_NAMES = [
   "webkitdirectory"
 ] as const;
 
-const WAVEX_BOOLEAN_ATTRIBUTE_NAMES = ["indeterminate", "with-footer", "with-header"] as const;
+const HTML_BOOLEAN_ATTRIBUTES: BooleanAttributeNames = new Set<string>(HTML_BOOLEAN_ATTRIBUTE_NAMES);
 
-const BOOLEAN_ATTRIBUTE_NAMES = new Set<string>([
-  ...HTML_BOOLEAN_ATTRIBUTE_NAMES,
-  ...WAVEX_BOOLEAN_ATTRIBUTE_NAMES
-]);
+/** Resolves the boolean attribute names for an `@component` head reference. */
+type ComponentBooleanAttributes = (reference: string) => BooleanAttributeNames;
+
+function createComponentBooleanAttributes(options: ParseWavexOptions): ComponentBooleanAttributes {
+  const byComponent = options.webAwesomeBooleanAttributes;
+  if (!byComponent || byComponent.size === 0) return () => HTML_BOOLEAN_ATTRIBUTES;
+  const resolution = { localComponents: options.localComponents ?? [], webAwesomeComponents: [...byComponent.keys()] };
+  const cache = new Map<string, BooleanAttributeNames>();
+  return (reference) => {
+    const cached = cache.get(reference);
+    if (cached) return cached;
+    const tag = componentReferenceToTag(reference, resolution);
+    const componentNames = tag.startsWith("wa-") ? byComponent.get(tag.slice(3)) : undefined;
+    const names = componentNames ? new Set([...HTML_BOOLEAN_ATTRIBUTE_NAMES, ...componentNames]) : HTML_BOOLEAN_ATTRIBUTES;
+    cache.set(reference, names);
+    return names;
+  };
+}
 
 const DIRECTIVE_NAMES = new Set([
   "boundary",
@@ -107,8 +145,13 @@ const DIRECTIVE_NAMES = new Set([
  * parsed into {@link TemplateNode} trees with source ranges. Parse problems
  * are collected as diagnostics on the result rather than thrown, so a file
  * with errors still yields a best-effort AST for the LSP and compiler.
+ *
+ * Bare tokens before inline text are boolean attributes when they name a
+ * native HTML boolean attribute or, on an `@component` head, a boolean
+ * attribute of the Web Awesome component it resolves to (see
+ * {@link ParseWavexOptions.webAwesomeBooleanAttributes}).
  */
-export function parseWavex(source: string, _options: ParseWavexOptions = {}): WavexFile {
+export function parseWavex(source: string, options: ParseWavexOptions = {}): WavexFile {
   const diagnostics: Diagnostic[] = [];
   const lineStartOffsets = computeLineStartOffsets(source);
   const allLines = splitSourceLines(source, lineStartOffsets);
@@ -141,7 +184,8 @@ export function parseWavex(source: string, _options: ParseWavexOptions = {}): Wa
       sourceOffset: (lineStartOffsets[bodyStartLine + index - 1] ?? bodyStartOffset) as number
     })),
     diagnostics,
-    resources
+    resources,
+    createComponentBooleanAttributes(options)
   );
 
   return {
@@ -157,7 +201,8 @@ export function parseWavex(source: string, _options: ParseWavexOptions = {}): Wa
 function parseTemplateLines(
   lines: LineRecord[],
   diagnostics: Diagnostic[],
-  resources: ResourceBinding[]
+  resources: ResourceBinding[],
+  componentBooleanAttributes: ComponentBooleanAttributes
 ): TemplateNode[] {
   const roots: TemplateNode[] = [];
   const stack: Array<{ level: number; node: TemplateNode }> = [];
@@ -208,7 +253,7 @@ function parseTemplateLines(
 
     const content = line.raw.slice(leadingWhitespace.length);
     const range = makeRange(line, leadingWhitespace.length);
-    const node = parseLine(content, range, diagnostics, resources);
+    const node = parseLine(content, range, diagnostics, resources, componentBooleanAttributes);
     if (!node) {
       skippedSubtreeIndentSpaces = indentSpaces;
       continue;
@@ -226,7 +271,8 @@ function parseLine(
   content: string,
   range: SourceRange,
   diagnostics: Diagnostic[],
-  resources: ResourceBinding[]
+  resources: ResourceBinding[],
+  componentBooleanAttributes: ComponentBooleanAttributes
 ): TemplateNode | undefined {
   const trimmed = content.trim();
   if (trimmed === "") return undefined;
@@ -259,14 +305,14 @@ function parseLine(
   if (trimmed.startsWith("$$")) return parseConvexCall(trimmed, content, range, diagnostics, resources);
   if (trimmed.startsWith("$")) return parseConvexReference(trimmed, content, range, diagnostics);
   if (trimmed.startsWith("+")) return parseDirective(trimmed, content, range, diagnostics);
-  if (trimmed.startsWith("@")) return parseComponent(trimmed, content, range, diagnostics);
+  if (trimmed.startsWith("@")) return parseComponent(trimmed, content, range, diagnostics, componentBooleanAttributes);
   return parseElement(trimmed, content, range, diagnostics);
 }
 
 function parseElement(trimmed: string, raw: string, range: SourceRange, diagnostics: Diagnostic[]): ElementNode {
   const [tagToken, ...tokens] = tokenizeWithRanges(trimmed);
   const tag = tagToken?.raw ?? "div";
-  const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics);
+  const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics, HTML_BOOLEAN_ATTRIBUTES);
   return {
     kind: "element",
     tag,
@@ -280,10 +326,16 @@ function parseElement(trimmed: string, raw: string, range: SourceRange, diagnost
   };
 }
 
-function parseComponent(trimmed: string, raw: string, range: SourceRange, diagnostics: Diagnostic[]): ComponentNode {
+function parseComponent(
+  trimmed: string,
+  raw: string,
+  range: SourceRange,
+  diagnostics: Diagnostic[],
+  componentBooleanAttributes: ComponentBooleanAttributes
+): ComponentNode {
   const [referenceToken, ...tokens] = tokenizeWithRanges(trimmed);
   const reference = referenceToken?.raw ?? "@missing";
-  const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics);
+  const parsed = parseAttributesUtilitiesAndInlineText(tokens, range, diagnostics, componentBooleanAttributes(reference.slice(1)));
   return {
     kind: "component",
     reference: reference.slice(1),
@@ -467,7 +519,12 @@ function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Di
   return { modulePath, functionName, raw: rawHead };
 }
 
-function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[]): ParsedHead {
+function parseAttributesUtilitiesAndInlineText(
+  tokens: TokenRecord[],
+  range: SourceRange,
+  diagnostics: Diagnostic[],
+  booleanAttributes: BooleanAttributeNames
+): ParsedHead {
   const attributes: Attribute[] = [];
   const utilities: string[] = [];
   let inlineText: string | undefined;
@@ -488,16 +545,22 @@ function parseAttributesUtilitiesAndInlineText(tokens: TokenRecord[], range: Sou
       break;
     }
 
-    if (!isAttributeLike(token.raw)) {
+    if (!isAttributeLike(token.raw, booleanAttributes)) {
       const inlineTokens = tokens.slice(index);
-      diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics, "Utility groups must appear in the element or component head before inline text.");
+      diagnoseHeadTokensAfterInlineText(
+        inlineTokens,
+        range,
+        diagnostics,
+        "Utility groups must appear in the element or component head before inline text.",
+        booleanAttributes
+      );
       diagnoseMalformedAttributeLikeToken(token, range, diagnostics);
       inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
       inlineTextRange = rangeForTokenSpan(range, inlineTokens);
       break;
     }
 
-    const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end));
+    const attribute = parseAttributeToken(token.raw, makeSubRange(range, token.start, token.end), booleanAttributes);
     if (attribute) attributes.push(attribute);
     else diagnoseInvalidAttributeToken(token, range, diagnostics);
   }
@@ -512,9 +575,9 @@ function parseAttributesAndInlineText(tokens: TokenRecord[], range: SourceRange,
 
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index]!;
-    if (!isAttributeLike(token.raw)) {
+    if (!isAttributeLike(token.raw, HTML_BOOLEAN_ATTRIBUTES)) {
       const inlineTokens = tokens.slice(index);
-      diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics, utilityGroupMessage);
+      diagnoseHeadTokensAfterInlineText(inlineTokens, range, diagnostics, utilityGroupMessage, HTML_BOOLEAN_ATTRIBUTES);
       inlineText = inlineTokens.map((inlineToken) => inlineToken.raw).join(" ");
       inlineTextRange = rangeForTokenSpan(range, inlineTokens);
       break;
@@ -568,7 +631,13 @@ function utilityGroupValueTokens(token: string): TokenRecord[] {
   return values;
 }
 
-function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage: string): void {
+function diagnoseHeadTokensAfterInlineText(
+  tokens: TokenRecord[],
+  range: SourceRange,
+  diagnostics: Diagnostic[],
+  utilityGroupMessage: string,
+  booleanAttributes: BooleanAttributeNames
+): void {
   for (const token of tokens) {
     if (isLikelyUtilityGroupToken(token.raw)) {
       diagnostics.push({
@@ -580,7 +649,7 @@ function diagnoseHeadTokensAfterInlineText(tokens: TokenRecord[], range: SourceR
       });
     } else if (isLikelyUnclosedUtilityGroupToken(token.raw)) {
       diagnoseUnclosedUtilityGroupToken(token, range, diagnostics);
-    } else if (isAttributeLike(token.raw)) {
+    } else if (isAttributeLike(token.raw, booleanAttributes)) {
       diagnostics.push({
         code: "WX007",
         severity: "error",
@@ -661,8 +730,17 @@ function isLikelyUtilityGroupValues(value: string): boolean {
  * (`checked:task.done`, `checked:isDone`, `count:42`, or `checked:{{ task.done }}`), same-name shorthand
  * (`task:`), semantic event (`:click:save`), or raw DOM event
  * (`on:wa-show:opened`).
+ *
+ * `booleanAttributes` names the boolean attributes of the element or
+ * component the token belongs to (defaults to the native HTML boolean
+ * attributes); a bare identifier value on one of them is an expression, so
+ * `with-caret:hasMenu` binds `hasMenu` instead of the string `"hasMenu"`.
  */
-export function parseAttributeToken(token: string, range?: SourceRange): Attribute | undefined {
+export function parseAttributeToken(
+  token: string,
+  range?: SourceRange,
+  booleanAttributes: ReadonlySet<string> = HTML_BOOLEAN_ATTRIBUTES
+): Attribute | undefined {
   if (!token) return undefined;
 
   const nameRange = (start: number, end: number) => (range ? makeSubRange(range, start, end) : undefined);
@@ -745,7 +823,7 @@ export function parseAttributeToken(token: string, range?: SourceRange): Attribu
     };
   }
 
-  if (looksLikeExpression(value, name)) {
+  if (looksLikeExpression(value, name, booleanAttributes)) {
     return {
       kind: "expression",
       name,
@@ -767,14 +845,14 @@ export function parseAttributeToken(token: string, range?: SourceRange): Attribu
   };
 }
 
-function isAttributeLike(token: string): boolean {
+function isAttributeLike(token: string, booleanAttributes: BooleanAttributeNames): boolean {
   if (!token) return false;
   // {{ interpolation }} tokens are inline text, even when the expression contains ":".
   if (token.startsWith("{{")) return false;
   if (token.startsWith(":") || token.startsWith("on:")) return true;
   const colonIndex = token.indexOf(":");
   if (colonIndex !== -1) return ATTRIBUTE_NAME_PATTERN.test(token.slice(0, colonIndex));
-  return BOOLEAN_ATTRIBUTE_NAMES.has(token);
+  return booleanAttributes.has(token);
 }
 
 function parseAttributeTokens(tokens: TokenRecord[], range: SourceRange, diagnostics: Diagnostic[], utilityGroupMessage?: string): Attribute[] {
@@ -827,12 +905,12 @@ function unwrapQuotedString(value: string): string | undefined {
   return value.slice(1, -1).replace(/\\(["'\\])/g, "$1");
 }
 
-function looksLikeExpression(value: string, attributeName: string): boolean {
+function looksLikeExpression(value: string, attributeName: string, booleanAttributes: BooleanAttributeNames): boolean {
   if (value.startsWith("{") || value.startsWith("[")) return true;
   if (/^(true|false|null|undefined)$/.test(value)) return true;
   if (/^[+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?$/i.test(value)) return true;
   if (/^(route|attrs|state|api|ctx|context)(?:$|[.(\[]|\?\.)/.test(value)) return true;
-  if (BOOLEAN_ATTRIBUTE_NAMES.has(attributeName) && /^[A-Za-z_$][\w$]*$/.test(value)) return true;
+  if (booleanAttributes.has(attributeName) && /^[A-Za-z_$][\w$]*$/.test(value)) return true;
   // URL/URI values like href:/tasks, href:https://example.com, or href:tel:+123 are literals.
   if (/^\/[\w\-./:?=&%#~]*$/.test(value)) return false;
   if (/^[a-z][a-z0-9+.-]*:\S+$/i.test(value)) return false;
