@@ -294,7 +294,7 @@ Defined in: [packages/core/dist/model.d.ts:18](packages/core/dist/model.d.ts#L18
 
 ### ClientRouter
 
-Defined in: [packages/runtime/src/router.ts:115](packages/runtime/src/router.ts#L115)
+Defined in: [packages/runtime/src/router.ts:116](packages/runtime/src/router.ts#L116)
 
 Imperative router controller returned by createClientRouter.
 
@@ -306,7 +306,7 @@ Imperative router controller returned by createClientRouter.
 optional current?: object;
 ```
 
-Defined in: [packages/runtime/src/router.ts:119](packages/runtime/src/router.ts#L119)
+Defined in: [packages/runtime/src/router.ts:125](packages/runtime/src/router.ts#L125)
 
 ###### file?
 
@@ -328,7 +328,7 @@ route: RouteContext;
 dispose(): void;
 ```
 
-Defined in: [packages/runtime/src/router.ts:120](packages/runtime/src/router.ts#L120)
+Defined in: [packages/runtime/src/router.ts:126](packages/runtime/src/router.ts#L126)
 
 ###### Returns
 
@@ -340,7 +340,7 @@ Defined in: [packages/runtime/src/router.ts:120](packages/runtime/src/router.ts#
 hotReplacePage(file, module): void;
 ```
 
-Defined in: [packages/runtime/src/router.ts:118](packages/runtime/src/router.ts#L118)
+Defined in: [packages/runtime/src/router.ts:124](packages/runtime/src/router.ts#L124)
 
 Swap the module for a route or layout file in place (HMR), keeping route state.
 
@@ -364,7 +364,11 @@ Swap the module for a route or layout file in place (HMR), keeping route state.
 navigate(to, options?): Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/router.ts:116](packages/runtime/src/router.ts#L116)
+Defined in: [packages/runtime/src/router.ts:122](packages/runtime/src/router.ts#L122)
+
+Navigate to an in-app URL. `replace` swaps the current history entry;
+`scroll: false` keeps the current scroll offset (e.g. for query-param
+filter updates) instead of resetting to the top or `#fragment` target.
 
 ###### Parameters
 
@@ -375,6 +379,10 @@ Defined in: [packages/runtime/src/router.ts:116](packages/runtime/src/router.ts#
 ###### options?
 
 ###### replace?
+
+`boolean`
+
+###### scroll?
 
 `boolean`
 
@@ -416,7 +424,7 @@ Render function used when no route matches the current path.
 optional onNavigate?: (route) => void;
 ```
 
-Defined in: [packages/runtime/src/router.ts:111](packages/runtime/src/router.ts#L111)
+Defined in: [packages/runtime/src/router.ts:112](packages/runtime/src/router.ts#L112)
 
 ###### Parameters
 
@@ -442,11 +450,12 @@ Defined in: [packages/runtime/src/router.ts:94](packages/runtime/src/router.ts#L
 optional scrollRestoration?: false | ClientRouterScrollOptions;
 ```
 
-Defined in: [packages/runtime/src/router.ts:109](packages/runtime/src/router.ts#L109)
+Defined in: [packages/runtime/src/router.ts:110](packages/runtime/src/router.ts#L110)
 
-Reset push/replace navigations to the top and restore history offsets
-after page commits. Pass false to leave all scrolling to the app/browser,
-or provide custom seams for a scroll container.
+Reset push/replace navigations to the top (or their `#fragment` target)
+and restore history offsets after page commits, including across reloads.
+Pass false to leave all scrolling to the app/browser, or provide custom
+seams for a scroll container.
 
 ##### viewTransitions?
 
@@ -466,7 +475,7 @@ and on the initial load; HMR swaps never transition.
 optional window?: Window;
 ```
 
-Defined in: [packages/runtime/src/router.ts:110](packages/runtime/src/router.ts#L110)
+Defined in: [packages/runtime/src/router.ts:111](packages/runtime/src/router.ts#L111)
 
 ***
 
@@ -1639,7 +1648,7 @@ optional onUnhandledAction?: (event) => void;
 
 Defined in: [packages/runtime/src/index.ts:186](packages/runtime/src/index.ts#L186)
 
-Override the default console diagnostic for an unresolved non-Convex target.
+Override the default console diagnostic for an unresolved target (no local handler, app dispatch, or action client).
 
 ###### Parameters
 
@@ -1874,7 +1883,7 @@ Conventional analytics event name for a semantic Convex action target, e.g. "$$t
 function applyHead(entries, documentRef?): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:542](packages/runtime/src/index.ts#L542)
+Defined in: [packages/runtime/src/index.ts:550](packages/runtime/src/index.ts#L550)
 
 Reconcile `document.title` and `data-wx-head`-managed meta/link nodes with
 the given entries. Only nodes the runtime created are touched, so static
@@ -1959,7 +1968,7 @@ resources: readonly ResourceDefinition<unknown>[];
 function createClientRouter(options): ClientRouter;
 ```
 
-Defined in: [packages/runtime/src/router.ts:186](packages/runtime/src/router.ts#L186)
+Defined in: [packages/runtime/src/router.ts:196](packages/runtime/src/router.ts#L196)
 
 Progressive client router: intercepts internal link clicks (native `a href`
 stays native), drives the History API, lazy-loads the matched route's
@@ -2177,7 +2186,7 @@ through to `options.dispatch` for app-level targets.
 function installSemanticEventDelegation(root, context): () => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:510](packages/runtime/src/index.ts#L510)
+Defined in: [packages/runtime/src/index.ts:518](packages/runtime/src/index.ts#L518)
 
 Listen for click/submit/change at the root (capture phase) and route
 `data-wx-*` action attributes — the compiled form of `:event:target` — to

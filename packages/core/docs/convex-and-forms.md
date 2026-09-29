@@ -169,8 +169,10 @@ p
 Semantic `submit` handlers prevent native submission automatically. A local
 target that does not resolve to a prelude function falls through to an
 app-provided render-context `dispatch`, when present; otherwise the runtime
-reports a console diagnostic. Custom mounts can replace that diagnostic with
-`onUnhandledAction`.
+reports a console diagnostic. The same applies to `$$module:fn` targets when
+no Convex client is configured (for example, `VITE_CONVEX_URL` is unset): the
+action is not marked successful and its form is not reset. Custom mounts can
+replace that diagnostic with `onUnhandledAction`.
 
 Raw DOM/custom events use `on:event:handler`.
 

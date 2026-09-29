@@ -282,6 +282,30 @@ describe("semantic action dispatcher", () => {
     consoleError.mockRestore();
   });
 
+  it("does not report success for Convex targets without an action client", async () => {
+    const preventDefault = vi.fn();
+    const onUnhandledAction = vi.fn();
+    const event = fakeActionEvent({ target: "$$tasks:create", type: "submit", preventDefault });
+
+    await createSemanticActionDispatcher(event.context, { onUnhandledAction })(event);
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(onUnhandledAction).toHaveBeenCalledWith(event);
+    expect(event.context.actionStates?.["$$tasks:create"]).toBeUndefined();
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    await createSemanticActionDispatcher(event.context)(event);
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('"$$tasks:create" has no action client') })
+    );
+    consoleError.mockRestore();
+
+    const appTargets: string[] = [];
+    await createSemanticActionDispatcher(event.context, { dispatch: (action) => appTargets.push(action.target) })(event);
+    expect(appTargets).toEqual(["$$tasks:create"]);
+    expect(event.context.actionStates?.["$$tasks:create"]).toBeUndefined();
+  });
+
   it("rejects malformed Convex targets instead of treating them as custom actions", async () => {
     const customTargets: string[] = [];
     const event = fakeActionEvent({ target: "$$ai:summarize({ id: task._id })" });

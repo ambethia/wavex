@@ -27,7 +27,8 @@ live deployment):
   prelude function attached to the element by the compiler, then fall through
   to an app-level dispatcher; unresolved targets report a configurable
   diagnostic. Convex targets retain full pending/error lifecycle and form
-  reset on success. Both paths capture analytics automatically (`:track:`
+  reset on success; without an action client they go to the app dispatcher or
+  the same unhandled diagnostic instead of reporting success. Both paths capture analytics automatically (`:track:`
   overrides the event name).
 - `createClientRouter` — progressive enhancement over native links: History
   API, lazy route-module loading, layout composition through semantic slots,
@@ -36,9 +37,12 @@ live deployment):
   `data-wx-navigating` on `<html>`), and commits wrap in
   `document.startViewTransition` by default — pending state clears inside the
   transition's update callback, atomically with the swap, so progress UI is
-  never baked into either snapshot. Push/replace navigation resets to the top;
-  back/forward navigation restores its saved offset on the frame after the
-  atomic page swap. `scrollRestoration: false` opts out, while custom
+  never baked into either snapshot. Push/replace navigation resets to the top
+  (or the `#fragment` target; `scroll: false` keeps the offset); back/forward
+  navigation restores its saved offset on the frame after the atomic page
+  swap. The initial load restores a reload's offset (persisted on `pagehide`)
+  or its fragment, and native `history.scrollRestoration` is set to `manual`
+  while the router is active. `scrollRestoration: false` opts out, while custom
   `getPosition`/`scrollTo` seams support non-window scroll containers.
 - `mountLitApp` (from `@wavex/runtime/lit`) — composes a Lit mount and the
   client router for an app-owned entry module. The caller supplies initial

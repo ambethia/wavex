@@ -181,7 +181,7 @@ Called exactly once when the composed app is disposed; use it for caller-owned c
 optional onNavigate?: (route) => void;
 ```
 
-Defined in: [packages/runtime/src/router.ts:111](packages/runtime/src/router.ts#L111)
+Defined in: [packages/runtime/src/router.ts:112](packages/runtime/src/router.ts#L112)
 
 ###### Parameters
 
@@ -285,11 +285,12 @@ optional scrollRestoration?:
   | ClientRouterScrollOptions;
 ```
 
-Defined in: [packages/runtime/src/router.ts:109](packages/runtime/src/router.ts#L109)
+Defined in: [packages/runtime/src/router.ts:110](packages/runtime/src/router.ts#L110)
 
-Reset push/replace navigations to the top and restore history offsets
-after page commits. Pass false to leave all scrolling to the app/browser,
-or provide custom seams for a scroll container.
+Reset push/replace navigations to the top (or their `#fragment` target)
+and restore history offsets after page commits, including across reloads.
+Pass false to leave all scrolling to the app/browser, or provide custom
+seams for a scroll container.
 
 ###### Inherited from
 
@@ -317,7 +318,7 @@ and on the initial load; HMR swaps never transition.
 optional window?: Window;
 ```
 
-Defined in: [packages/runtime/src/router.ts:110](packages/runtime/src/router.ts#L110)
+Defined in: [packages/runtime/src/router.ts:111](packages/runtime/src/router.ts#L111)
 
 ###### Inherited from
 

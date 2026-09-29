@@ -182,7 +182,7 @@ export interface SemanticActionDispatcherOptions {
   actionClient?: ActionClient;
   /** App-level fallback for non-Convex targets that have no compiled local handler. */
   dispatch?: (event: WavexActionEvent) => void | Promise<void>;
-  /** Override the default console diagnostic for an unresolved non-Convex target. */
+  /** Override the default console diagnostic for an unresolved target (no local handler, app dispatch, or action client). */
   onUnhandledAction?: (event: WavexActionEvent) => void;
   resolveActionKind?: ActionKindResolver;
   onActionResult?: (definition: ResolvedActionDefinition, result: unknown, event: WavexActionEvent) => void;
@@ -413,19 +413,22 @@ export function createSemanticActionDispatcher(
         await localHandler(event.event, event);
       } else if (options.dispatch) {
         await options.dispatch(event);
-      } else if (options.onUnhandledAction) {
-        options.onUnhandledAction(event);
       } else {
-        console.error(
-          new Error(
-            `WAVEx semantic action ${JSON.stringify(event.target)} has no compiled local handler or app dispatch fallback.`
-          )
-        );
+        reportUnhandledAction(options, event, "has no compiled local handler or app dispatch fallback");
       }
       return;
     }
 
     if (event.type === "submit" && typeof event.event.preventDefault === "function") event.event.preventDefault();
+
+    // Without an action client (e.g. no Convex deployment configured) a Convex
+    // target must not report success or reset its form: hand it to the app
+    // dispatcher when present, otherwise surface it as unhandled.
+    if (!options.actionClient) {
+      if (options.dispatch) await options.dispatch(event);
+      else reportUnhandledAction(options, event, "has no action client (is a Convex deployment configured?)");
+      return;
+    }
 
     const definition: ResolvedActionDefinition = {
       ...action,
@@ -437,7 +440,7 @@ export function createSemanticActionDispatcher(
     captureActionAnalytics(options, event, definition);
 
     try {
-      const result = options.actionClient ? await options.actionClient.invoke(definition) : undefined;
+      const result = await options.actionClient.invoke(definition);
       resetSubmittedForm(event);
       markActionIdle(context, definition.target, result);
       options.onActionResult?.(definition, result, event);
@@ -447,6 +450,11 @@ export function createSemanticActionDispatcher(
       if (options.throwActionErrors) throw error;
     }
   };
+}
+
+function reportUnhandledAction(options: SemanticActionDispatcherOptions, event: WavexActionEvent, reason: string): void {
+  if (options.onUnhandledAction) options.onUnhandledAction(event);
+  else console.error(new Error(`WAVEx semantic action ${JSON.stringify(event.target)} ${reason}.`));
 }
 
 type LocalSemanticHandler = (event: Event, action: WavexActionEvent) => unknown | Promise<unknown>;

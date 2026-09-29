@@ -56,7 +56,14 @@ function deferred(): Deferred {
 }
 
 function fakeEnvironment(
-  options: { startViewTransition?: boolean; reducedMotion?: boolean; deferAnimationFrame?: boolean } = {}
+  options: {
+    startViewTransition?: boolean;
+    reducedMotion?: boolean;
+    deferAnimationFrame?: boolean;
+    url?: string;
+    historyState?: unknown;
+    elementIds?: string[];
+  } = {}
 ) {
   const calls: Array<{ kind: string; payload?: unknown }> = [];
   const attributes = new Set<string>();
@@ -96,7 +103,10 @@ function fakeEnvironment(
     documentElement: {
       setAttribute: (name: string) => attributes.add(name),
       removeAttribute: (name: string) => attributes.delete(name)
-    }
+    },
+    getElementById: (id: string) =>
+      options.elementIds?.includes(id) ? { scrollIntoView: () => calls.push({ kind: "scrollIntoView", payload: id }) } : null,
+    getElementsByName: () => []
   };
   if (options.startViewTransition) {
     documentRef.startViewTransition = (update: (() => void) | { update: () => void; types?: string[] }) => {
@@ -108,8 +118,8 @@ function fakeEnvironment(
   }
 
   const location = { href: "http://app.test/", origin: "http://app.test", pathname: "/", search: "", hash: "" };
-  const historyEntries = new Map<string, unknown>([[location.href, null]]);
-  let historyState: unknown = null;
+  let historyState: unknown = options.historyState ?? null;
+  const historyEntries = new Map<string, unknown>();
   let scrollPosition = { x: 0, y: 0 };
   const setLocation = (url: string) => {
     const next = new URL(url, location.href);
@@ -119,9 +129,12 @@ function fakeEnvironment(
     location.search = next.search;
     location.hash = next.hash;
   };
+  if (options.url) setLocation(options.url);
+  historyEntries.set(location.href, historyState);
   const win = {
     location,
     history: {
+      scrollRestoration: "auto",
       get state() {
         return historyState;
       },
@@ -194,6 +207,10 @@ function fakeEnvironment(
     scrollPosition = { x, y };
   };
 
+  const dispatchWindowEvent = (type: string) => {
+    windowListeners.get(type)?.forEach((listener) => listener({} as Event));
+  };
+
   const flushAnimationFrames = () => {
     for (const callback of animationFrames.splice(0)) callback(0);
   };
@@ -204,7 +221,19 @@ function fakeEnvironment(
     setNavigation: (navigation: { pending: boolean }) => calls.push({ kind: "setNavigation", payload: navigation.pending })
   };
 
-  return { win, host, calls, attributes, transitions, click, pop, setScroll, flushAnimationFrames, FakeAnchor };
+  return {
+    win,
+    host,
+    calls,
+    attributes,
+    transitions,
+    click,
+    pop,
+    setScroll,
+    dispatchWindowEvent,
+    flushAnimationFrames,
+    FakeAnchor
+  };
 }
 
 function routeOf(file: string, path: string, load: () => Promise<RoutePageModule>, errors: ClientRoute["errors"] = []): ClientRoute {
@@ -568,6 +597,76 @@ describe("client router scroll restoration", () => {
     expect(env.calls.filter((call) => call.kind === "scrollTo")).toEqual([
       { kind: "scrollTo", payload: { x: 0, y: 0 } }
     ]);
+  });
+
+  it("keeps the browser's offset on a plain initial load", async () => {
+    const env = fakeEnvironment({ url: "/a" });
+    const router = createClientRouter({ routes, host: env.host, window: env.win, viewTransitions: false });
+
+    env.setScroll(0, 300);
+    await router.navigate("/a", { replace: true });
+
+    expect(env.calls.some((call) => call.kind === "scrollTo" || call.kind === "scrollIntoView")).toBe(false);
+  });
+
+  it("restores the offset persisted on pagehide when the page reloads", async () => {
+    const first = fakeEnvironment({ url: "/a" });
+    const router = createClientRouter({ routes, host: first.host, window: first.win, viewTransitions: false });
+    await router.navigate("/a", { replace: true });
+    first.setScroll(0, 720);
+    first.dispatchWindowEvent("pagehide");
+
+    const reloaded = fakeEnvironment({ url: "/a", historyState: (first.win as Window).history.state });
+    const reloadedRouter = createClientRouter({ routes, host: reloaded.host, window: reloaded.win, viewTransitions: false });
+    await reloadedRouter.navigate("/a", { replace: true });
+
+    expect(reloaded.calls.filter((call) => call.kind === "scrollTo")).toEqual([
+      { kind: "scrollTo", payload: { x: 0, y: 720 } }
+    ]);
+  });
+
+  it("scrolls to the fragment target on initial loads and routed navigations", async () => {
+    const env = fakeEnvironment({ url: "/a#details", elementIds: ["details", "b-section"] });
+    const router = createClientRouter({ routes, host: env.host, window: env.win, viewTransitions: false });
+
+    await router.navigate("/a#details", { replace: true });
+    await router.navigate("/b#b-section");
+    await router.navigate("/a#missing");
+
+    expect(env.calls.filter((call) => call.kind === "scrollTo" || call.kind === "scrollIntoView")).toEqual([
+      { kind: "scrollIntoView", payload: "details" },
+      { kind: "scrollIntoView", payload: "b-section" },
+      { kind: "scrollTo", payload: { x: 0, y: 0 } }
+    ]);
+  });
+
+  it("keeps the offset for scroll: false navigations and restores it on back", async () => {
+    const env = fakeEnvironment();
+    const router = createClientRouter({ routes, host: env.host, window: env.win, viewTransitions: false });
+
+    await router.navigate("/a");
+    env.setScroll(0, 450);
+    env.calls.length = 0;
+    await router.navigate("/a?filter=open", { replace: true, scroll: false });
+    expect(env.calls.some((call) => call.kind === "scrollTo")).toBe(false);
+
+    await router.navigate("/b");
+    env.pop("/a?filter=open");
+    await expect.poll(() => env.calls.filter((call) => call.kind === "scrollTo").length).toBe(2);
+    expect(env.calls.filter((call) => call.kind === "scrollTo").at(-1)).toEqual({
+      kind: "scrollTo",
+      payload: { x: 0, y: 450 }
+    });
+  });
+
+  it("owns native scroll restoration while active", () => {
+    const env = fakeEnvironment();
+    const history = (env.win as Window).history;
+    const router = createClientRouter({ routes, host: env.host, window: env.win });
+
+    expect(history.scrollRestoration).toBe("manual");
+    router.dispose();
+    expect(history.scrollRestoration).toBe("auto");
   });
 
   it("supports custom scroll containers and a complete opt-out", async () => {

@@ -122,7 +122,9 @@ Opt out per app via the Vite plugin: `wavex({ viewTransitions: false })`. Initia
 
 ### Scroll restoration
 
-After a routed push or replace navigation commits, the client router resets the document to the top. Back and forward navigation restore the destination history entry's saved scroll offset after the atomic page swap (and after its View Transition update callback), so restoration never targets the outgoing page.
+After a routed push or replace navigation commits, the client router resets the document to the top, or scrolls to the element named by the URL's `#fragment`. Back and forward navigation restore the destination history entry's saved scroll offset after the atomic page swap (and after its View Transition update callback), so restoration never targets the outgoing page.
+
+The initial load keeps the document's position: a reload restores the offset persisted on `pagehide`, and a fresh load with a `#fragment` scrolls to its target. Programmatic navigations that should not move the page, such as query-parameter filter updates, pass `router.navigate(url, { replace: true, scroll: false })`.
 
 Apps that own scrolling can pass `scrollRestoration: false` to `createClientRouter`, or provide `getPosition` and `scrollTo` functions for a custom scroll container. Same-document hash links remain native browser navigation.
 

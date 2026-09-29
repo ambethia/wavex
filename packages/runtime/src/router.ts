@@ -102,9 +102,10 @@ export interface ClientRouterOptions {
    */
   viewTransitions?: boolean;
   /**
-   * Reset push/replace navigations to the top and restore history offsets
-   * after page commits. Pass false to leave all scrolling to the app/browser,
-   * or provide custom seams for a scroll container.
+   * Reset push/replace navigations to the top (or their `#fragment` target)
+   * and restore history offsets after page commits, including across reloads.
+   * Pass false to leave all scrolling to the app/browser, or provide custom
+   * seams for a scroll container.
    */
   scrollRestoration?: false | ClientRouterScrollOptions;
   window?: Window;
@@ -113,7 +114,12 @@ export interface ClientRouterOptions {
 
 /** Imperative router controller returned by createClientRouter. */
 export interface ClientRouter {
-  navigate(to: string, options?: { replace?: boolean }): Promise<void>;
+  /**
+   * Navigate to an in-app URL. `replace` swaps the current history entry;
+   * `scroll: false` keeps the current scroll offset (e.g. for query-param
+   * filter updates) instead of resetting to the top or `#fragment` target.
+   */
+  navigate(to: string, options?: { replace?: boolean; scroll?: boolean }): Promise<void>;
   /** Swap the module for a route or layout file in place (HMR), keeping route state. */
   hotReplacePage(file: string, module: RoutePageModule): void;
   current?: { route: RouteContext; file?: string };
@@ -134,9 +140,13 @@ interface WavexHistoryMetadata {
 
 interface InternalNavigationOptions {
   replace?: boolean;
+  scroll?: boolean;
   pop?: boolean;
   scrollPosition?: ScrollPosition;
 }
+
+/** Where to scroll once a navigation commits: a saved offset or a `#fragment` target. */
+type ScrollTarget = { position: ScrollPosition } | { fragment: string; fallback?: ScrollPosition };
 
 const defaultNotFound: RenderFunction = () => undefined;
 const topOfPage: ScrollPosition = { x: 0, y: 0 };
@@ -191,7 +201,13 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const getScrollPosition = scrollOptions?.getPosition ?? (() => ({ x: win.scrollX, y: win.scrollY }));
   const scrollTo = scrollOptions?.scrollTo ?? ((position: ScrollPosition) => win.scrollTo(position.x, position.y));
   const savedScrollPositions = new Map<string, ScrollPosition>();
-  let activeHistoryKey = historyMetadata(win.history.state)?.key ?? createHistoryEntryKey();
+  const initialHistoryMetadata = historyMetadata(win.history.state);
+  let activeHistoryKey = initialHistoryMetadata?.key ?? createHistoryEntryKey();
+  // The router restores offsets itself once the async page swap commits, so
+  // native window restoration would only jump the outgoing page.
+  const history = win.history as History & { scrollRestoration?: ScrollRestoration };
+  const previousScrollRestoration = scrollOptions && "scrollRestoration" in history ? history.scrollRestoration : undefined;
+  if (previousScrollRestoration !== undefined) history.scrollRestoration = "manual";
   let navigationToken = 0;
   let current: ActivePage | undefined;
   let navigationPending = false;
@@ -222,13 +238,50 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     }
   };
 
-  const restoreScrollPosition = async (token: number, position: ScrollPosition | undefined): Promise<void> => {
-    if (!scrollOptions || !position || token !== navigationToken || disposed) return;
+  const scrollToFragment = (fragment: string): boolean => {
+    let id: string;
+    try {
+      id = decodeURIComponent(fragment);
+    } catch {
+      id = fragment;
+    }
+    if (!id) return false;
+    const documentRef = win.document as Partial<Document>;
+    const element = documentRef.getElementById?.(id) ?? documentRef.getElementsByName?.(id)[0];
+    if (!element || typeof element.scrollIntoView !== "function") return false;
+    element.scrollIntoView();
+    return true;
+  };
+
+  const restoreScrollPosition = async (token: number, target: ScrollTarget | undefined): Promise<void> => {
+    if (!scrollOptions || !target || token !== navigationToken || disposed) return;
     if (typeof win.requestAnimationFrame === "function") {
       await new Promise<void>((resolve) => win.requestAnimationFrame(() => resolve()));
     }
     if (token !== navigationToken || disposed) return;
-    scrollTo(position);
+    if ("position" in target) scrollTo(target.position);
+    else if (!scrollToFragment(target.fragment) && target.fallback) scrollTo(target.fallback);
+  };
+
+  /**
+   * Pop restores the entry's saved offset; the initial load restores a
+   * reload's persisted offset or its fragment; push/replace go to the
+   * fragment (falling back to the top) unless `scroll: false`.
+   */
+  const navigationScrollTarget = (
+    url: URL,
+    navOptions: InternalNavigationOptions,
+    initialLoad: boolean
+  ): ScrollTarget | undefined => {
+    const fragment = url.hash.slice(1);
+    if (navOptions.pop) return { position: navOptions.scrollPosition ?? topOfPage };
+    if (initialLoad) {
+      const persisted = initialHistoryMetadata?.key === activeHistoryKey ? initialHistoryMetadata.scroll : undefined;
+      if (persisted) return { position: persisted };
+      return fragment ? { fragment } : undefined;
+    }
+    if (navOptions.scroll === false) return undefined;
+    return fragment ? { fragment, fallback: topOfPage } : { position: topOfPage };
   };
 
   /**
@@ -296,18 +349,30 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
   const navigate = async (to: string, navOptions: InternalNavigationOptions = {}) => {
     if (disposed) return;
     const url = new URL(to, win.location.href);
+    // The entry navigation (replace to the current URL) keeps the document's
+    // offset: a reload restores its persisted offset, a fresh load honours
+    // the fragment, and otherwise the browser's position stands.
+    const initialLoad =
+      navigationToken === 0 &&
+      navOptions.replace === true &&
+      !navOptions.pop &&
+      url.pathname === win.location.pathname &&
+      url.search === win.location.search;
     const token = ++navigationToken;
-    const scrollPosition = scrollOptions ? navOptions.scrollPosition ?? topOfPage : undefined;
+    const scrollTarget = scrollOptions ? navigationScrollTarget(url, navOptions, initialLoad) : undefined;
     if (!navOptions.pop) {
       const method = navOptions.replace ? "replaceState" : "pushState";
       const hasFragment = to.includes("#");
       if (!navOptions.replace) captureScrollPosition(true);
       if (!navOptions.replace) activeHistoryKey = createHistoryEntryKey();
-      if (scrollOptions) savedScrollPositions.set(activeHistoryKey, topOfPage);
+      // Entries that keep their offset (`scroll: false`, a plain initial load) record the live one.
+      const entryScroll =
+        scrollTarget && "position" in scrollTarget ? scrollTarget.position : scrollTarget ? topOfPage : { ...getScrollPosition() };
+      if (scrollOptions) savedScrollPositions.set(activeHistoryKey, entryScroll);
       const nextState = scrollOptions
         ? withHistoryMetadata(navOptions.replace ? win.history.state : {}, {
             key: activeHistoryKey,
-            scroll: topOfPage
+            scroll: entryScroll
           })
         : {};
       win.history[method](nextState, "", url.pathname + url.search + (hasFragment ? url.hash || "#" : ""));
@@ -324,7 +389,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       clearNavigation();
       options.host.setPage({ render: notFound, resources: [], route });
       current = { route };
-      await restoreScrollPosition(token, scrollPosition);
+      await restoreScrollPosition(token, scrollTarget);
       if (token !== navigationToken) return;
       options.onNavigate?.(route);
       return;
@@ -345,7 +410,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       if (token !== navigationToken) return;
       const committed = await renderErrorRoute(token, clientRoute, route, error);
       if (!committed) return;
-      await restoreScrollPosition(token, scrollPosition);
+      await restoreScrollPosition(token, scrollTarget);
       if (token !== navigationToken) return;
       options.onNavigate?.(route);
       return;
@@ -361,7 +426,7 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       });
     });
     if (!committed) return;
-    await restoreScrollPosition(token, scrollPosition);
+    await restoreScrollPosition(token, scrollTarget);
     if (token !== navigationToken) return;
     options.onNavigate?.(route);
   };
@@ -448,8 +513,12 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
     });
   };
 
+  // Persist the live offset so a reload (or a cross-document return) restores it.
+  const onPageHide = () => captureScrollPosition(true);
+
   win.document.addEventListener("click", onClick);
   win.addEventListener("popstate", onPopState);
+  win.addEventListener("pagehide", onPageHide);
 
   return {
     navigate: (to, navOptions) => navigate(to, navOptions),
@@ -478,6 +547,8 @@ export function createClientRouter(options: ClientRouterOptions): ClientRouter {
       clearNavigation();
       win.document.removeEventListener("click", onClick);
       win.removeEventListener("popstate", onPopState);
+      win.removeEventListener("pagehide", onPageHide);
+      if (previousScrollRestoration !== undefined) history.scrollRestoration = previousScrollRestoration;
     }
   };
 }
