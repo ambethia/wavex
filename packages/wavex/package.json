@@ -31,8 +31,10 @@
   "dependencies": {
     "@wavex/compiler": "workspace:*",
     "@wavex/core": "workspace:*",
+    "@wavex/lsp": "workspace:*",
     "@wavex/runtime": "workspace:*",
-    "@lit-labs/ssr": "^3.3.0"
+    "@lit-labs/ssr": "^3.3.0",
+    "typescript": "~6.0.2"
   },
   "files": [
     "dist/**/*.js",

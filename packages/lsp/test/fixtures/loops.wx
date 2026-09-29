@@ -1,0 +1,14 @@
+const loose: any = {}
+const maybe: string[] | undefined = undefined
+const counts = new Map<string, number>()
+
+~~~
+ul
+  +for item in loose.items
+    li {{ item.anything.goes }}
+  +for word in maybe ?? []
+    li {{ word.toUpperCase() }}
+  +for entry in counts
+    li {{ entry[0] }}: {{ entry[1].toFixed(0) }}
+  +for digit in 42
+    li {{ digit }}

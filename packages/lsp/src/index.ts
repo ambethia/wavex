@@ -10,8 +10,11 @@
  * source positions. Editor syntax highlighting is handled by the VS Code
  * TextMate grammar; the grammar is cosmetic, while this LSP uses the
  * `@wavex/core` parser for diagnostics and type-aware language features.
+ * {@link typeCheckWavexFiles} runs the same virtual code outside an editor, so
+ * `wavex check` reports the TypeScript errors the editor shows.
  *
  * @module @wavex/lsp
  */
 export { createWavexLanguagePlugin, WavexVirtualCode, WAVEX_LANGUAGE_ID, type WavexParseOptionsResolver } from "./language.js";
 export { createWavexServicePlugin, type WavexServiceOptions, type WavexServiceOptionsResolver } from "./service.js";
+export { typeCheckWavexFiles, type WavexTypeCheckOptions, type WavexTypeCheckResult } from "./check.js";

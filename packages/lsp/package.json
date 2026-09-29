@@ -33,6 +33,7 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@volar/kit": "^2.4.28",
     "@volar/language-core": "^2.4.28",
     "@volar/language-server": "^2.4.28",
     "@volar/language-service": "^2.4.28",
@@ -44,7 +45,6 @@
   },
   "devDependencies": {
     "@types/node": "24.9.0",
-    "@volar/kit": "^2.4.28",
     "typescript": "~6.0.2"
   },
   "peerDependencies": {

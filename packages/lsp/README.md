@@ -16,6 +16,15 @@ directives, `$`/`$$` Convex function references, and `[utility]` tokens, with
 hover docs from Web Awesome's `custom-elements.json`. Project context comes
 from `@wavex/core/capabilities` per workspace.
 
+`typeCheckWavexFiles` runs that same virtual code through the TypeScript
+language service outside an editor (Volar's kit checker) with an app's
+tsconfig options; `wavex check` uses it, so the CLI and the editor report the
+same TypeScript errors at the same `.wx` positions. The virtual code types
+`state` as the app's registered `AppState` (from `@wavex/runtime`) when the
+runtime resolves from the file, checks `+if` children inside a real `if`
+block so guards narrow, and checks `+for` bodies in a `for…of` loop so that
+narrowing survives into loops.
+
 ## Design notes
 
 - Typed templates are the main reason `.wx` beats TSX, so the LSP depends

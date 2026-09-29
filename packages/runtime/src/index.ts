@@ -50,6 +50,29 @@ export interface ActionState<T = unknown> {
 }
 
 /**
+ * Registration point for app-wide WAVEx types (TanStack-style). An app
+ * augments it once, and every template's `state`, `mountLitApp`'s
+ * `initialContext.state`, and `LitApp.update` are typed with it — in the
+ * editor and in `wavex check`:
+ *
+ * ```ts
+ * // src/main.ts (any module file the app's tsconfig includes)
+ * declare module "@wavex/runtime" {
+ *   interface Register {
+ *     state: { auth: typeof authState; pledges: typeof pledgeState };
+ *   }
+ * }
+ * ```
+ */
+export interface Register {}
+
+/**
+ * The app's template `state` type: `Register["state"]` when the app
+ * registers one (see {@link Register}), otherwise an untyped record.
+ */
+export type AppState = Register extends { state: infer State } ? State : Record<string, any>;
+
+/**
  * Everything a compiled render function can see: the route, component attrs,
  * local state, live resource values and their lifecycle states, action
  * states, projected slot content, and the semantic action dispatcher.
@@ -59,7 +82,8 @@ export interface RenderContext {
   route?: RouteContext;
   /** Component attributes (and the route error for +error.wx pages). */
   attrs?: Record<string, unknown>;
-  state?: Record<string, unknown>;
+  /** App-owned state (typed by the app's {@link Register} declaration); WAVEx never mutates it. */
+  state?: AppState;
   resources?: Record<string, unknown>;
   resourceStates?: Record<string, ResourceState>;
   actionStates?: Record<string, ActionState>;

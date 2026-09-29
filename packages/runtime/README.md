@@ -68,6 +68,9 @@ live deployment):
   (`state(0)`-style cells) is not designed yet. App integrations can put
   client-only state in the render context and replace it with
   `app.update({ state: ... })` without remounting; this intentionally does not
-  prescribe an auth or general state-management model.
+  prescribe an auth or general state-management model. Apps type that state by
+  augmenting `Register` (`interface Register { state: … }`); `AppState` then
+  types `RenderContext.state`, `mountLitApp`'s initial context, `app.update`,
+  and every template's `state` in the editor and `wavex check`.
 - **Deferral:** no SSR runtime beyond the prerender baseline; an edge SSR
   adapter is a possible later tier, not a default.

@@ -117,6 +117,16 @@ describe("Swell validation app", () => {
   });
 });
 
+const minimalTsconfig = JSON.stringify({
+  compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "Bundler", strict: true, noEmit: true, skipLibCheck: true, types: [] },
+  include: ["src"]
+});
+
+/** Run the CLI as if from the app directory, so printed paths are relative to it. */
+function fromDirectory(dir: string): void {
+  vi.spyOn(process, "cwd").mockReturnValue(dir);
+}
+
 describe("wavex check", () => {
   it("fails clearly when the root does not exist", async () => {
     const missingRoot = join(fixtureRoot("wavex-cli-check-missing-"), "missing");
@@ -129,36 +139,38 @@ describe("wavex check", () => {
     expect(process.exitCode).toBe(1);
   });
 
-  it("prints diagnostics on stderr and the summary on stdout", async () => {
+  it("prints file:line:col diagnostics on stderr and the summary on stdout", async () => {
     const root = fixtureRoot("wavex-cli-check-streams-");
+    writeFixture(root, "tsconfig.json", minimalTsconfig);
     writeFixture(root, "src/pages/index.wx", "~~~\n@missing-widget\n");
+    fromDirectory(root);
     const { logs, errors } = captureConsole();
 
     await runCli(["check", root]);
 
-    expect(logs).toEqual(["Checked 1 .wx file. Web Awesome: not installed; Font Awesome: none installed."]);
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("src/pages/index.wx: ");
-    expect(errors[0]).toContain("WX101");
+    expect(logs).toEqual(["Checked 1 .wx file. Web Awesome: not installed; Font Awesome: none installed; TypeScript: tsconfig.json."]);
+    expect(errors).toEqual([
+      "src/pages/index.wx:2:1 ERROR WX101 Unknown component @missing-widget: no src/components/missing-widget.wx and no Web Awesome package is installed."
+    ]);
     expect(process.exitCode).toBe(1);
   });
 
   it("parses bare Web Awesome boolean attributes from the installed manifest", async () => {
     const root = fixtureRoot("wavex-cli-check-booleans-");
+    writeFixture(root, "tsconfig.json", minimalTsconfig);
     writeFixture(
       root,
       "node_modules/@awesome.me/webawesome/dist/custom-elements.json",
       JSON.stringify({ modules: [{ declarations: [{ tagName: "wa-button", attributes: [{ name: "with-caret", type: { text: "boolean" } }] }] }] })
     );
     writeFixture(root, "src/pages/index.wx", "~~~\n@button with-caret class:snooze Snooze\ndiv with-caret class:text\n");
+    fromDirectory(root);
     const { errors } = captureConsole();
 
     await runCli(["check", root]);
 
     // Only the native div rejects the Web Awesome-only boolean name.
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("WX007");
-    expect(errors[0]).toContain('"class:text"');
+    expect(errors).toEqual([expect.stringMatching(/^src\/pages\/index\.wx:3:16 ERROR WX007 Attribute token "class:text"/)]);
     expect(process.exitCode).toBe(1);
   });
 
@@ -167,20 +179,21 @@ describe("wavex check", () => {
     writeFixture(workspace, "convex/_generated/api.d.ts", "export declare const api: {};\n");
     writeFixture(workspace, "convex/tasks.ts", "export const list = query({});\nexport const create = mutation({});\n");
     const appRoot = join(workspace, "packages", "web");
+    writeFixture(appRoot, "tsconfig.json", minimalTsconfig);
     writeFixture(appRoot, "src/pages/index.wx", "~~~\n$$tasks:list\n$$tasks:create\n");
+    fromDirectory(appRoot);
     const { errors } = captureConsole();
 
     await runCli(["check", join(appRoot, "src")]);
 
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("WX102");
-    expect(errors[0]).toContain("$$tasks:create");
+    expect(errors).toEqual([expect.stringMatching(/^src\/pages\/index\.wx:3:1 ERROR WX102 Bare \$\$tasks:create cannot bind a Convex mutation/)]);
     expect(process.exitCode).toBe(1);
   });
 
   it("resolves the app root when checking a nested src directory", async () => {
     const workspace = fixtureRoot("wavex-cli-check-");
     const appRoot = join(workspace, "apps", "swell");
+    writeFixture(appRoot, "tsconfig.json", minimalTsconfig);
     writeFixture(
       appRoot,
       "node_modules/@awesome.me/webawesome/dist/custom-elements.json",
@@ -188,17 +201,72 @@ describe("wavex check", () => {
     );
     writeFixture(appRoot, "src/components/site-nav.wx", "~~~\nnav Site\n");
     writeFixture(appRoot, "src/pages/index.wx", "~~~\n@site-nav\n@button Click\n");
+    fromDirectory(appRoot);
     const { logs, errors } = captureConsole();
 
     await runCli(["check", join(appRoot, "src")]);
 
     expect(errors).toEqual([]);
     expect(process.exitCode).toBeUndefined();
-    const output = logs.join("\n");
-    expect(output).not.toContain("WX101");
-    expect(output).toContain(
-      "Checked 2 .wx files. Web Awesome: @awesome.me/webawesome (1 components); Font Awesome: none installed."
-    );
+    expect(logs).toEqual([
+      "Checked 2 .wx files. Web Awesome: @awesome.me/webawesome (1 components); Font Awesome: none installed; TypeScript: tsconfig.json."
+    ]);
+  });
+});
+
+describe("wavex check type-checking", () => {
+  const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
+
+  it("type-checks templates against the app's registered state and passes guarded, looped, and handler usage", async () => {
+    const appRoot = fixture("typed-state");
+    fromDirectory(appRoot);
+    const { logs, errors } = captureConsole();
+
+    await runCli(["check", join(appRoot, "src")]);
+
+    expect(errors).toEqual([]);
+    expect(process.exitCode).toBeUndefined();
+    expect(logs).toEqual(["Checked 1 .wx file. Web Awesome: not installed; Font Awesome: none installed; TypeScript: tsconfig.json."]);
+  });
+
+  it("reports state type errors at their .wx positions and exits non-zero", async () => {
+    const appRoot = fixture("typed-state-error");
+    fromDirectory(appRoot);
+    const { errors } = captureConsole();
+
+    await runCli(["check", join(appRoot, "src")]);
+
+    expect(errors).toEqual([
+      "src/pages/index.wx:2:19 ERROR TS18047 'state.auth.user' is possibly 'null'.",
+      expect.stringMatching(/^src\/pages\/index\.wx:4:24 ERROR TS2339 Property 'convertedFromHtml' does not exist on type '\{ email: string; forwarding: \{ address: string; \} \| null; \}'\./)
+    ]);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("warns when the tsconfig does not include the checked .wx files", async () => {
+    const root = fixtureRoot("wavex-cli-check-include-");
+    writeFixture(root, "tsconfig.json", JSON.stringify({ compilerOptions: { strict: true, noEmit: true, types: [] }, include: ["src/**/*.ts"] }));
+    writeFixture(root, "src/pages/index.wx", "~~~\np Hello\n");
+    fromDirectory(root);
+    const { errors } = captureConsole();
+
+    await runCli(["check", root]);
+
+    expect(errors).toEqual([expect.stringMatching(/^tsconfig\.json:1:1 WARNING WX105 include does not cover 1 checked \.wx file \(src\/pages\/index\.wx\)/)]);
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("fails clearly when the app has no tsconfig.json", async () => {
+    const root = fixtureRoot("wavex-cli-check-no-tsconfig-");
+    writeFixture(root, "src/pages/index.wx", "~~~\np Hello\n");
+    fromDirectory(root);
+    const { logs, errors } = captureConsole();
+
+    await runCli(["check", root]);
+
+    expect(errors).toEqual([`wavex check: no tsconfig.json found for ${root}; add one so .wx templates can be type-checked.`]);
+    expect(logs).toEqual(["Checked 1 .wx file. Web Awesome: not installed; Font Awesome: none installed; TypeScript: no tsconfig.json."]);
+    expect(process.exitCode).toBe(1);
   });
 });
 
@@ -207,17 +275,19 @@ describe("wavex check with self-hosted Font Awesome icons", () => {
 
   function iconApp(prefix: string): string {
     const root = fixtureRoot(prefix);
+    writeFixture(root, "tsconfig.json", minimalTsconfig);
     mkdirSync(join(root, "node_modules/@awesome.me"), { recursive: true });
     symlinkSync(installedWebAwesome, join(root, "node_modules/@awesome.me/webawesome"), "dir");
     for (const name of ["box", "truck-fast", "house"]) {
       writeFixture(root, `node_modules/@awesome.me/kit-abc123/icons/svgs/solid/${name}.svg`, "<svg></svg>");
     }
+    fromDirectory(root);
     return root;
   }
 
   it("passes when every template and declared icon exists in the installed kit", async () => {
     const root = iconApp("wavex-cli-check-icons-ok-");
-    writeFixture(root, "src/pages/index.wx", "~~~\n@icon name:box\n@icon name:{{ shipped ? 'truck-fast' : 'box' }}\n");
+    writeFixture(root, "src/pages/index.wx", "~~~\n@icon name:box\n@icon name:{{ route.query.shipped ? 'truck-fast' : 'box' }}\n");
     writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("house");\n');
     const { logs, errors } = captureConsole();
 
@@ -231,15 +301,15 @@ describe("wavex check with self-hosted Font Awesome icons", () => {
   it("reports unknown icons and uncollectable icon() declarations with their locations", async () => {
     const root = iconApp("wavex-cli-check-icons-bad-");
     writeFixture(root, "src/pages/index.wx", "~~~\n@icon name:trck\n");
-    writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("hose");\nexport const ANY = icon(name);\n');
+    writeFixture(root, "src/labels.ts", 'import { icon } from "@wavex/runtime";\nexport const HOME = icon("hose");\nexport const ANY = icon(String(Date.now()));\n');
     const { errors } = captureConsole();
 
     await runCli(["check", join(root, "src")]);
 
     expect(errors).toEqual([
-      'labels.ts: ERROR WX103 2:21 Unknown Font Awesome icon "hose" (classic/solid): @awesome.me/kit-abc123 has no solid/hose.svg.',
-      expect.stringMatching(/^labels\.ts: ERROR WX104 3:20 icon\(\) declarations need string literal arguments/),
-      'pages/index.wx: ERROR WX103 2:12 Unknown Font Awesome icon "trck" (classic/solid): @awesome.me/kit-abc123 has no solid/trck.svg.'
+      'src/labels.ts:2:21 ERROR WX103 Unknown Font Awesome icon "hose" (classic/solid): @awesome.me/kit-abc123 has no solid/hose.svg.',
+      expect.stringMatching(/^src\/labels\.ts:3:20 ERROR WX104 icon\(\) declarations need string literal arguments/),
+      'src/pages/index.wx:2:12 ERROR WX103 Unknown Font Awesome icon "trck" (classic/solid): @awesome.me/kit-abc123 has no solid/trck.svg.'
     ]);
     expect(process.exitCode).toBe(1);
   });

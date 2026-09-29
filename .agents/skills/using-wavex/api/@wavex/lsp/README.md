@@ -11,6 +11,8 @@ plus Convex, Web Awesome, and Font Awesome metadata, then map back to `.wx`
 source positions. Editor syntax highlighting is handled by the VS Code
 TextMate grammar; the grammar is cosmetic, while this LSP uses the
 `@wavex/core` parser for diagnostics and type-aware language features.
+[typeCheckWavexFiles](#typecheckwavexfiles) runs the same virtual code outside an editor, so
+`wavex check` reports the TypeScript errors the editor shows.
 
 ## Classes
 
@@ -218,6 +220,99 @@ Defined in: [packages/lsp/src/service.ts:17](packages/lsp/src/service.ts#L17)
 
 Full Web Awesome component metadata for attribute completions and hover.
 
+***
+
+### WavexTypeCheckOptions
+
+Defined in: [packages/lsp/src/check.ts:10](packages/lsp/src/check.ts#L10)
+
+Inputs for [typeCheckWavexFiles](#typecheckwavexfiles).
+
+#### Properties
+
+##### appRoot
+
+```ts
+appRoot: string;
+```
+
+Defined in: [packages/lsp/src/check.ts:12](packages/lsp/src/check.ts#L12)
+
+The app root; its nearest tsconfig.json (searching upward, like the editor) configures the check.
+
+##### files
+
+```ts
+files: readonly string[];
+```
+
+Defined in: [packages/lsp/src/check.ts:14](packages/lsp/src/check.ts#L14)
+
+Absolute paths of the `.wx` files to check.
+
+##### parseOptionsFor?
+
+```ts
+optional parseOptionsFor?: WavexParseOptionsResolver;
+```
+
+Defined in: [packages/lsp/src/check.ts:16](packages/lsp/src/check.ts#L16)
+
+Parse context per file; defaults to the language server's (detected local components and Web Awesome booleans).
+
+***
+
+### WavexTypeCheckResult
+
+Defined in: [packages/lsp/src/check.ts:20](packages/lsp/src/check.ts#L20)
+
+Result of [typeCheckWavexFiles](#typecheckwavexfiles).
+
+#### Properties
+
+##### configErrors
+
+```ts
+configErrors: Diagnostic[];
+```
+
+Defined in: [packages/lsp/src/check.ts:24](packages/lsp/src/check.ts#L24)
+
+Problems reading or parsing the tsconfig, positioned in the tsconfig file.
+
+##### diagnostics
+
+```ts
+diagnostics: Map<string, Diagnostic[]>;
+```
+
+Defined in: [packages/lsp/src/check.ts:33](packages/lsp/src/check.ts#L33)
+
+TypeScript errors and warnings per file, positioned in the `.wx` source (1-based), codes like `TS2339`.
+
+##### notIncluded
+
+```ts
+notIncluded: string[];
+```
+
+Defined in: [packages/lsp/src/check.ts:31](packages/lsp/src/check.ts#L31)
+
+Checked files the tsconfig's `include`/`files` do not cover. The check
+still uses the tsconfig's options for them, but an editor places such
+files in an inferred project with default options, so the two can disagree
+until the tsconfig includes `.wx` files.
+
+##### tsconfig?
+
+```ts
+optional tsconfig?: string;
+```
+
+Defined in: [packages/lsp/src/check.ts:22](packages/lsp/src/check.ts#L22)
+
+The tsconfig.json used, or undefined when none was found (nothing was checked).
+
 ## Type Aliases
 
 ### WavexParseOptionsResolver
@@ -321,3 +416,33 @@ aren't plain TypeScript: parser diagnostics, completions for `@` components
 #### Returns
 
 `LanguageServicePlugin`
+
+***
+
+### typeCheckWavexFiles()
+
+```ts
+function typeCheckWavexFiles(options): Promise<WavexTypeCheckResult>;
+```
+
+Defined in: [packages/lsp/src/check.ts:49](packages/lsp/src/check.ts#L49)
+
+Type-check `.wx` files exactly as the language server does: the same
+Volar virtual code (prelude, template expressions, `+for`/`+error` scopes,
+Convex resource types, registered `state`) run through the TypeScript
+language service with the app's tsconfig options. The checked files join
+the tsconfig's root files, so ambient declarations the app includes (such
+as its `Register` augmentation) are visible.
+
+Uses the TypeScript this package depends on, so apps compiled with a
+native TypeScript (7.x, no JavaScript API) can still be checked.
+
+#### Parameters
+
+##### options
+
+[`WavexTypeCheckOptions`](#wavextypecheckoptions)
+
+#### Returns
+
+`Promise`\<[`WavexTypeCheckResult`](#wavextypecheckresult)\>

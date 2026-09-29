@@ -119,6 +119,18 @@ function convexApiImportPath(fsPath: string | undefined): string | undefined {
   return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
 }
 
+/** Whether `@wavex/runtime` is installed where TypeScript resolves it from the .wx file (a `node_modules` up the tree). */
+function runtimeResolvable(fsPath: string | undefined): boolean {
+  if (!fsPath) return false;
+  let dir = dirname(fsPath);
+  while (true) {
+    if (existsSync(join(dir, "node_modules", "@wavex", "runtime", "package.json"))) return true;
+    const parent = dirname(dir);
+    if (parent === dir) return false;
+    dir = parent;
+  }
+}
+
 function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): VirtualCode {
   const mappings: CodeMapping[] = [];
   let generated = "";
@@ -155,11 +167,19 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
   } else {
     append("declare const attrs: Record<string, any>;\n");
   }
-  append("declare const state: Record<string, any>;\n");
+  // The app's registered state type (`interface Register { state: … }` in
+  // @wavex/runtime) when the runtime resolves from this file; otherwise untyped.
+  append(`declare const state: ${runtimeResolvable(fsPath) ? 'import("@wavex/runtime").AppState' : "Record<string, any>"};\n`);
   append("declare const resourceStates: Record<string, any>;\n");
   append("declare const actionStates: Record<string, any>;\n");
   append(
     "declare const navigation: { pending: boolean; to?: { path: string; params: Record<string, string>; query: Record<string, string> } };\n"
+  );
+  // +for iterates like the compiled repeat(): any iterable (or null/undefined,
+  // which renders nothing); an `any` collection keeps `any` items.
+  append("type __WxForItem<Collection> = 0 extends 1 & Collection ? any : Collection extends Iterable<infer Item> ? Item : never;\n");
+  append(
+    "declare function __wxFor<Collection extends Iterable<unknown> | null | undefined>(collection: Collection): Array<[number, __WxForItem<NonNullable<Collection>>]>;\n"
   );
 
   // 2b. Resource bindings typed from the app's generated Convex api: the
@@ -204,6 +224,10 @@ interface Emitter {
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
+
+const RESERVED_WORDS = new Set(
+  "await break case catch class const continue debugger default delete do else enum export extends false finally for function if implements import in instanceof interface let new null package private protected public return static super switch this throw true try typeof var void while with yield".split(" ")
+);
 
 function isValidConvexRawAddress(rawHead: string): boolean {
   const withoutSigils = rawHead.replace(/^\$\$?/, "");
@@ -322,23 +346,49 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
           emitExpressionRange(attribute.expressionRange);
         }
         // Raw-event handlers (on:wa-show:faqOpened) compile to identifier
-        // references, so they count as prelude usage. Semantic-event targets
-        // (:click:openMenu, :track:todos_cleared) are dispatched by name at
-        // runtime and are NOT module identifiers.
+        // references, so they count as prelude usage.
         if (attribute.kind === "raw-event" && IDENTIFIER.test(attribute.handler)) {
           emitExpressionRange(attribute.expressionRange);
+        }
+        // Local semantic targets (:click:openMenu) compile to a reference to
+        // the prelude function when one exists; otherwise the target is an
+        // app-level dispatch name, so a missing binding is not an error.
+        // (:track: names analytics events; $$ targets are Convex functions.)
+        if (
+          attribute.kind === "semantic-event" &&
+          attribute.event !== "track" &&
+          !attribute.target.startsWith("$$") &&
+          IDENTIFIER.test(attribute.target) &&
+          !RESERVED_WORDS.has(attribute.target) &&
+          attribute.valueRange
+        ) {
+          emitter.append("  // @ts-ignore app-level dispatch targets have no prelude binding\n");
+          emitter.append("  void (");
+          emitter.appendMapped(attribute.target, attribute.valueRange.start.offset);
+          emitter.append(");\n");
         }
       }
     }
 
     if (node.kind === "directive") {
+      // +if children render only when the condition holds, so they are
+      // checked inside a real if block and guards narrow (`+if talk` then
+      // `{{ talk.title }}`).
       if (node.name === "if" && node.expression && node.expressionRange) {
-        emitExpressionRange(node.expressionRange);
+        const conditionRange = node.expressionRange;
+        emitter.append("  if (");
+        emitter.appendMapped(sourceForRange(conditionRange)!, conditionRange.start.offset);
+        emitter.append(") {\n");
+        for (const child of node.children) visit(child);
+        emitter.append("  }\n");
+        return;
       }
 
+      // +for bodies are a for…of loop rather than a callback, so narrowing
+      // from an enclosing +if still applies inside the loop.
       if (node.name === "for" && node.for) {
         const { itemName, collectionExpression, keyExpression } = node.for;
-        emitter.append("  ;((");
+        emitter.append(`  for (const [index, ${itemName}] of __wxFor(`);
         if (node.for.collectionExpressionRange) {
           const collectionRange = node.for.collectionExpressionRange;
           emitter.appendMapped(
@@ -346,12 +396,12 @@ function emitNodes(source: string, nodes: readonly TemplateNode[], emitter: Emit
             collectionRange.start.offset
           );
         } else emitter.append(collectionExpression);
-        emitter.append(`) ?? []).forEach((${itemName}, index) => {\n  void index;\n`);
+        emitter.append(`)) {\n  void index; void ${itemName};\n`);
         if (keyExpression && node.for.keyExpressionRange) {
           emitExpressionRange(node.for.keyExpressionRange);
         }
         for (const child of node.children) visit(child);
-        emitter.append("  });\n");
+        emitter.append("  }\n");
         return;
       }
 

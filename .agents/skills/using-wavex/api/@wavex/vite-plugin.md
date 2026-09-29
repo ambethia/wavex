@@ -58,7 +58,14 @@ import { mountLitApp } from "@wavex/runtime/lit";
 import routes from "virtual:wavex/routes";
 import { resolveActionKind, viewTransitions } from "virtual:wavex/manifest";
 import { api } from "../convex/_generated/api";
-import { session } from "./auth/session";
+import { session, type AuthState } from "./auth/session";
+
+// Types `state` in every template, initialContext, and app.update.
+declare module "@wavex/runtime" {
+  interface Register {
+    state: { auth: AuthState };
+  }
+}
 
 document.querySelector("[data-wx-prerender]")?.remove();
 

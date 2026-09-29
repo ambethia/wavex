@@ -1,0 +1,14 @@
+function mark(event: Event) {
+  event.preventDefault()
+}
+
+~~~
++if state.auth.user
+  p Signed in as {{ state.auth.user.email }}
+  +if state.auth.user.forwarding
+    p Forward campaign email to {{ state.auth.user.forwarding.address }}
+  ul
+    +for email in state.auth.emails key:email.id
+      li {{ email.subject }} (for {{ state.auth.user.email }})
+  button :click:mark Mark read
+  button :click:signOut Sign out

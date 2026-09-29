@@ -20,7 +20,7 @@ explicit pending/error lifecycle state ([ActionState](#actionstate)) for templat
 
 ### ActionClient
 
-Defined in: [packages/runtime/src/index.ts:169](packages/runtime/src/index.ts#L169)
+Defined in: [packages/runtime/src/index.ts:193](packages/runtime/src/index.ts#L193)
 
 Dispatch seam for mutations/actions; wraps the Convex client in production ([createConvexActionClient](#createconvexactionclient)).
 
@@ -32,7 +32,7 @@ Dispatch seam for mutations/actions; wraps the Convex client in production ([cre
 invoke(definition): Promise<unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:170](packages/runtime/src/index.ts#L170)
+Defined in: [packages/runtime/src/index.ts:194](packages/runtime/src/index.ts#L194)
 
 ###### Parameters
 
@@ -48,7 +48,7 @@ Defined in: [packages/runtime/src/index.ts:170](packages/runtime/src/index.ts#L1
 
 ### ActionDefinition
 
-Defined in: [packages/runtime/src/index.ts:149](packages/runtime/src/index.ts#L149)
+Defined in: [packages/runtime/src/index.ts:173](packages/runtime/src/index.ts#L173)
 
 A `$$module:fn` mutation/action target parsed from a semantic event attribute.
 
@@ -66,7 +66,7 @@ A `$$module:fn` mutation/action target parsed from a semantic event attribute.
 optional args?: TArgs;
 ```
 
-Defined in: [packages/runtime/src/index.ts:155](packages/runtime/src/index.ts#L155)
+Defined in: [packages/runtime/src/index.ts:179](packages/runtime/src/index.ts#L179)
 
 ##### functionName
 
@@ -74,7 +74,7 @@ Defined in: [packages/runtime/src/index.ts:155](packages/runtime/src/index.ts#L1
 functionName: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:152](packages/runtime/src/index.ts#L152)
+Defined in: [packages/runtime/src/index.ts:176](packages/runtime/src/index.ts#L176)
 
 ##### kind?
 
@@ -82,7 +82,7 @@ Defined in: [packages/runtime/src/index.ts:152](packages/runtime/src/index.ts#L1
 optional kind?: "mutation" | "action";
 ```
 
-Defined in: [packages/runtime/src/index.ts:154](packages/runtime/src/index.ts#L154)
+Defined in: [packages/runtime/src/index.ts:178](packages/runtime/src/index.ts#L178)
 
 ##### modulePath
 
@@ -90,7 +90,7 @@ Defined in: [packages/runtime/src/index.ts:154](packages/runtime/src/index.ts#L1
 modulePath: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:151](packages/runtime/src/index.ts#L151)
+Defined in: [packages/runtime/src/index.ts:175](packages/runtime/src/index.ts#L175)
 
 ##### raw?
 
@@ -98,7 +98,7 @@ Defined in: [packages/runtime/src/index.ts:151](packages/runtime/src/index.ts#L1
 optional raw?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:153](packages/runtime/src/index.ts#L153)
+Defined in: [packages/runtime/src/index.ts:177](packages/runtime/src/index.ts#L177)
 
 ##### target
 
@@ -106,7 +106,7 @@ Defined in: [packages/runtime/src/index.ts:153](packages/runtime/src/index.ts#L1
 target: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:150](packages/runtime/src/index.ts#L150)
+Defined in: [packages/runtime/src/index.ts:174](packages/runtime/src/index.ts#L174)
 
 ***
 
@@ -525,7 +525,7 @@ Apply an offset after a route commit (defaults to `window.scrollTo`).
 
 ### ConvexActionClientLike
 
-Defined in: [packages/runtime/src/index.ts:206](packages/runtime/src/index.ts#L206)
+Defined in: [packages/runtime/src/index.ts:230](packages/runtime/src/index.ts#L230)
 
 Structural slice of the Convex client used for mutations and actions.
 
@@ -537,7 +537,7 @@ Structural slice of the Convex client used for mutations and actions.
 action(action, args): Promise<unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:208](packages/runtime/src/index.ts#L208)
+Defined in: [packages/runtime/src/index.ts:232](packages/runtime/src/index.ts#L232)
 
 ###### Parameters
 
@@ -559,7 +559,7 @@ Defined in: [packages/runtime/src/index.ts:208](packages/runtime/src/index.ts#L2
 mutation(mutation, args): Promise<unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:207](packages/runtime/src/index.ts#L207)
+Defined in: [packages/runtime/src/index.ts:231](packages/runtime/src/index.ts#L231)
 
 ###### Parameters
 
@@ -579,7 +579,7 @@ Defined in: [packages/runtime/src/index.ts:207](packages/runtime/src/index.ts#L2
 
 ### ConvexActionClientOptions
 
-Defined in: [packages/runtime/src/index.ts:218](packages/runtime/src/index.ts#L218)
+Defined in: [packages/runtime/src/index.ts:242](packages/runtime/src/index.ts#L242)
 
 Function-resolution options for the Convex mutation/action adapter.
 
@@ -591,7 +591,7 @@ Function-resolution options for the Convex mutation/action adapter.
 optional api?: unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:219](packages/runtime/src/index.ts#L219)
+Defined in: [packages/runtime/src/index.ts:243](packages/runtime/src/index.ts#L243)
 
 ##### resolveFunction?
 
@@ -599,7 +599,7 @@ Defined in: [packages/runtime/src/index.ts:219](packages/runtime/src/index.ts#L2
 optional resolveFunction?: (definition) => unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:220](packages/runtime/src/index.ts#L220)
+Defined in: [packages/runtime/src/index.ts:244](packages/runtime/src/index.ts#L244)
 
 ###### Parameters
 
@@ -615,7 +615,7 @@ Defined in: [packages/runtime/src/index.ts:220](packages/runtime/src/index.ts#L2
 
 ### ConvexBrowserClientLike
 
-Defined in: [packages/runtime/src/index.ts:196](packages/runtime/src/index.ts#L196)
+Defined in: [packages/runtime/src/index.ts:220](packages/runtime/src/index.ts#L220)
 
 Structural slice of the official Convex browser client the runtime depends on (subscriptions).
 
@@ -631,7 +631,7 @@ onUpdate(
    onError?): ResourceTeardown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:197](packages/runtime/src/index.ts#L197)
+Defined in: [packages/runtime/src/index.ts:221](packages/runtime/src/index.ts#L221)
 
 ###### Parameters
 
@@ -659,7 +659,7 @@ Defined in: [packages/runtime/src/index.ts:197](packages/runtime/src/index.ts#L1
 
 ### ConvexResourceClientOptions
 
-Defined in: [packages/runtime/src/index.ts:212](packages/runtime/src/index.ts#L212)
+Defined in: [packages/runtime/src/index.ts:236](packages/runtime/src/index.ts#L236)
 
 Function-resolution options for the Convex query resource adapter.
 
@@ -671,7 +671,7 @@ Function-resolution options for the Convex query resource adapter.
 optional api?: unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:213](packages/runtime/src/index.ts#L213)
+Defined in: [packages/runtime/src/index.ts:237](packages/runtime/src/index.ts#L237)
 
 ##### resolveFunction?
 
@@ -679,7 +679,7 @@ Defined in: [packages/runtime/src/index.ts:213](packages/runtime/src/index.ts#L2
 optional resolveFunction?: (definition) => unknown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:214](packages/runtime/src/index.ts#L214)
+Defined in: [packages/runtime/src/index.ts:238](packages/runtime/src/index.ts#L238)
 
 ###### Parameters
 
@@ -695,7 +695,7 @@ Defined in: [packages/runtime/src/index.ts:214](packages/runtime/src/index.ts#L2
 
 ### HeadEntry
 
-Defined in: [packages/runtime/src/index.ts:233](packages/runtime/src/index.ts#L233)
+Defined in: [packages/runtime/src/index.ts:257](packages/runtime/src/index.ts#L257)
 
 One managed head node from a `+head` directive (title, meta, or link).
 
@@ -707,7 +707,7 @@ One managed head node from a `+head` directive (title, meta, or link).
 optional attributes?: Record<string, string>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:236](packages/runtime/src/index.ts#L236)
+Defined in: [packages/runtime/src/index.ts:260](packages/runtime/src/index.ts#L260)
 
 ##### tag
 
@@ -715,7 +715,7 @@ Defined in: [packages/runtime/src/index.ts:236](packages/runtime/src/index.ts#L2
 tag: "title" | "meta" | "link";
 ```
 
-Defined in: [packages/runtime/src/index.ts:234](packages/runtime/src/index.ts#L234)
+Defined in: [packages/runtime/src/index.ts:258](packages/runtime/src/index.ts#L258)
 
 ##### text?
 
@@ -723,13 +723,13 @@ Defined in: [packages/runtime/src/index.ts:234](packages/runtime/src/index.ts#L2
 optional text?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:235](packages/runtime/src/index.ts#L235)
+Defined in: [packages/runtime/src/index.ts:259](packages/runtime/src/index.ts#L259)
 
 ***
 
 ### IconOptions
 
-Defined in: [packages/runtime/src/index.ts:249](packages/runtime/src/index.ts#L249)
+Defined in: [packages/runtime/src/index.ts:273](packages/runtime/src/index.ts#L273)
 
 Font Awesome family/variant for an [icon](#icon) declaration (Web Awesome's `@icon family:`/`variant:`).
 
@@ -741,7 +741,7 @@ Font Awesome family/variant for an [icon](#icon) declaration (Web Awesome's `@ic
 optional family?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:251](packages/runtime/src/index.ts#L251)
+Defined in: [packages/runtime/src/index.ts:275](packages/runtime/src/index.ts#L275)
 
 Icon family, e.g. `"sharp"` or `"duotone"`; defaults to `"classic"`.
 
@@ -751,7 +751,7 @@ Icon family, e.g. `"sharp"` or `"duotone"`; defaults to `"classic"`.
 optional variant?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:253](packages/runtime/src/index.ts#L253)
+Defined in: [packages/runtime/src/index.ts:277](packages/runtime/src/index.ts#L277)
 
 Icon variant, e.g. `"regular"` or `"light"`; defaults to `"solid"`.
 
@@ -759,7 +759,7 @@ Icon variant, e.g. `"regular"` or `"light"`; defaults to `"solid"`.
 
 ### NavigationState
 
-Defined in: [packages/runtime/src/index.ts:79](packages/runtime/src/index.ts#L79)
+Defined in: [packages/runtime/src/index.ts:103](packages/runtime/src/index.ts#L103)
 
 The client router's navigation lifecycle, exposed declaratively in template
 context. Render an nprogress-style indicator with `+if navigation.pending`;
@@ -774,7 +774,7 @@ indicators.
 pending: boolean;
 ```
 
-Defined in: [packages/runtime/src/index.ts:80](packages/runtime/src/index.ts#L80)
+Defined in: [packages/runtime/src/index.ts:104](packages/runtime/src/index.ts#L104)
 
 ##### to?
 
@@ -782,7 +782,7 @@ Defined in: [packages/runtime/src/index.ts:80](packages/runtime/src/index.ts#L80
 optional to?: RouteContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:82](packages/runtime/src/index.ts#L82)
+Defined in: [packages/runtime/src/index.ts:106](packages/runtime/src/index.ts#L106)
 
 The destination route while a navigation is pending.
 
@@ -848,9 +848,29 @@ Defined in: [packages/runtime/src/analytics.ts:12](packages/runtime/src/analytic
 
 ***
 
+### Register
+
+Defined in: [packages/runtime/src/index.ts:67](packages/runtime/src/index.ts#L67)
+
+Registration point for app-wide WAVEx types (TanStack-style). An app
+augments it once, and every template's `state`, `mountLitApp`'s
+`initialContext.state`, and `LitApp.update` are typed with it — in the
+editor and in `wavex check`:
+
+```ts
+// src/main.ts (any module file the app's tsconfig includes)
+declare module "@wavex/runtime" {
+  interface Register {
+    state: { auth: typeof authState; pledges: typeof pledgeState };
+  }
+}
+```
+
+***
+
 ### RenderContext
 
-Defined in: [packages/runtime/src/index.ts:58](packages/runtime/src/index.ts#L58)
+Defined in: [packages/runtime/src/index.ts:81](packages/runtime/src/index.ts#L81)
 
 Everything a compiled render function can see: the route, component attrs,
 local state, live resource values and their lifecycle states, action
@@ -865,7 +885,7 @@ Compiled `.wx` modules read from this; the runtime owns writing to it.
 optional actionStates?: Record<string, ActionState<unknown>>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:65](packages/runtime/src/index.ts#L65)
+Defined in: [packages/runtime/src/index.ts:89](packages/runtime/src/index.ts#L89)
 
 ##### attrs?
 
@@ -873,7 +893,7 @@ Defined in: [packages/runtime/src/index.ts:65](packages/runtime/src/index.ts#L65
 optional attrs?: Record<string, unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:61](packages/runtime/src/index.ts#L61)
+Defined in: [packages/runtime/src/index.ts:84](packages/runtime/src/index.ts#L84)
 
 Component attributes (and the route error for +error.wx pages).
 
@@ -883,7 +903,7 @@ Component attributes (and the route error for +error.wx pages).
 optional dispatch?: (event) => void | Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:70](packages/runtime/src/index.ts#L70)
+Defined in: [packages/runtime/src/index.ts:94](packages/runtime/src/index.ts#L94)
 
 ###### Parameters
 
@@ -901,7 +921,7 @@ Defined in: [packages/runtime/src/index.ts:70](packages/runtime/src/index.ts#L70
 optional navigation?: NavigationState;
 ```
 
-Defined in: [packages/runtime/src/index.ts:67](packages/runtime/src/index.ts#L67)
+Defined in: [packages/runtime/src/index.ts:91](packages/runtime/src/index.ts#L91)
 
 Client navigation lifecycle — `navigation.pending` while a route loads.
 
@@ -911,7 +931,7 @@ Client navigation lifecycle — `navigation.pending` while a route loads.
 optional resources?: Record<string, unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:63](packages/runtime/src/index.ts#L63)
+Defined in: [packages/runtime/src/index.ts:87](packages/runtime/src/index.ts#L87)
 
 ##### resourceStates?
 
@@ -919,7 +939,7 @@ Defined in: [packages/runtime/src/index.ts:63](packages/runtime/src/index.ts#L63
 optional resourceStates?: Record<string, ResourceState<unknown>>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:64](packages/runtime/src/index.ts#L64)
+Defined in: [packages/runtime/src/index.ts:88](packages/runtime/src/index.ts#L88)
 
 ##### route?
 
@@ -927,7 +947,7 @@ Defined in: [packages/runtime/src/index.ts:64](packages/runtime/src/index.ts#L64
 optional route?: RouteContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:59](packages/runtime/src/index.ts#L59)
+Defined in: [packages/runtime/src/index.ts:82](packages/runtime/src/index.ts#L82)
 
 ##### slots?
 
@@ -935,23 +955,25 @@ Defined in: [packages/runtime/src/index.ts:59](packages/runtime/src/index.ts#L59
 optional slots?: Record<string, unknown>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:69](packages/runtime/src/index.ts#L69)
+Defined in: [packages/runtime/src/index.ts:93](packages/runtime/src/index.ts#L93)
 
 Slot content projected into layouts and local components (semantic slot composition).
 
 ##### state?
 
 ```ts
-optional state?: Record<string, unknown>;
+optional state?: Record<string, any>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:62](packages/runtime/src/index.ts#L62)
+Defined in: [packages/runtime/src/index.ts:86](packages/runtime/src/index.ts#L86)
+
+App-owned state (typed by the app's [Register](#register) declaration); WAVEx never mutates it.
 
 ***
 
 ### ResolvedActionDefinition
 
-Defined in: [packages/runtime/src/index.ts:159](packages/runtime/src/index.ts#L159)
+Defined in: [packages/runtime/src/index.ts:183](packages/runtime/src/index.ts#L183)
 
 Semantic action definition after kind and args are resolved for dispatch.
 
@@ -969,7 +991,7 @@ Semantic action definition after kind and args are resolved for dispatch.
 args: TArgs;
 ```
 
-Defined in: [packages/runtime/src/index.ts:165](packages/runtime/src/index.ts#L165)
+Defined in: [packages/runtime/src/index.ts:189](packages/runtime/src/index.ts#L189)
 
 ##### functionName
 
@@ -977,7 +999,7 @@ Defined in: [packages/runtime/src/index.ts:165](packages/runtime/src/index.ts#L1
 functionName: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:162](packages/runtime/src/index.ts#L162)
+Defined in: [packages/runtime/src/index.ts:186](packages/runtime/src/index.ts#L186)
 
 ##### kind
 
@@ -985,7 +1007,7 @@ Defined in: [packages/runtime/src/index.ts:162](packages/runtime/src/index.ts#L1
 kind: "mutation" | "action";
 ```
 
-Defined in: [packages/runtime/src/index.ts:164](packages/runtime/src/index.ts#L164)
+Defined in: [packages/runtime/src/index.ts:188](packages/runtime/src/index.ts#L188)
 
 ##### modulePath
 
@@ -993,7 +1015,7 @@ Defined in: [packages/runtime/src/index.ts:164](packages/runtime/src/index.ts#L1
 modulePath: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:161](packages/runtime/src/index.ts#L161)
+Defined in: [packages/runtime/src/index.ts:185](packages/runtime/src/index.ts#L185)
 
 ##### raw?
 
@@ -1001,7 +1023,7 @@ Defined in: [packages/runtime/src/index.ts:161](packages/runtime/src/index.ts#L1
 optional raw?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:163](packages/runtime/src/index.ts#L163)
+Defined in: [packages/runtime/src/index.ts:187](packages/runtime/src/index.ts#L187)
 
 ##### target
 
@@ -1009,13 +1031,13 @@ Defined in: [packages/runtime/src/index.ts:163](packages/runtime/src/index.ts#L1
 target: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:160](packages/runtime/src/index.ts#L160)
+Defined in: [packages/runtime/src/index.ts:184](packages/runtime/src/index.ts#L184)
 
 ***
 
 ### ResolvedResourceDefinition
 
-Defined in: [packages/runtime/src/index.ts:105](packages/runtime/src/index.ts#L105)
+Defined in: [packages/runtime/src/index.ts:129](packages/runtime/src/index.ts#L129)
 
 Resource definition after args have been resolved for the current render context.
 
@@ -1033,7 +1055,7 @@ Resource definition after args have been resolved for the current render context
 args: TArgs;
 ```
 
-Defined in: [packages/runtime/src/index.ts:111](packages/runtime/src/index.ts#L111)
+Defined in: [packages/runtime/src/index.ts:135](packages/runtime/src/index.ts#L135)
 
 ##### functionName
 
@@ -1041,7 +1063,7 @@ Defined in: [packages/runtime/src/index.ts:111](packages/runtime/src/index.ts#L1
 functionName: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:108](packages/runtime/src/index.ts#L108)
+Defined in: [packages/runtime/src/index.ts:132](packages/runtime/src/index.ts#L132)
 
 ##### kind
 
@@ -1049,7 +1071,7 @@ Defined in: [packages/runtime/src/index.ts:108](packages/runtime/src/index.ts#L1
 kind: "query";
 ```
 
-Defined in: [packages/runtime/src/index.ts:110](packages/runtime/src/index.ts#L110)
+Defined in: [packages/runtime/src/index.ts:134](packages/runtime/src/index.ts#L134)
 
 ##### modulePath
 
@@ -1057,7 +1079,7 @@ Defined in: [packages/runtime/src/index.ts:110](packages/runtime/src/index.ts#L1
 modulePath: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:107](packages/runtime/src/index.ts#L107)
+Defined in: [packages/runtime/src/index.ts:131](packages/runtime/src/index.ts#L131)
 
 ##### name
 
@@ -1065,7 +1087,7 @@ Defined in: [packages/runtime/src/index.ts:107](packages/runtime/src/index.ts#L1
 name: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:106](packages/runtime/src/index.ts#L106)
+Defined in: [packages/runtime/src/index.ts:130](packages/runtime/src/index.ts#L130)
 
 ##### raw?
 
@@ -1073,13 +1095,13 @@ Defined in: [packages/runtime/src/index.ts:106](packages/runtime/src/index.ts#L1
 optional raw?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:109](packages/runtime/src/index.ts#L109)
+Defined in: [packages/runtime/src/index.ts:133](packages/runtime/src/index.ts#L133)
 
 ***
 
 ### ResourceClient
 
-Defined in: [packages/runtime/src/index.ts:129](packages/runtime/src/index.ts#L129)
+Defined in: [packages/runtime/src/index.ts:153](packages/runtime/src/index.ts#L153)
 
 The subscription seam between the runtime and a realtime backend. The real
 implementation wraps the official Convex browser client
@@ -1094,7 +1116,7 @@ behavior is deliberately testable without a live deployment.
 subscribe<T>(definition, handlers): ResourceTeardown;
 ```
 
-Defined in: [packages/runtime/src/index.ts:130](packages/runtime/src/index.ts#L130)
+Defined in: [packages/runtime/src/index.ts:154](packages/runtime/src/index.ts#L154)
 
 ###### Type Parameters
 
@@ -1120,7 +1142,7 @@ Defined in: [packages/runtime/src/index.ts:130](packages/runtime/src/index.ts#L1
 
 ### ResourceController
 
-Defined in: [packages/runtime/src/index.ts:137](packages/runtime/src/index.ts#L137)
+Defined in: [packages/runtime/src/index.ts:161](packages/runtime/src/index.ts#L161)
 
 Manages the live subscriptions for a mounted page; `update` diffs definitions, `dispose` tears all down.
 
@@ -1132,7 +1154,7 @@ Manages the live subscriptions for a mounted page; `update` diffs definitions, `
 dispose(): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:139](packages/runtime/src/index.ts#L139)
+Defined in: [packages/runtime/src/index.ts:163](packages/runtime/src/index.ts#L163)
 
 ###### Returns
 
@@ -1144,7 +1166,7 @@ Defined in: [packages/runtime/src/index.ts:139](packages/runtime/src/index.ts#L1
 update(nextDefinitions?): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:138](packages/runtime/src/index.ts#L138)
+Defined in: [packages/runtime/src/index.ts:162](packages/runtime/src/index.ts#L162)
 
 ###### Parameters
 
@@ -1160,7 +1182,7 @@ readonly [`ResourceDefinition`](#resourcedefinition)\<`unknown`\>[]
 
 ### ResourceControllerOptions
 
-Defined in: [packages/runtime/src/index.ts:143](packages/runtime/src/index.ts#L143)
+Defined in: [packages/runtime/src/index.ts:167](packages/runtime/src/index.ts#L167)
 
 Options for resource subscription management.
 
@@ -1172,7 +1194,7 @@ Options for resource subscription management.
 optional client?: ResourceClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:144](packages/runtime/src/index.ts#L144)
+Defined in: [packages/runtime/src/index.ts:168](packages/runtime/src/index.ts#L168)
 
 ##### onChange?
 
@@ -1180,7 +1202,7 @@ Defined in: [packages/runtime/src/index.ts:144](packages/runtime/src/index.ts#L1
 optional onChange?: () => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:145](packages/runtime/src/index.ts#L145)
+Defined in: [packages/runtime/src/index.ts:169](packages/runtime/src/index.ts#L169)
 
 ###### Returns
 
@@ -1190,7 +1212,7 @@ Defined in: [packages/runtime/src/index.ts:145](packages/runtime/src/index.ts#L1
 
 ### ResourceDefinition
 
-Defined in: [packages/runtime/src/index.ts:94](packages/runtime/src/index.ts#L94)
+Defined in: [packages/runtime/src/index.ts:118](packages/runtime/src/index.ts#L118)
 
 A Convex query resource as emitted by the compiler for a `$$module:fn`
 binding. Args may be a static value or a factory reading the render
@@ -1211,7 +1233,7 @@ navigation.
 optional args?: TArgs | ResourceArgsFactory<TArgs>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:100](packages/runtime/src/index.ts#L100)
+Defined in: [packages/runtime/src/index.ts:124](packages/runtime/src/index.ts#L124)
 
 ##### functionName
 
@@ -1219,7 +1241,7 @@ Defined in: [packages/runtime/src/index.ts:100](packages/runtime/src/index.ts#L1
 functionName: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:97](packages/runtime/src/index.ts#L97)
+Defined in: [packages/runtime/src/index.ts:121](packages/runtime/src/index.ts#L121)
 
 ##### getArgs?
 
@@ -1227,7 +1249,7 @@ Defined in: [packages/runtime/src/index.ts:97](packages/runtime/src/index.ts#L97
 optional getArgs?: ResourceArgsFactory<TArgs>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:101](packages/runtime/src/index.ts#L101)
+Defined in: [packages/runtime/src/index.ts:125](packages/runtime/src/index.ts#L125)
 
 ##### kind?
 
@@ -1235,7 +1257,7 @@ Defined in: [packages/runtime/src/index.ts:101](packages/runtime/src/index.ts#L1
 optional kind?: "query";
 ```
 
-Defined in: [packages/runtime/src/index.ts:99](packages/runtime/src/index.ts#L99)
+Defined in: [packages/runtime/src/index.ts:123](packages/runtime/src/index.ts#L123)
 
 ##### modulePath
 
@@ -1243,7 +1265,7 @@ Defined in: [packages/runtime/src/index.ts:99](packages/runtime/src/index.ts#L99
 modulePath: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:96](packages/runtime/src/index.ts#L96)
+Defined in: [packages/runtime/src/index.ts:120](packages/runtime/src/index.ts#L120)
 
 ##### name
 
@@ -1251,7 +1273,7 @@ Defined in: [packages/runtime/src/index.ts:96](packages/runtime/src/index.ts#L96
 name: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:95](packages/runtime/src/index.ts#L95)
+Defined in: [packages/runtime/src/index.ts:119](packages/runtime/src/index.ts#L119)
 
 ##### raw?
 
@@ -1259,7 +1281,7 @@ Defined in: [packages/runtime/src/index.ts:95](packages/runtime/src/index.ts#L95
 optional raw?: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:98](packages/runtime/src/index.ts#L98)
+Defined in: [packages/runtime/src/index.ts:122](packages/runtime/src/index.ts#L122)
 
 ***
 
@@ -1313,7 +1335,7 @@ Defined in: [packages/runtime/src/index.ts:35](packages/runtime/src/index.ts#L35
 
 ### ResourceSubscriptionHandlers
 
-Defined in: [packages/runtime/src/index.ts:115](packages/runtime/src/index.ts#L115)
+Defined in: [packages/runtime/src/index.ts:139](packages/runtime/src/index.ts#L139)
 
 Callbacks a ResourceClient uses to publish resource values or errors.
 
@@ -1331,7 +1353,7 @@ Callbacks a ResourceClient uses to publish resource values or errors.
 error(error): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:117](packages/runtime/src/index.ts#L117)
+Defined in: [packages/runtime/src/index.ts:141](packages/runtime/src/index.ts#L141)
 
 ###### Parameters
 
@@ -1349,7 +1371,7 @@ Defined in: [packages/runtime/src/index.ts:117](packages/runtime/src/index.ts#L1
 next(value): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:116](packages/runtime/src/index.ts#L116)
+Defined in: [packages/runtime/src/index.ts:140](packages/runtime/src/index.ts#L140)
 
 ###### Parameters
 
@@ -1574,7 +1596,7 @@ Defined in: [packages/runtime/src/router.ts:81](packages/runtime/src/router.ts#L
 
 ### SemanticActionDispatcherOptions
 
-Defined in: [packages/runtime/src/index.ts:181](packages/runtime/src/index.ts#L181)
+Defined in: [packages/runtime/src/index.ts:205](packages/runtime/src/index.ts#L205)
 
 Dependencies and lifecycle hooks for the semantic action dispatcher.
 
@@ -1586,7 +1608,7 @@ Dependencies and lifecycle hooks for the semantic action dispatcher.
 optional actionClient?: ActionClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:182](packages/runtime/src/index.ts#L182)
+Defined in: [packages/runtime/src/index.ts:206](packages/runtime/src/index.ts#L206)
 
 ##### analytics?
 
@@ -1594,7 +1616,7 @@ Defined in: [packages/runtime/src/index.ts:182](packages/runtime/src/index.ts#L1
 optional analytics?: AnalyticsClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:192](packages/runtime/src/index.ts#L192)
+Defined in: [packages/runtime/src/index.ts:216](packages/runtime/src/index.ts#L216)
 
 Optional analytics sink; semantic local and Convex actions are captured automatically (`:track:` overrides the name).
 
@@ -1604,7 +1626,7 @@ Optional analytics sink; semantic local and Convex actions are captured automati
 optional dispatch?: (event) => void | Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:184](packages/runtime/src/index.ts#L184)
+Defined in: [packages/runtime/src/index.ts:208](packages/runtime/src/index.ts#L208)
 
 App-level fallback for non-Convex targets that have no compiled local handler.
 
@@ -1624,7 +1646,7 @@ App-level fallback for non-Convex targets that have no compiled local handler.
 optional onActionError?: (definition, error, event) => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:189](packages/runtime/src/index.ts#L189)
+Defined in: [packages/runtime/src/index.ts:213](packages/runtime/src/index.ts#L213)
 
 ###### Parameters
 
@@ -1650,7 +1672,7 @@ Defined in: [packages/runtime/src/index.ts:189](packages/runtime/src/index.ts#L1
 optional onActionResult?: (definition, result, event) => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:188](packages/runtime/src/index.ts#L188)
+Defined in: [packages/runtime/src/index.ts:212](packages/runtime/src/index.ts#L212)
 
 ###### Parameters
 
@@ -1676,7 +1698,7 @@ Defined in: [packages/runtime/src/index.ts:188](packages/runtime/src/index.ts#L1
 optional onUnhandledAction?: (event) => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:186](packages/runtime/src/index.ts#L186)
+Defined in: [packages/runtime/src/index.ts:210](packages/runtime/src/index.ts#L210)
 
 Override the default console diagnostic for an unresolved target (no local handler, app dispatch, or action client).
 
@@ -1696,7 +1718,7 @@ Override the default console diagnostic for an unresolved target (no local handl
 optional resolveActionKind?: ActionKindResolver;
 ```
 
-Defined in: [packages/runtime/src/index.ts:187](packages/runtime/src/index.ts#L187)
+Defined in: [packages/runtime/src/index.ts:211](packages/runtime/src/index.ts#L211)
 
 ##### throwActionErrors?
 
@@ -1704,13 +1726,13 @@ Defined in: [packages/runtime/src/index.ts:187](packages/runtime/src/index.ts#L1
 optional throwActionErrors?: boolean;
 ```
 
-Defined in: [packages/runtime/src/index.ts:190](packages/runtime/src/index.ts#L190)
+Defined in: [packages/runtime/src/index.ts:214](packages/runtime/src/index.ts#L214)
 
 ***
 
 ### WavexActionEvent
 
-Defined in: [packages/runtime/src/index.ts:224](packages/runtime/src/index.ts#L224)
+Defined in: [packages/runtime/src/index.ts:248](packages/runtime/src/index.ts#L248)
 
 A semantic event captured by delegation: `:click:save` produces `{ type: "click", target: "save" }`.
 
@@ -1722,7 +1744,7 @@ A semantic event captured by delegation: `:click:save` produces `{ type: "click"
 context: RenderContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:229](packages/runtime/src/index.ts#L229)
+Defined in: [packages/runtime/src/index.ts:253](packages/runtime/src/index.ts#L253)
 
 ##### element
 
@@ -1730,7 +1752,7 @@ Defined in: [packages/runtime/src/index.ts:229](packages/runtime/src/index.ts#L2
 element: Element;
 ```
 
-Defined in: [packages/runtime/src/index.ts:228](packages/runtime/src/index.ts#L228)
+Defined in: [packages/runtime/src/index.ts:252](packages/runtime/src/index.ts#L252)
 
 ##### event
 
@@ -1738,7 +1760,7 @@ Defined in: [packages/runtime/src/index.ts:228](packages/runtime/src/index.ts#L2
 event: Event;
 ```
 
-Defined in: [packages/runtime/src/index.ts:227](packages/runtime/src/index.ts#L227)
+Defined in: [packages/runtime/src/index.ts:251](packages/runtime/src/index.ts#L251)
 
 ##### target
 
@@ -1746,7 +1768,7 @@ Defined in: [packages/runtime/src/index.ts:227](packages/runtime/src/index.ts#L2
 target: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:226](packages/runtime/src/index.ts#L226)
+Defined in: [packages/runtime/src/index.ts:250](packages/runtime/src/index.ts#L250)
 
 ##### type
 
@@ -1754,7 +1776,7 @@ Defined in: [packages/runtime/src/index.ts:226](packages/runtime/src/index.ts#L2
 type: string;
 ```
 
-Defined in: [packages/runtime/src/index.ts:225](packages/runtime/src/index.ts#L225)
+Defined in: [packages/runtime/src/index.ts:249](packages/runtime/src/index.ts#L249)
 
 ## Type Aliases
 
@@ -1764,7 +1786,7 @@ Defined in: [packages/runtime/src/index.ts:225](packages/runtime/src/index.ts#L2
 type ActionKindResolver = (definition, event) => "mutation" | "action" | undefined;
 ```
 
-Defined in: [packages/runtime/src/index.ts:178](packages/runtime/src/index.ts#L178)
+Defined in: [packages/runtime/src/index.ts:202](packages/runtime/src/index.ts#L202)
 
 Resolves whether a `$$` target is a Convex mutation or action. The Vite
 plugin supplies one backed by the function-kind manifest discovered from
@@ -1798,13 +1820,26 @@ Lifecycle of a mutation/action dispatch; drives `+pending` / `+idle` / `+mutatio
 
 ***
 
+### AppState
+
+```ts
+type AppState = Register extends object ? State : Record<string, any>;
+```
+
+Defined in: [packages/runtime/src/index.ts:73](packages/runtime/src/index.ts#L73)
+
+The app's template `state` type: `Register["state"]` when the app
+registers one (see [Register](#register)), otherwise an untyped record.
+
+***
+
 ### RenderFunction
 
 ```ts
 type RenderFunction<Result> = (context?) => Result;
 ```
 
-Defined in: [packages/runtime/src/index.ts:240](packages/runtime/src/index.ts#L240)
+Defined in: [packages/runtime/src/index.ts:264](packages/runtime/src/index.ts#L264)
 
 The shape of a compiled `.wx` module's render export; `Result` is the renderer backend's template type.
 
@@ -1832,7 +1867,7 @@ The shape of a compiled `.wx` module's render export; `Result` is the renderer b
 type ResourceArgsFactory<TArgs> = (context) => TArgs;
 ```
 
-Defined in: [packages/runtime/src/index.ts:86](packages/runtime/src/index.ts#L86)
+Defined in: [packages/runtime/src/index.ts:110](packages/runtime/src/index.ts#L110)
 
 Computes resource args from the current render context before subscription.
 
@@ -1879,7 +1914,7 @@ type ResourceTeardown =
 };
 ```
 
-Defined in: [packages/runtime/src/index.ts:121](packages/runtime/src/index.ts#L121)
+Defined in: [packages/runtime/src/index.ts:145](packages/runtime/src/index.ts#L145)
 
 Teardown shape returned by a resource subscription; supports Convex and test-client conventions.
 
@@ -1913,7 +1948,7 @@ Conventional analytics event name for a semantic Convex action target, e.g. "$$t
 function applyHead(entries, documentRef?): void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:583](packages/runtime/src/index.ts#L583)
+Defined in: [packages/runtime/src/index.ts:607](packages/runtime/src/index.ts#L607)
 
 Reconcile `document.title` and `data-wx-head`-managed meta/link nodes with
 the given entries. Only nodes the runtime created are touched, so static
@@ -2025,7 +2060,7 @@ back/forward.
 function createConvexActionClient(client, options?): ActionClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:414](packages/runtime/src/index.ts#L414)
+Defined in: [packages/runtime/src/index.ts:438](packages/runtime/src/index.ts#L438)
 
 Adapt the Convex client to the [ActionClient](#actionclient) seam; dispatches by inferred kind (mutation vs action).
 
@@ -2051,7 +2086,7 @@ Adapt the Convex client to the [ActionClient](#actionclient) seam; dispatches by
 function createConvexResourceClient(client, options?): ResourceClient;
 ```
 
-Defined in: [packages/runtime/src/index.ts:399](packages/runtime/src/index.ts#L399)
+Defined in: [packages/runtime/src/index.ts:423](packages/runtime/src/index.ts#L423)
 
 Adapt the official Convex browser client to the [ResourceClient](#resourceclient)
 seam. Function addresses resolve through the generated `api` object when
@@ -2103,7 +2138,7 @@ stays optional — apps enable it with VITE_POSTHOG_KEY / VITE_POSTHOG_HOST.
 function createRenderContext(context?): RenderContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:293](packages/runtime/src/index.ts#L293)
+Defined in: [packages/runtime/src/index.ts:317](packages/runtime/src/index.ts#L317)
 
 Normalize a partial context into a fully-populated [RenderContext](#rendercontext) with empty defaults.
 
@@ -2128,7 +2163,7 @@ function createResourceController(
    options?): ResourceController;
 ```
 
-Defined in: [packages/runtime/src/index.ts:314](packages/runtime/src/index.ts#L314)
+Defined in: [packages/runtime/src/index.ts:338](packages/runtime/src/index.ts#L338)
 
 Subscribe the context's resources through a [ResourceClient](#resourceclient) and keep
 `context.resources` / `context.resourceStates` current. Subscriptions are
@@ -2163,7 +2198,7 @@ readonly [`ResourceDefinition`](#resourcedefinition)\<`unknown`\>[] = `[]`
 function createRouteContext(input?): RouteContext;
 ```
 
-Defined in: [packages/runtime/src/index.ts:282](packages/runtime/src/index.ts#L282)
+Defined in: [packages/runtime/src/index.ts:306](packages/runtime/src/index.ts#L306)
 
 Build a [RouteContext](#routecontext) from a URL (defaults to the current location); params are filled in by the router.
 
@@ -2185,7 +2220,7 @@ Build a [RouteContext](#routecontext) from a URL (defaults to the current locati
 function createSemanticActionDispatcher(context, options?): (event) => Promise<void>;
 ```
 
-Defined in: [packages/runtime/src/index.ts:435](packages/runtime/src/index.ts#L435)
+Defined in: [packages/runtime/src/index.ts:459](packages/runtime/src/index.ts#L459)
 
 Build the dispatcher behind `context.dispatch`. `$$module:fn` targets go
 through the action client with full lifecycle handling — pending state,
@@ -2216,7 +2251,7 @@ through to `options.dispatch` for app-level targets.
 function icon<N>(name, options?): N;
 ```
 
-Defined in: [packages/runtime/src/index.ts:276](packages/runtime/src/index.ts#L276)
+Defined in: [packages/runtime/src/index.ts:300](packages/runtime/src/index.ts#L300)
 
 Declare a Font Awesome icon name that TypeScript computes, so WAVEx can
 collect, validate, and self-host it; returns `name` unchanged.
@@ -2265,7 +2300,7 @@ string literals.
 function installSemanticEventDelegation(root, context): () => void;
 ```
 
-Defined in: [packages/runtime/src/index.ts:551](packages/runtime/src/index.ts#L551)
+Defined in: [packages/runtime/src/index.ts:575](packages/runtime/src/index.ts#L575)
 
 Listen for click/submit/change at the root (capture phase) and route
 `data-wx-*` action attributes — the compiled form of `:event:target` — to

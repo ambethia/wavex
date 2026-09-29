@@ -1,0 +1,4 @@
+~~~
+p Signed in as {{ state.auth.user.email }}
++if state.auth.user
+  p {{ state.auth.user.convertedFromHtml }}

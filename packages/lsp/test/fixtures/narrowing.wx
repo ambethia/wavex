@@ -1,0 +1,20 @@
+type User = { email: string; forwarding: { address: string } | null }
+
+const session: { user: User | null; emails: Array<{ subject: string }> } = { user: null, emails: [] }
+
+function markRead(event: Event) {
+  event.preventDefault()
+}
+
+~~~
+
+main
+  +if session.user
+    p Signed in as {{ session.user.email }}
+    +if session.user.forwarding
+      p Forward to {{ session.user.forwarding.address }}
+    +for email in session.emails
+      p {{ email.subject }} for {{ session.user.email }}
+  p Outside the guard: {{ session.user.email }}
+  button :click:markRead Mark read
+  button :click:signOut Sign out

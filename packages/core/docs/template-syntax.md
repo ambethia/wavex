@@ -90,7 +90,7 @@ Compiled templates receive a runtime context and expose its common entries as ba
 
 - `route` — current route (`route.path`, `route.params`, `route.query`).
 - `attrs` — attributes passed to a local `.wx` component.
-- `state` — app-provided local state. WAVEx does not mutate this object for you; pass it through the mount/update context when a host integration owns client-only state.
+- `state` — app-provided local state. WAVEx does not mutate this object for you; pass it through the mount/update context when a host integration owns client-only state. Its type is the app's registered state (see "Typed state and type checking" below).
 - Resource bindings such as `tasks` or `talk` — live values created by `$$` query resources.
 - `resourceStates` — lifecycle details for those query resources; prefer `+loading`, `+empty`, and `+error` inside the resource block for ordinary UI states.
 - `actionStates` — lifecycle details for semantic Convex mutation/action targets. Use this when UI needs an action result or error outside the built-in `+pending`, `+idle`, and `+mutation-error` children.
@@ -107,6 +107,46 @@ Compiled templates receive a runtime context and expose its common entries as ba
 +if actionStates["$$ai/summarize:run"]?.result
   p {{ actionStates["$$ai/summarize:run"].result }}
 ```
+
+## Typed state and type checking
+
+Templates are type-checked TypeScript: the editor and `wavex check` generate
+the same TypeScript for every prelude and template expression and check it
+with the app's tsconfig. `+if` works like a TypeScript `if` — its children
+see the narrowed types, including inside nested `+for` loops — and a `+for`
+item has its collection's element type.
+
+Register the app's state shape once, in any module the tsconfig includes, and
+every template's `state` is typed with it:
+
+```ts
+// src/main.ts
+import { mountLitApp } from "@wavex/runtime/lit"
+import routes from "virtual:wavex/routes"
+import { authState } from "./auth/session"
+import { pledgeState } from "./pledges/wizard"
+
+declare module "@wavex/runtime" {
+  interface Register {
+    state: { auth: typeof authState; pledges: typeof pledgeState }
+  }
+}
+
+const app = mountLitApp({ routes, initialContext: { state: { auth: authState, pledges: pledgeState } } })
+```
+
+```wx
++if state.auth.user
+  p Signed in as {{ state.auth.user.email }}
+```
+
+`mountLitApp`'s `initialContext.state` and `app.update({ state })` must then
+supply that type. Without a registration, `state` is an untyped record.
+
+Include `.wx` files in the tsconfig (`"include": ["src"]` or
+`"src/**/*.wx"`): editors check files the tsconfig does not include in an
+inferred project with default options, and `wavex check` warns about them
+(WX105).
 
 ## Attributes and values
 

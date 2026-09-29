@@ -20,7 +20,7 @@ const hyphenConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages
 const typedConvexServerShim = resolve(fixturesDir, "typed-convex/convex-server.d.ts");
 const monorepoConvexFixture = resolve(fixturesDir, "monorepo/packages/web/src/pages/resources.wx");
 
-function createChecker(files: string[]) {
+function createChecker(files: string[], compilerOptions: ts.CompilerOptions = {}) {
   return createTypeScriptInferredChecker(
     [createWavexLanguagePlugin()],
     [...createTypeScriptServices(ts), createWavexServicePlugin()],
@@ -28,7 +28,8 @@ function createChecker(files: string[]) {
     {
       strict: true,
       skipLibCheck: true,
-      noEmit: true
+      noEmit: true,
+      ...compilerOptions
     }
   );
 }
@@ -439,6 +440,50 @@ describe("template scopes in virtual code", () => {
     expect(codes).not.toContain("6133");
     expect(codes).not.toContain("2304");
     expect(diagnostics.filter((diagnostic) => diagnostic.source !== "wavex")).toEqual([]);
+  });
+
+  it("narrows +if guards into their children, including +for bodies, and counts local semantic handlers as used", async () => {
+    const fixture = resolve(fixturesDir, "narrowing.wx");
+    const checker = createChecker([fixture], { noUnusedLocals: true, target: ts.ScriptTarget.ES2022 });
+    const diagnostics = (await checker.check(fixture)).filter((diagnostic) => diagnostic.source !== "wavex");
+
+    // Only the unguarded access is an error: no TS18047 inside +if (or the
+    // nested +for), no TS6133 for markRead, no TS2304 for the app-level signOut.
+    expect(diagnostics).toEqual([
+      expect.objectContaining({ code: 18047, range: expect.objectContaining({ start: { line: 17, character: 26 } }) })
+    ]);
+  });
+
+  it("types +for items like repeat(): any stays any, null-ish fallbacks and Maps work, non-iterables are errors", async () => {
+    const fixture = resolve(fixturesDir, "loops.wx");
+    const checker = createChecker([fixture], { target: ts.ScriptTarget.ES2022 });
+    const diagnostics = (await checker.check(fixture)).filter((diagnostic) => diagnostic.source !== "wavex");
+
+    expect(diagnostics).toEqual([
+      expect.objectContaining({ code: 2345, range: expect.objectContaining({ start: { line: 12, character: 16 } }) })
+    ]);
+  });
+
+  it("types state from the app's @wavex/runtime registration when the runtime resolves", () => {
+    const root = mkdtempSync(join(tmpdir(), "wavex-lsp-app-state-"));
+    try {
+      const page = join(root, "src", "pages", "index.wx");
+      const generatedFor = (fileName: string) => {
+        const text = "~~~\np {{ state.auth }}\n";
+        const snapshot = { getText: (start: number, end: number) => text.slice(start, end), getLength: () => text.length, getChangeRange: () => undefined };
+        const tsCode = new WavexVirtualCode(snapshot as never, fileName).embeddedCodes[0]!;
+        return tsCode.snapshot.getText(0, tsCode.snapshot.getLength());
+      };
+
+      expect(generatedFor(page)).toContain("declare const state: Record<string, any>;");
+
+      mkdirSync(join(root, "node_modules", "@wavex", "runtime"), { recursive: true });
+      writeFileSync(join(root, "node_modules", "@wavex", "runtime", "package.json"), '{"name":"@wavex/runtime"}\n');
+
+      expect(generatedFor(page)).toContain('declare const state: import("@wavex/runtime").AppState;');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("types +for items from the collection (the proven case, scoped)", async () => {

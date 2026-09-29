@@ -2,7 +2,14 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
-import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes, parseWavex, type Diagnostic } from "@wavex/core";
+import {
+  createDefaultConfig,
+  createRouteDefinition,
+  formatFileDiagnostic,
+  normalizeSlashes,
+  parseWavex,
+  type Diagnostic
+} from "@wavex/core";
 
 export type ViteCommand = "dev" | "build";
 export type ViteRunner = (args: string[]) => void;
@@ -54,7 +61,7 @@ function help() {
   console.log(`wavex
 
 Commands:
-  wavex check [root]       Parse .wx files and print diagnostics.
+  wavex check [root]       Parse, validate, and type-check .wx files; print diagnostics.
   wavex routes [root]      Print file-based page routes.
   wavex compile <file.wx>  Compile one .wx file to a Lit render module.
   wavex dev [args...]      Proxy to vite dev; pass --host explicitly to expose it.
@@ -125,11 +132,34 @@ async function check(rootInput: string) {
     }
   }
 
+  // TypeScript: the same virtual code as the language server, under the app's tsconfig.
+  const { typeCheckWavexFiles } = await import("@wavex/lsp");
+  const typeCheck = await typeCheckWavexFiles({ appRoot, files, parseOptionsFor: (fileName) => ({ fileName, ...parseOptions }) });
+  if (!typeCheck.tsconfig) {
+    console.error(`wavex check: no tsconfig.json found for ${appRoot}; add one so .wx templates can be type-checked.`);
+    errorCount += 1;
+  } else {
+    report(typeCheck.tsconfig, typeCheck.configErrors);
+    for (const [file, diagnostics] of typeCheck.diagnostics) report(file, diagnostics);
+    if (typeCheck.notIncluded.length > 0) {
+      const count = typeCheck.notIncluded.length;
+      report(typeCheck.tsconfig, [
+        {
+          code: "WX105",
+          severity: "warning",
+          line: 1,
+          column: 1,
+          message: `include does not cover ${count} checked .wx file${count === 1 ? "" : "s"} (${displayPath(typeCheck.notIncluded[0]!)}${count > 1 ? ", …" : ""}); editors type-check those in an inferred project with default options instead of this tsconfig. Add "src/**/*.wx" (or "src") to include.`
+        }
+      ]);
+    }
+  }
+
   for (const file of [...diagnosticsByFile.keys()].sort()) {
     const diagnostics = diagnosticsByFile.get(file)!.sort((left, right) => left.line - right.line || left.column - right.column);
     for (const diagnostic of diagnostics) {
       if (diagnostic.severity === "error") errorCount += 1;
-      console.error(`${normalizeSlashes(relative(root, file))}: ${formatDiagnostic(diagnostic)}`);
+      console.error(formatFileDiagnostic(displayPath(file), diagnostic));
     }
   }
 
@@ -142,8 +172,14 @@ async function check(rootInput: string) {
     fa.kits.length > 0 || fa.packages.length > 0
       ? `Font Awesome: ${[...fa.kits, ...fa.packages].join(", ")}${hosting}`
       : "Font Awesome: none installed";
-  console.log(`Checked ${files.length} .wx file${files.length === 1 ? "" : "s"}. ${summary}; ${faSummary}.`);
+  const typeScriptSummary = typeCheck.tsconfig ? `TypeScript: ${displayPath(typeCheck.tsconfig)}` : "TypeScript: no tsconfig.json";
+  console.log(`Checked ${files.length} .wx file${files.length === 1 ? "" : "s"}. ${summary}; ${faSummary}; ${typeScriptSummary}.`);
   if (errorCount > 0) process.exitCode = 1;
+}
+
+/** A path as printed in diagnostics: relative to the working directory, so `file:line:col` is clickable. */
+function displayPath(file: string): string {
+  return normalizeSlashes(relative(process.cwd(), file));
 }
 
 function isInside(file: string, dir: string): boolean {
@@ -184,7 +220,7 @@ async function compile(fileInput: string | undefined) {
     webAwesomeBooleanAttributes: capabilities.webAwesome?.booleanAttributes,
     convexFunctionKinds: discoverConvexFunctionKinds(appRoot)
   });
-  for (const diagnostic of compiled.ast.diagnostics) console.error(formatDiagnostic(diagnostic));
+  for (const diagnostic of compiled.ast.diagnostics) console.error(formatFileDiagnostic(displayPath(file), diagnostic));
   if (compiled.ast.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
     process.exitCode = 1;
     return;
