@@ -17,3 +17,21 @@ The first installable WAVEx alpha:
 
 Alpha-readiness work adds repeatable CI, package and editor artifact checks,
 browser smoke coverage, and router scroll restoration.
+
+Changes existing apps should know about:
+
+- `wavex check` type-checks `.wx` templates with the app's tsconfig (the same
+  virtual TypeScript as the editor), so type errors now fail it. It requires a
+  tsconfig.json, warns (WX105) when its `include` misses `.wx` files, and
+  prints diagnostics as `file:line:col SEVERITY CODE message`.
+- Template `state` is typed by augmenting `Register` in `@wavex/runtime`; the
+  same type checks `mountLitApp`'s initial state and `app.update`.
+- Bare boolean attributes on `@component` heads come from the installed Web
+  Awesome manifest (`@button with-caret`). The hardcoded `indeterminate`,
+  `with-header`, and `with-footer` list is gone, so native elements and local
+  components no longer promote those words.
+- With a Font Awesome kit or SVG package installed, the app's icons are
+  validated (WX103/WX104) and served by the app instead of the Font Awesome
+  CDN; name icons computed in TypeScript with `icon()` from `@wavex/runtime`.
+- A monorepo's shared `convex/` directory is found from a workspace package.
+- `+for` bodies and keys can use `index`; `index` cannot be the item name.
