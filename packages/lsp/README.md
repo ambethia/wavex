@@ -22,8 +22,13 @@ tsconfig options; `wavex check` uses it, so the CLI and the editor report the
 same TypeScript errors at the same `.wx` positions. The virtual code types
 `state` as the app's registered `AppState` (from `@wavex/runtime`) when the
 runtime resolves from the file, checks `+if` children inside a real `if`
-block so guards narrow, and checks `+for` bodies in a `for…of` loop so that
-narrowing survives into loops.
+block so guards narrow (including `$$` args, which the runtime evaluates only
+while those guards hold), and checks `+for` bodies in a `for…of` loop so that
+narrowing survives into loops. A paginated resource (`paginate:N`) is typed
+as the `page` of the query's result, indexed through a `"page"` key mapped to
+the `paginate` attribute so a non-paginated query is reported there, and
+`resourceStates` has a typed entry per resource (with `hasPreviousPage` /
+`hasNextPage` for paginated ones) when the runtime resolves.
 
 ## Design notes
 

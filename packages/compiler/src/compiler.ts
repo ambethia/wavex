@@ -50,6 +50,8 @@ interface InternalCompileOptions extends CompileWavexOptions {
 interface CompileScope {
   /** Binding name of the enclosing $$ resource block. */
   resource?: string;
+  /** Whether the enclosing $$ resource is paginated (`paginate:N`). */
+  paginated?: boolean;
   /** Semantic action target ($$module:fn) of the enclosing element. */
   action?: string;
 }
@@ -119,11 +121,12 @@ interface AttrsKeyEntry {
  *
  * The generated module preserves the TypeScript prelude verbatim, then
  * exports: a `render(context)` function built on Lit `html`/`repeat`, a
- * `resources` array of inferred Convex query definitions, and a
- * `headEntries(context)` function for `+head` content. Components declaring
- * `type Attrs = { … }` in their prelude get each attribute destructured as a
- * bare typed local in template scope. Parse and compile problems are reported
- * on `result.ast.diagnostics`, not thrown.
+ * `resources` array of inferred Convex query definitions (each with a `when`
+ * gate from its enclosing `+if` directives and, for `paginate:N`, a
+ * `pageSize`), and a `headEntries(context)` function for `+head` content.
+ * Components declaring `type Attrs = { … }` in their prelude get each
+ * attribute destructured as a bare typed local in template scope. Parse and
+ * compile problems are reported on `result.ast.diagnostics`, not thrown.
  */
 export function compileWavexModule(source: string, options: CompileWavexOptions = {}): CompileWavexResult {
   const ast = parseWavex(source, {
@@ -523,7 +526,6 @@ function compileResourceDefinitions(
   if (queryResources.length === 0) return `export const resources = [] as const satisfies readonly ResourceDefinition[];`;
 
   const entries = queryResources.map((resource) => {
-    const argsGetter = compileResourceArgsGetter(resource.attributes, resourceNames);
     return [
       `  {`,
       `    name: ${JSON.stringify(resource.name)},`,
@@ -531,7 +533,9 @@ function compileResourceDefinitions(
       `    functionName: ${JSON.stringify(resource.address.functionName)},`,
       `    raw: ${JSON.stringify(resource.address.raw)},`,
       `    kind: "query",`,
-      argsGetter,
+      resource.pageSize === undefined ? "" : `    pageSize: ${resource.pageSize},`,
+      compileResourceGate(resource.conditions, resourceNames),
+      compileResourceArgsGetter(resource.attributes, resourceNames),
       `  }`
     ]
       .filter(Boolean)
@@ -542,7 +546,43 @@ function compileResourceDefinitions(
 }
 
 /** Args names reserved for WAVEx itself on $$ calls. */
-const RESERVED_RESOURCE_ATTRIBUTES = new Set(["as", "args"]);
+const RESERVED_RESOURCE_ATTRIBUTES = new Set(["as", "args", "paginate"]);
+
+/**
+ * A resource method evaluated against the render context with the same bare
+ * locals as the template (route, attrs, state, resourceStates, actionStates,
+ * navigation, and the file's resource bindings), so `+if` conditions and args
+ * mean exactly what they mean where they are written.
+ */
+function compileResourceScopeMethod(name: string, returnType: string, expression: string, resourceNames: readonly string[]): string {
+  const declarations = resourceNames
+    .filter(isIdentifierName)
+    .map((resourceName) => `      const ${resourceName} = contextResources[${JSON.stringify(resourceName)}];`)
+    .join("\n");
+
+  return [
+    `    ${name}(context: RenderContext)${returnType} {`,
+    `      const route = context.route ?? { path: "/", params: {}, query: {} };`,
+    `      const attrs = context.attrs ?? {};`,
+    `      const state = context.state ?? {};`,
+    `      const resourceStates = context.resourceStates ?? {};`,
+    `      const actionStates = context.actionStates ?? {};`,
+    `      const navigation = context.navigation ?? { pending: false };`,
+    `      const contextResources = context.resources ?? {};`,
+    declarations,
+    `      void route; void attrs; void state; void resourceStates; void actionStates; void navigation; void contextResources;`,
+    `      return ${expression};`,
+    `    },`
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** `when(context)`: the enclosing `+if` conditions; the runtime subscribes only while they all hold. */
+function compileResourceGate(conditions: readonly string[], resourceNames: readonly string[]): string {
+  if (conditions.length === 0) return "";
+  return compileResourceScopeMethod("when", ": boolean", `Boolean(${conditions.map((condition) => `(${condition})`).join(" && ")})`, resourceNames);
+}
 
 function isQueryResource(resource: ResourceBinding, convexFunctionKinds: Readonly<Record<string, ConvexFunctionKind>> | undefined): boolean {
   return isQueryConvexAddress(resource.address, convexFunctionKinds);
@@ -573,28 +613,7 @@ function compileResourceArgsGetter(attributes: readonly Attribute[], resourceNam
   }
 
   if (parts.length === 0) return "";
-  const expression = `{ ${parts.join(", ")} }`;
-
-  const declarations = resourceNames
-    .filter(isIdentifierName)
-    .map((name) => `      const ${name} = contextResources[${JSON.stringify(name)}];`)
-    .join("\n");
-
-  return [
-    `    getArgs(context: RenderContext) {`,
-    `      const route = context.route ?? { path: "/", params: {}, query: {} };`,
-    `      const attrs = context.attrs ?? {};`,
-    `      const state = context.state ?? {};`,
-    `      const navigation = context.navigation ?? { pending: false };`,
-    `      const actionStates = context.actionStates ?? {};`,
-    `      const contextResources = context.resources ?? {};`,
-    declarations,
-    `      void route; void attrs; void state; void navigation; void actionStates; void contextResources;`,
-    `      return ${expression};`,
-    `    },`
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return compileResourceScopeMethod("getArgs", "", `{ ${parts.join(", ")} }`, resourceNames);
 }
 
 /** Compile +head children (title/meta/link elements) into HeadEntry object literals. */
@@ -813,26 +832,31 @@ function compileActionStateDirective(node: DirectiveNode, options: InternalCompi
  * inside is ready; reveal:progressive renders immediately (each resource
  * handles its own states). refresh:background is the resource controller's
  * default behavior (previous values stay visible while re-subscribing).
+ * A resource behind a nested `+if` is waited for only while that condition
+ * holds: otherwise it is not subscribed and would never become ready.
  */
 function compileSuspenseDirective(node: DirectiveNode, options: InternalCompileOptions, scope: CompileScope): string {
-  const names = new Set<string>();
-  const collect = (candidate: TemplateNode) => {
-    if (candidate.kind === "convex-call" && isQueryConvexAddress(candidate.address, options.convexFunctionKinds)) {
-      names.add(candidate.bindingName);
+  const gates = new Map<string, readonly string[]>();
+  const collect = (candidate: TemplateNode, conditions: readonly string[]) => {
+    if (candidate.kind === "convex-call" && isQueryConvexAddress(candidate.address, options.convexFunctionKinds) && !gates.has(candidate.bindingName)) {
+      gates.set(candidate.bindingName, conditions);
     }
-    for (const child of candidate.children) collect(child);
+    const childConditions =
+      candidate.kind === "directive" && candidate.name === "if" ? [...conditions, candidate.expression?.trim() || "false"] : conditions;
+    for (const child of candidate.children) collect(child, childConditions);
   };
-  for (const child of node.children) collect(child);
+  for (const child of node.children) collect(child, []);
 
   const body = compileNodes(node.children, options, scope);
   const reveal = node.attributes.find((attribute) => attribute.name === "reveal");
   const together = !(reveal?.kind === "literal" && reveal.value === "progressive");
-  if (!together || names.size === 0) return body;
+  if (!together || gates.size === 0) return body;
 
-  const ready = [...names]
-    .map((name) => {
+  const ready = [...gates]
+    .map(([name, conditions]) => {
       const key = JSON.stringify(name);
-      return `((context.resourceStates?.[${key}]?.status ?? (context.resources?.[${key}] === undefined ? "loading" : "ready")) === "ready")`;
+      const isReady = `((context.resourceStates?.[${key}]?.status ?? (context.resources?.[${key}] === undefined ? "loading" : "ready")) === "ready")`;
+      return conditions.length === 0 ? isReady : `(!(${conditions.map((condition) => `(${condition})`).join(" && ")}) || ${isReady})`;
     })
     .join(" && ");
   return `\${${ready} ? html\`${body}\` : nothing}`;
@@ -904,7 +928,12 @@ function compileResourceStateDirective(node: DirectiveNode, options: InternalCom
   }
   if (node.name === "empty") {
     const empty = `(${value} == null || (Array.isArray(${value}) && (${value} as unknown[]).length === 0))`;
-    return `\${${status} === "ready" && ${empty} ? html\`${body}\` : nothing}`;
+    // A paginated list is empty only when no other page exists: an empty page of a filtered
+    // query can be followed by pages with items.
+    const noOtherPage = scope.paginated
+      ? ` && !context.resourceStates?.[${name}]?.hasPreviousPage && !context.resourceStates?.[${name}]?.hasNextPage`
+      : "";
+    return `\${${status} === "ready" && ${empty}${noOtherPage} ? html\`${body}\` : nothing}`;
   }
   // +error err — bind the resource error to the declared identifier (default: err)
   const binding = isIdentifierName(node.expression?.trim() ?? "") ? node.expression!.trim() : "err";
@@ -913,7 +942,7 @@ function compileResourceStateDirective(node: DirectiveNode, options: InternalCom
 
 function compileConvexCall(node: ConvexCallNode, options: InternalCompileOptions): string {
   if (node.children.length === 0 || !isQueryConvexAddress(node.address, options.convexFunctionKinds)) return "";
-  return compileNodes(node.children, options, { resource: node.bindingName });
+  return compileNodes(node.children, options, { resource: node.bindingName, paginated: node.pageSize !== undefined });
 }
 
 function compileSemanticEventAttribute(attribute: Extract<Attribute, { kind: "semantic-event" }>, options: InternalCompileOptions): string[] {

@@ -1,0 +1,18 @@
+~~~
++if state.auth.user
+  p Signed in as {{ state.auth.user.email }}
+  $$pledges:list paginate:20
+    +empty
+      p No pledges yet.
+    +error
+      p Could not load this page.
+    +for pledge in pledges key:pledge.id
+      p {{ pledge.campaignName }}: {{ pledge.rewards.filter((reward) => reward.status === "outstanding").length }} outstanding
+    +if resourceStates.pledges?.hasPreviousPage || resourceStates.pledges?.hasNextPage
+      nav
+        button :click:pledges.previousPage disabled:{{ !resourceStates.pledges?.hasPreviousPage }} Previous
+        button :click:pledges.nextPage disabled:{{ !resourceStates.pledges?.hasNextPage }} Next
+  +if state.pledges.detailId
+    $$pledges:detail as:pledgeDetail id:state.pledges.detailId.trim()
+      +if pledgeDetail?.campaignUrl
+        a href:{{ pledgeDetail.campaignUrl }} {{ pledgeDetail.campaignName }}

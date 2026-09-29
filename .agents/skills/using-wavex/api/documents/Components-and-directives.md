@@ -105,6 +105,9 @@ main [stack gap-xl]
   @empty-state title:"No tasks yet"
 ```
 
+A `$$` resource inside `+if` subscribes only while the condition holds (see
+"Conditional resources" in the Convex guide).
+
 ### `+for`
 
 ```wx
@@ -171,6 +174,11 @@ $$tasks:list
     @tasks/item task:
 ```
 
+`+empty` renders when the resource is ready and its value is `null`,
+`undefined`, or an empty array. For a paginated resource (`paginate:N`) it
+means the whole list is empty: the current page is empty and there is no
+previous or next page.
+
 ### `+boundary`
 
 ```wx
@@ -202,6 +210,9 @@ refresh:background
 ```
 
 `refresh:background` means previously loaded content can stay visible while WAVEx refreshes the resource in the background.
+
+`reveal:together` waits for a resource behind a nested `+if` only while that
+condition holds, since a resource whose `+if` is false is not subscribed.
 
 ## Icons
 

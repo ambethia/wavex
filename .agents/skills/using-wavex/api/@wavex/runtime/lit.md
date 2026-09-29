@@ -656,7 +656,7 @@ identity and focus survive rerenders.
 function mountLitApp<Result>(options): LitApp<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:240](packages/runtime/src/lit.ts#L240)
+Defined in: [packages/runtime/src/lit.ts:241](packages/runtime/src/lit.ts#L241)
 
 Compose [mountLit](#mountlit) and the client router for an app-owned entry module.
 
@@ -692,7 +692,7 @@ function mountLitPage<Result>(
 options?): LitMount<Result>;
 ```
 
-Defined in: [packages/runtime/src/lit.ts:292](packages/runtime/src/lit.ts#L292)
+Defined in: [packages/runtime/src/lit.ts:293](packages/runtime/src/lit.ts#L293)
 
 Mount a compiled `.wx` page module (render export + inferred resources) — the bootstrap entry point.
 

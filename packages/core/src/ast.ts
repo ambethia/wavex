@@ -149,6 +149,8 @@ export interface ConvexCallNode extends BaseNode {
   address: ConvexFunctionAddress;
   attributes: Attribute[];
   bindingName: string;
+  /** Items per page from `paginate:N`; set only for paginated resources. */
+  pageSize?: number;
 }
 
 /**
@@ -157,12 +159,23 @@ export interface ConvexCallNode extends BaseNode {
  * require an explicit trigger (`:click:`, `:submit:`) so renders stay free of
  * side effects. The binding name follows `inferResourceBindingName` unless
  * overridden with `as:name`.
+ *
+ * A resource is page-scoped and subscribes only while the template would
+ * render its line: while every enclosing `+if` holds (`conditions`). With
+ * `paginate:N` it binds one page of a Convex paginated query at a time.
  */
 export interface ResourceBinding {
   name: string;
   address: ConvexFunctionAddress;
   attributes: Attribute[];
   range: SourceRange;
+  /**
+   * Expressions of the `+if` directives enclosing the `$$` line, outermost
+   * first. The resource subscribes only while every one is truthy.
+   */
+  conditions: string[];
+  /** Items per page from `paginate:N`; set only for paginated resources. */
+  pageSize?: number;
 }
 
 /**
@@ -220,7 +233,12 @@ export interface SameNameAttribute extends BaseAttribute {
   kind: "same-name";
 }
 
-/** WAVEx semantic action attribute parsed from `:event:target` syntax. */
+/**
+ * WAVEx semantic action attribute parsed from `:event:target` syntax. The
+ * target is a `$$module:function` Convex mutation/action, a paginated
+ * resource's page move (`name.nextPage` / `name.previousPage`), or the name of
+ * a prelude function or app-level action.
+ */
 export interface SemanticEventAttribute extends BaseAttribute {
   kind: "semantic-event";
   event: string;

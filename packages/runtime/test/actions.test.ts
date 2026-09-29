@@ -258,6 +258,38 @@ describe("semantic action dispatcher", () => {
     ]);
   });
 
+  it("moves paginated resources for name.nextPage / name.previousPage targets", async () => {
+    const turns: Array<[string, string]> = [];
+    const fallback = vi.fn();
+    const onUnhandledAction = vi.fn();
+    const captured: Array<{ event: string; properties?: Record<string, unknown> }> = [];
+    const next = fakeActionEvent({ target: "pledges.nextPage" });
+    const unknown = fakeActionEvent({ target: "talks.previousPage" });
+    const dispatch = createSemanticActionDispatcher(next.context, {
+      dispatch: fallback,
+      onUnhandledAction,
+      analytics: { capture: (name, properties) => captured.push({ event: name, properties }) },
+      turnPage: (name, direction) => {
+        turns.push([name, direction]);
+        return name === "pledges";
+      }
+    });
+
+    await dispatch(next);
+    await dispatch(unknown);
+
+    expect(turns).toEqual([
+      ["pledges", "next"],
+      ["talks", "previous"]
+    ]);
+    expect(fallback).not.toHaveBeenCalled();
+    expect(onUnhandledAction.mock.calls).toEqual([[unknown]]);
+    expect(captured).toMatchObject([
+      { event: "pledges.nextPage", properties: { wx_event_type: "click", wx_target: "pledges.nextPage", wx_kind: "page" } },
+      { event: "talks.previousPage", properties: { wx_kind: "page" } }
+    ]);
+  });
+
   it("prevents native submit and reports an unresolved local target", async () => {
     const preventDefault = vi.fn();
     const onUnhandledAction = vi.fn();

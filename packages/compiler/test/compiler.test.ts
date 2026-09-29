@@ -37,6 +37,28 @@ function evaluateGeneratedRender(code: string): GeneratedRender {
   return Function("html", "nothing", "repeat", `${executable}; return render;`)(html, undefined, repeat) as GeneratedRender;
 }
 
+interface GeneratedResource {
+  name: string;
+  pageSize?: number;
+  when?: (context: Record<string, unknown>) => boolean;
+  getArgs?: (context: Record<string, unknown>) => unknown;
+}
+
+/** Execute a generated module; `html` returns its interpolated values so renders can be inspected. */
+function evaluateGeneratedModule(code: string): { render: GeneratedRender; resources: GeneratedResource[] } {
+  assertGeneratedModuleParses(code);
+  const javascript = ts.transpileModule(code, {
+    compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 }
+  }).outputText;
+  const executable = javascript
+    .replace(/^import .*$/gm, "")
+    .replace(/^export default render;$/m, "")
+    .replace(/\bexport /g, "");
+  const html = (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings: [...strings], values });
+  const repeat = <T>(items: readonly T[], _key: unknown, renderItem: (item: T, index: number) => unknown) => items.map(renderItem);
+  return Function("html", "nothing", "repeat", `${executable}; return { render, resources };`)(html, undefined, repeat);
+}
+
 describe("compileWavexModule", () => {
   it("emits a Lit render module for basic .wx templates", () => {
     const compiled = compileWavexModule(`~~~\n+head\n  title Tasks | WAVEx\n\n$$tasks:list args:{ status: route.query.status }\n\nmain [stack gap-xl]\n  +for task in tasks\n    @button variant:brand :click:selectTask task:\n      = task.text\n  p This uses \`code\`, *strong*, _em_, and ~mark~.\n`, {
@@ -566,6 +588,88 @@ describe("compileWavexModule", () => {
     const tryBody = compiled.code.split("try { return html`")[1]!.split("`;")[0]!;
     expect(tryBody).toContain("data.mustExist");
     expect(tryBody).not.toContain("Failed:");
+  });
+
+  it("gates $$ resources on their enclosing +if conditions with the template's scope", () => {
+    const compiled = compileWavexModule(
+      "~~~\n+if state.auth.user\n  $$pledges:list paginate:20\n  +if state.pledges.detailId && resourceStates.pledges?.status === \"ready\"\n    $$pledges:detail as:pledgeDetail id:state.pledges.detailId\n$$talks:list\n",
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain("pageSize: 20,");
+    expect(compiled.code).toContain("when(context: RenderContext): boolean {");
+    expect(compiled.code).toContain('return Boolean((state.auth.user) && (state.pledges.detailId && resourceStates.pledges?.status === "ready"));');
+    expect(compiled.code).not.toContain('"paginate":');
+
+    const { resources } = evaluateGeneratedModule(compiled.code);
+    const [pledges, pledgeDetail, talks] = resources;
+    const signedOut = { state: { auth: { user: null }, pledges: { detailId: null } } };
+    const detailOpen = {
+      state: { auth: { user: { email: "backer@example.com" } }, pledges: { detailId: "pledge-1" } },
+      resourceStates: { pledges: { status: "ready" } }
+    };
+    expect(pledges).toMatchObject({ name: "pledges", pageSize: 20 });
+    expect(pledges!.getArgs).toBeUndefined();
+    expect(pledges!.when!(signedOut)).toBe(false);
+    expect(pledges!.when!(detailOpen)).toBe(true);
+    expect(pledgeDetail!.when!({ ...detailOpen, resourceStates: {} })).toBe(false);
+    expect(pledgeDetail!.when!(detailOpen)).toBe(true);
+    expect(pledgeDetail!.getArgs!(detailOpen)).toEqual({ id: "pledge-1" });
+    expect(talks).not.toHaveProperty("when");
+    expect(talks).not.toHaveProperty("pageSize");
+  });
+
+  it("compiles +empty on a paginated resource as an empty list, not merely an empty page", () => {
+    const compiled = compileWavexModule("~~~\n$$pledges:list paginate:20\n  +empty\n    p No pledges yet.\n$$talks:list\n  +empty\n    p No talks.\n", {
+      id: "src/pages/index.wx"
+    });
+    const { render } = evaluateGeneratedModule(compiled.code);
+    const rendered = (context: Record<string, unknown>) => JSON.stringify(render(context));
+    const emptyPage = (hasPreviousPage: boolean, hasNextPage: boolean) => ({
+      resources: { pledges: [], talks: [] },
+      resourceStates: {
+        pledges: { status: "ready", value: [], hasPreviousPage, hasNextPage },
+        talks: { status: "ready", value: [] }
+      }
+    });
+
+    expect(compiled.code).toContain('!context.resourceStates?.["pledges"]?.hasPreviousPage && !context.resourceStates?.["pledges"]?.hasNextPage');
+    expect(rendered(emptyPage(false, false))).toContain("No pledges yet.");
+    expect(rendered(emptyPage(false, true))).not.toContain("No pledges yet.");
+    expect(rendered(emptyPage(true, false))).not.toContain("No pledges yet.");
+    expect(rendered(emptyPage(true, false))).toContain("No talks.");
+  });
+
+  it("waits in +suspense reveal:together only for resources whose nested +if holds", () => {
+    const compiled = compileWavexModule(
+      "~~~\n+suspense reveal:together\n  $$talks:get slug:route.params.slug\n  +if talk\n    $$questions:listByTalk talkSlug:talk.slug\n  p Revealed\n",
+      { id: "src/pages/talks/[slug].wx" }
+    );
+    const { render } = evaluateGeneratedModule(compiled.code);
+    const rendered = (context: Record<string, unknown>) => JSON.stringify(render(context));
+
+    expect(compiled.code).toContain('(!((talk)) || ((context.resourceStates?.["questions"]?.status');
+    // Not found: the questions gate is closed, so it is not awaited.
+    expect(rendered({ resources: { talk: null }, resourceStates: { talk: { status: "ready", value: null } } })).toContain("Revealed");
+    // Found: the talk and its questions reveal together.
+    const found = { resources: { talk: { slug: "keynote" } }, resourceStates: { talk: { status: "ready" }, questions: { status: "loading" } } };
+    expect(rendered(found)).not.toContain("Revealed");
+    expect(rendered({ ...found, resources: { ...found.resources, questions: [] }, resourceStates: { ...found.resourceStates, questions: { status: "ready" } } })).toContain(
+      "Revealed"
+    );
+  });
+
+  it("compiles page targets to delegated semantic events without local handlers", () => {
+    const compiled = compileWavexModule(
+      "~~~\n$$pledges:list paginate:20\n  @button :click:pledges.previousPage disabled:{{ !resourceStates.pledges?.hasPreviousPage }} Previous\n  @button :click:pledges.nextPage :track:pledges_paged Next\n",
+      { id: "src/pages/index.wx" }
+    );
+
+    expect(compiled.ast.diagnostics).toEqual([]);
+    expect(compiled.code).toContain('data-wx-click="pledges.previousPage"');
+    expect(compiled.code).toContain('data-wx-click="pledges.nextPage" data-wx-track="pledges_paged"');
+    expect(compiled.code).not.toContain("__wavexSemanticHandlers");
   });
 
   it("leaves resource-state directives inert outside a $$ block", () => {

@@ -1,4 +1,4 @@
-import { componentReferenceToTag, inferResourceBindingName, type Diagnostic } from "./model.js";
+import { componentReferenceToTag, inferResourceBindingName, parsePageTarget, type Diagnostic } from "./model.js";
 import type {
   Attribute,
   ComponentNode,
@@ -150,6 +150,10 @@ const DIRECTIVE_NAMES = new Set([
  * native HTML boolean attribute or, on an `@component` head, a boolean
  * attribute of the Web Awesome component it resolves to (see
  * {@link ParseWavexOptions.webAwesomeBooleanAttributes}).
+ *
+ * `resources` lists the file's `$$` query resources in source order, each
+ * with the `+if` conditions that gate its subscription and its `paginate:`
+ * page size.
  */
 export function parseWavex(source: string, options: ParseWavexOptions = {}): WavexFile {
   const diagnostics: Diagnostic[] = [];
@@ -175,7 +179,6 @@ export function parseWavex(source: string, options: ParseWavexOptions = {}): Wav
   const bodyStartLine = hasWaveSeparator ? separatorIndex + 2 : 1;
   const body = hasWaveSeparator ? source.slice(bodyStartOffset) : source;
 
-  const resources: ResourceBinding[] = [];
   const nodes = parseTemplateLines(
     bodyLines.map((raw, index) => ({
       raw,
@@ -184,9 +187,10 @@ export function parseWavex(source: string, options: ParseWavexOptions = {}): Wav
       sourceOffset: (lineStartOffsets[bodyStartLine + index - 1] ?? bodyStartOffset) as number
     })),
     diagnostics,
-    resources,
     createComponentBooleanAttributes(options)
   );
+  const resources = collectResources(nodes, diagnostics);
+  diagnosePageTargets(nodes, resources, diagnostics);
 
   return {
     prelude,
@@ -198,10 +202,94 @@ export function parseWavex(source: string, options: ParseWavexOptions = {}): Wav
   };
 }
 
+/**
+ * The file's `$$` resources in source order. Each records the enclosing `+if`
+ * expressions (compiled exactly as `+if` renders them) so the runtime
+ * subscribes only while the template would render the `$$` line. Resources
+ * are page-scoped, so one inside `+for` is an error: its args and conditions
+ * could not see the loop item.
+ */
+function collectResources(nodes: readonly TemplateNode[], diagnostics: Diagnostic[]): ResourceBinding[] {
+  const resources: ResourceBinding[] = [];
+  const visit = (node: TemplateNode, conditions: readonly string[], inLoop: boolean) => {
+    if (node.kind === "convex-call") {
+      if (inLoop) {
+        diagnostics.push({
+          code: "WX021",
+          severity: "error",
+          line: node.range.start.line,
+          column: node.range.start.column,
+          message: `${node.address.raw} is inside +for, but a $$ resource subscribes once for the page, so its args and +if conditions cannot use the loop item. Declare it outside the loop.`
+        });
+      }
+      resources.push({
+        name: node.bindingName,
+        address: node.address,
+        attributes: node.attributes,
+        range: node.range,
+        conditions: [...conditions],
+        ...(node.pageSize === undefined ? {} : { pageSize: node.pageSize })
+      });
+    }
+    const isIf = node.kind === "directive" && node.name === "if";
+    const childConditions = isIf ? [...conditions, node.expression?.trim() || "false"] : conditions;
+    const childInLoop = inLoop || (node.kind === "directive" && node.name === "for");
+    for (const child of node.children) visit(child, childConditions, childInLoop);
+  };
+  for (const node of nodes) visit(node, [], false);
+  return resources;
+}
+
+/**
+ * `name.nextPage` / `name.previousPage` semantic targets move a paginated
+ * resource declared in this file; anything else in that form (an unknown or
+ * unpaginated resource, or another member of a paginated one) is an error
+ * rather than an app-level action name.
+ */
+function diagnosePageTargets(nodes: readonly TemplateNode[], resources: readonly ResourceBinding[], diagnostics: Diagnostic[]): void {
+  // An invalid paginate: value is already WX022; its page targets are not reported again.
+  const paginated = new Set(
+    resources.filter((resource) => resource.attributes.some((attribute) => attribute.name === "paginate")).map((resource) => resource.name)
+  );
+  const allResources = new Set(resources.map((resource) => resource.name));
+  const visit = (node: TemplateNode) => {
+    if ("attributes" in node) {
+      for (const attribute of node.attributes) {
+        if (attribute.kind !== "semantic-event" || attribute.event === "track") continue;
+        const message = pageTargetProblem(attribute.target, paginated, allResources);
+        if (!message) continue;
+        diagnostics.push({
+          code: "WX023",
+          severity: "error",
+          line: attribute.range?.start.line ?? node.range.start.line,
+          column: attribute.range?.start.column ?? node.range.start.column,
+          message
+        });
+      }
+    }
+    for (const child of node.children) visit(child);
+  };
+  for (const node of nodes) visit(node);
+}
+
+function pageTargetProblem(target: string, paginated: ReadonlySet<string>, allResources: ReadonlySet<string>): string | undefined {
+  const page = parsePageTarget(target);
+  if (page) {
+    if (paginated.has(page.name)) return undefined;
+    return allResources.has(page.name)
+      ? `${target} needs a paginated resource, but ${page.name} has no paginate: page size. Add paginate:N to its $$ line.`
+      : `${target} does not name a paginated resource in this file. Page targets are <binding>.nextPage and <binding>.previousPage for a $$ resource declared with paginate:N.`;
+  }
+  const member = /^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)$/.exec(target);
+  if (member && paginated.has(member[1]!)) {
+    return `${target} is not a page target. Use ${member[1]}.nextPage or ${member[1]}.previousPage.`;
+  }
+  return undefined;
+}
+
 function parseTemplateLines(
   lines: LineRecord[],
   diagnostics: Diagnostic[],
-  resources: ResourceBinding[],
   componentBooleanAttributes: ComponentBooleanAttributes
 ): TemplateNode[] {
   const roots: TemplateNode[] = [];
@@ -253,7 +341,7 @@ function parseTemplateLines(
 
     const content = line.raw.slice(leadingWhitespace.length);
     const range = makeRange(line, leadingWhitespace.length);
-    const node = parseLine(content, range, diagnostics, resources, componentBooleanAttributes);
+    const node = parseLine(content, range, diagnostics, componentBooleanAttributes);
     if (!node) {
       skippedSubtreeIndentSpaces = indentSpaces;
       continue;
@@ -271,7 +359,6 @@ function parseLine(
   content: string,
   range: SourceRange,
   diagnostics: Diagnostic[],
-  resources: ResourceBinding[],
   componentBooleanAttributes: ComponentBooleanAttributes
 ): TemplateNode | undefined {
   const trimmed = content.trim();
@@ -302,7 +389,7 @@ function parseLine(
     };
   }
 
-  if (trimmed.startsWith("$$")) return parseConvexCall(trimmed, content, range, diagnostics, resources);
+  if (trimmed.startsWith("$$")) return parseConvexCall(trimmed, content, range, diagnostics);
   if (trimmed.startsWith("$")) return parseConvexReference(trimmed, content, range, diagnostics);
   if (trimmed.startsWith("+")) return parseDirective(trimmed, content, range, diagnostics);
   if (trimmed.startsWith("@")) return parseComponent(trimmed, content, range, diagnostics, componentBooleanAttributes);
@@ -476,13 +563,7 @@ function parseConvexReference(
   };
 }
 
-function parseConvexCall(
-  trimmed: string,
-  raw: string,
-  range: SourceRange,
-  diagnostics: Diagnostic[],
-  resources: ResourceBinding[]
-): ConvexCallNode | undefined {
+function parseConvexCall(trimmed: string, raw: string, range: SourceRange, diagnostics: Diagnostic[]): ConvexCallNode | undefined {
   const [headToken, ...tokens] = tokenizeWithRanges(trimmed);
   const head = headToken?.raw ?? "$$";
   const address = parseConvexAddress(head, range, diagnostics);
@@ -496,17 +577,32 @@ function parseConvexCall(
 
   const asAttribute = attributes.find((attribute) => attribute.name === "as");
   const bindingName = attributeLiteralValue(asAttribute) ?? inferResourceBindingName(address.modulePath, address.functionName);
-  const node: ConvexCallNode = {
+  const pageSize = parsePageSize(attributes.find((attribute) => attribute.name === "paginate"), range, diagnostics);
+  return {
     kind: "convex-call",
     address,
     attributes,
     bindingName,
+    ...(pageSize === undefined ? {} : { pageSize }),
     children: [],
     raw,
     range
   };
-  resources.push({ name: bindingName, address, attributes, range });
-  return node;
+}
+
+/** `paginate:N` on a `$$` line: a static, positive whole number of items per page. */
+function parsePageSize(attribute: Attribute | undefined, range: SourceRange, diagnostics: Diagnostic[]): number | undefined {
+  if (!attribute) return undefined;
+  const written = attribute.kind === "expression" ? attribute.expression.trim() : attribute.kind === "literal" && !attribute.quoted ? attribute.value : "";
+  if (/^[1-9]\d*$/.test(written) && Number.isSafeInteger(Number(written))) return Number(written);
+  diagnostics.push({
+    code: "WX022",
+    severity: "error",
+    line: attribute.range?.start.line ?? range.start.line,
+    column: attribute.range?.start.column ?? range.start.column,
+    message: `Invalid ${JSON.stringify(attribute.raw)}: paginate: takes the number of items per page as a whole number, e.g. paginate:20.`
+  });
+  return undefined;
 }
 
 function parseConvexAddress(rawHead: string, range: SourceRange, diagnostics: Diagnostic[]): ConvexFunctionAddress | undefined {

@@ -147,6 +147,17 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
     });
     generated += text;
   };
+  // Scaffold text standing for a differently spelled source token (diagnostics only).
+  const appendMappedRange = (text: string, sourceOffset: number, sourceLength: number) => {
+    mappings.push({
+      sourceOffsets: [sourceOffset],
+      generatedOffsets: [generated.length],
+      lengths: [sourceLength],
+      generatedLengths: [text.length],
+      data: { verification: true }
+    });
+    generated += text;
+  };
 
   // 1. Prelude maps verbatim at offset 0.
   if (ast.prelude.length > 0) {
@@ -169,8 +180,8 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
   }
   // The app's registered state type (`interface Register { state: … }` in
   // @wavex/runtime) when the runtime resolves from this file; otherwise untyped.
-  append(`declare const state: ${runtimeResolvable(fsPath) ? 'import("@wavex/runtime").AppState' : "Record<string, any>"};\n`);
-  append("declare const resourceStates: Record<string, any>;\n");
+  const typedRuntime = runtimeResolvable(fsPath);
+  append(`declare const state: ${typedRuntime ? 'import("@wavex/runtime").AppState' : "Record<string, any>"};\n`);
   append("declare const actionStates: Record<string, any>;\n");
   append(
     "declare const navigation: { pending: boolean; to?: { path: string; params: Record<string, string>; query: Record<string, string> } };\n"
@@ -183,23 +194,44 @@ function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): 
   );
 
   // 2b. Resource bindings typed from the app's generated Convex api: the
-  //     query's return type (or any when no generated api is found).
+  //     query's return type, or for a paginated resource (`paginate:N`) the
+  //     items of one page. The `"page"` index maps to the `paginate`
+  //     attribute, so a query that does not return a PaginationResult is
+  //     reported there. `any` when no generated api is found.
   const apiImport = ast.resources.length > 0 ? convexApiImportPath(fsPath) : undefined;
   if (apiImport) {
     append(`import type { api as __wxApi } from ${JSON.stringify(apiImport)};\n`);
     append(`import type { FunctionReturnType as __WxReturn } from "convex/server";\n`);
   }
-  const declaredResources = new Set<string>();
+  const declaredResources: Array<{ name: string; paginated: boolean }> = [];
   for (const resource of ast.resources) {
-    if (!/^[A-Za-z_$][\w$]*$/.test(resource.name) || declaredResources.has(resource.name)) continue;
-    declaredResources.add(resource.name);
+    if (!/^[A-Za-z_$][\w$]*$/.test(resource.name) || declaredResources.some((declared) => declared.name === resource.name)) continue;
+    const paginateName = resource.pageSize === undefined ? undefined : resource.attributes.find((attribute) => attribute.name === "paginate")?.nameRange;
+    declaredResources.push({ name: resource.name, paginated: resource.pageSize !== undefined });
     if (apiImport && isValidConvexRawAddress(resource.address.raw)) {
       append(`declare const ${resource.name}: __WxReturn<typeof __wxApi`);
       appendMappedConvexApiPath(source, resource, { append, appendMapped });
-      append(`> | undefined;\n`);
+      append(">");
+      if (paginateName) {
+        append("[");
+        appendMappedRange('"page"', paginateName.start.offset, paginateName.end.offset - paginateName.start.offset);
+        append("]");
+      }
+      append(" | undefined;\n");
     } else {
       append(`declare const ${resource.name}: any;\n`);
     }
+  }
+  // Lifecycle state per resource: typed values, plus page position for
+  // paginated resources. A resource whose +if gate is closed has no state.
+  if (typedRuntime) {
+    const entries = declaredResources.map(
+      ({ name, paginated }) =>
+        `readonly ${name}?: import("@wavex/runtime").ResourceState<NonNullable<typeof ${name}>>${paginated ? " & { readonly hasPreviousPage: boolean; readonly hasNextPage: boolean }" : ""}; `
+    );
+    append(`declare const resourceStates: Readonly<Record<string, import("@wavex/runtime").ResourceState | undefined>> & { ${entries.join("")}};\n`);
+  } else {
+    append("declare const resourceStates: Record<string, any>;\n");
   }
 
   // 3. Template expressions type-check inside their template scopes (+for

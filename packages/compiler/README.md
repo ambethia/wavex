@@ -23,6 +23,15 @@ are reported on `result.ast.diagnostics`, never thrown.
 - **Render stays side-effect free**: bare `$$module:fn` lines lower to query
   resource definitions; mutations/actions only lower behind explicit triggers
   (`:click:`, `:submit:`).
+- **Resources follow the template**: a `$$` definition carries a `when(context)`
+  gate made of its enclosing `+if` expressions and a `pageSize` from
+  `paginate:N`. `when` and `getArgs` see the same bare locals as the render
+  function (route, attrs, state, resourceStates, actionStates, navigation,
+  resource bindings), so a condition or arg means what it means where it is
+  written. `+suspense reveal:together` waits for a gated resource only while
+  its nested `+if` holds, and `+empty` on a paginated resource also requires
+  that no other page exists. `name.nextPage` / `name.previousPage` targets
+  compile to ordinary delegated `data-wx-*` targets.
 - **Local semantic handlers stay local**: a non-Convex `:event:handler`
   target is emitted as a private element property pointing at the module
   prelude function. Delegation can execute it and request a rerender without a

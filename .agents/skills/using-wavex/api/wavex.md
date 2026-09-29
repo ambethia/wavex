@@ -48,17 +48,18 @@ re-exports of the most common compiler and core entry points.
 function compileWavexModule(source, options?): CompileWavexResult;
 ```
 
-Defined in: [packages/compiler/dist/compiler.d.ts:40](packages/compiler/dist/compiler.d.ts#L40)
+Defined in: [packages/compiler/dist/compiler.d.ts:41](packages/compiler/dist/compiler.d.ts#L41)
 
 Compile `.wx` source into a Lit render module.
 
 The generated module preserves the TypeScript prelude verbatim, then
 exports: a `render(context)` function built on Lit `html`/`repeat`, a
-`resources` array of inferred Convex query definitions, and a
-`headEntries(context)` function for `+head` content. Components declaring
-`type Attrs = { … }` in their prelude get each attribute destructured as a
-bare typed local in template scope. Parse and compile problems are reported
-on `result.ast.diagnostics`, not thrown.
+`resources` array of inferred Convex query definitions (each with a `when`
+gate from its enclosing `+if` directives and, for `paginate:N`, a
+`pageSize`), and a `headEntries(context)` function for `+head` content.
+Components declaring `type Attrs = { … }` in their prelude get each
+attribute destructured as a bare typed local in template scope. Parse and
+compile problems are reported on `result.ast.diagnostics`, not thrown.
 
 #### Parameters
 
@@ -124,7 +125,7 @@ Build a full [RouteDefinition](@wavex/core/README.md#routedefinition) from a pag
 function parseWavex(source, options?): WavexFile;
 ```
 
-Defined in: [packages/core/dist/parser.d.ts:41](packages/core/dist/parser.d.ts#L41)
+Defined in: [packages/core/dist/parser.d.ts:45](packages/core/dist/parser.d.ts#L45)
 
 Parse a complete `.wx` source file into a [WavexFile](@wavex/core/README.md#wavexfile).
 
@@ -138,6 +139,10 @@ Bare tokens before inline text are boolean attributes when they name a
 native HTML boolean attribute or, on an `@component` head, a boolean
 attribute of the Web Awesome component it resolves to (see
 [ParseWavexOptions.webAwesomeBooleanAttributes](@wavex/core/README.md#webawesomebooleanattributes)).
+
+`resources` lists the file's `$$` query resources in source order, each
+with the `+if` conditions that gate its subscription and its `paginate:`
+page size.
 
 #### Parameters
 

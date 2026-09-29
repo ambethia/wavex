@@ -263,6 +263,33 @@ describe("wavex check type-checking", () => {
     expect(process.exitCode).toBe(1);
   });
 
+  it("type-checks +if-gated and paginated resources against registered state", async () => {
+    const appRoot = fixture("typed-resources");
+    fromDirectory(appRoot);
+    const { logs, errors } = captureConsole();
+
+    await runCli(["check", join(appRoot, "src/pages/index.wx")]);
+
+    expect(errors).toEqual([]);
+    expect(process.exitCode).toBeUndefined();
+    expect(logs).toEqual(["Checked 1 .wx file. Web Awesome: not installed; Font Awesome: none installed; TypeScript: tsconfig.json."]);
+  });
+
+  it("reports ungated args, unknown page item fields, and unknown page state at their .wx positions", async () => {
+    const appRoot = fixture("typed-resources");
+    fromDirectory(appRoot);
+    const { errors } = captureConsole();
+
+    await runCli(["check", join(appRoot, "src/pages/broken.wx")]);
+
+    expect(errors).toEqual([
+      "src/pages/broken.wx:2:37 ERROR TS18047 'state.pledges.detailId' is possibly 'null'.",
+      "src/pages/broken.wx:5:17 ERROR TS2339 Property 'campaign' does not exist on type '{ id: string; campaignName: string; rewards: Reward[]; }'.",
+      "src/pages/broken.wx:6:47 ERROR TS2339 Property 'hasMorePages' does not exist on type 'ResourceState<{ id: string; campaignName: string; rewards: Reward[]; }[]> & { readonly hasPreviousPage: boolean; readonly hasNextPage: boolean; }'."
+    ]);
+    expect(process.exitCode).toBe(1);
+  });
+
   it("warns when the tsconfig does not include the checked .wx files", async () => {
     const root = fixtureRoot("wavex-cli-check-include-");
     writeFixture(root, "tsconfig.json", JSON.stringify({ compilerOptions: { strict: true, noEmit: true, types: [] }, include: ["src/**/*.ts"] }));

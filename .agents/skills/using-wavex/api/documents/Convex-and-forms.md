@@ -98,7 +98,7 @@ $$tasks:list as:openTasks status:"open"
 
 ### Resource arguments
 
-Query arguments use the same colon-attribute syntax as everything else in WAVEx. Every attribute on a `$$` call other than the reserved `as:` and `args:` becomes a Convex argument:
+Query arguments use the same colon-attribute syntax as everything else in WAVEx. Every attribute on a `$$` call other than the reserved `as:`, `args:`, and `paginate:` becomes a Convex argument:
 
 ```wx
 $$tasks:get id:route.params.id
@@ -111,6 +111,136 @@ The explicit object form remains available for computed or spread-style argument
 ```wx
 $$tasks:search args:{ ...savedFilters, query: state.query }
 ```
+
+Args are re-evaluated on every render — navigation, resource updates, local
+handlers, and `app.update({ state })` from an app-owned entry — so a resource
+follows the values it reads. When its args change, WAVEx subscribes with the
+new args and unsubscribes the old ones; the previous value stays bound (with
+status `loading`) until the new result arrives.
+
+### Conditional resources
+
+A `$$` resource subscribes only while the template would render its line:
+while every enclosing `+if` holds. When a condition stops holding, WAVEx
+unsubscribes and removes the binding and its `resourceStates` entry; when it
+holds again, the resource subscribes afresh. This is WAVEx's form of Convex's
+`"skip"`, so a query that needs a signed-in user, or an id the page does not
+have yet, is simply written inside the `+if` that guards the UI using it.
+
+```wx
++if state.auth.user
+  $$pledges:list paginate:20
+    +for pledge in pledges key:pledge.id
+      p {{ pledge.campaignName }}
+
+  +if state.pledges.detailId
+    $$pledges:detail as:pledgeDetail id:state.pledges.detailId
+      +if pledgeDetail
+        h2 {{ pledgeDetail.campaignName }}
+```
+
+Args are evaluated only while the conditions hold, so they can rely on the
+guard's narrowing — `id:state.pledges.detailId` is never `null` above, both at
+runtime and in the type checker. The same works for a query that depends on
+another resource:
+
+```wx
+$$talks:get slug:route.params.slug
++if talk
+  $$questions:listByTalk talkSlug:talk.slug
+```
+
+Only `+if` gates subscriptions; `+suspense`, `+boundary`, and the resource and
+action state directives do not. Resources are per page, not per item, so a
+`$$` line inside `+for` is an error (WX021): its args and conditions could not
+see the loop item.
+
+### Paginated resources
+
+`paginate:N` binds a Convex paginated query one page of `N` items at a time.
+The query takes `paginationOpts: paginationOptsValidator` alongside its other
+args and returns `.paginate(args.paginationOpts)`; WAVEx supplies
+`paginationOpts`, so it is never written in the template.
+
+```ts
+// convex/questions.ts
+export const listByTalk = query({
+  args: { talkSlug: v.string(), paginationOpts: paginationOptsValidator },
+  handler: (ctx, args) =>
+    ctx.db
+      .query("questions")
+      .withIndex("by_talk_votes", (q) => q.eq("talkSlug", args.talkSlug))
+      .order("desc")
+      .paginate(args.paginationOpts)
+});
+```
+
+```wx
+$$questions:listByTalk talkSlug:talk.slug paginate:10
+  +loading
+    @spinner
+  +empty
+    p No questions yet.
+  +for question in questions key:question._id
+    p {{ question.text }}
+  +if resourceStates.questions?.hasPreviousPage || resourceStates.questions?.hasNextPage
+    nav [cluster gap-s]
+      @button :click:questions.previousPage disabled:{{ !resourceStates.questions?.hasPreviousPage }} Previous
+      @button :click:questions.nextPage disabled:{{ !resourceStates.questions?.hasNextPage }} Next
+```
+
+- The binding (`questions`) is the current page's items, typed from the
+  query's `PaginationResult`. `paginate:` must be a whole number (WX022).
+- `resourceStates.questions.hasPreviousPage` is true past the first page;
+  `hasNextPage` is true once the current page has loaded and is not the last
+  (false while a page loads or after it fails).
+- `:event:name.nextPage` and `:event:name.previousPage` move between pages.
+  These targets are reserved for paginated resources declared in the same
+  file (WX023); a move with no page in that direction does nothing.
+- Each page is a live Convex subscription: items added to or removed from the
+  current page's range appear on it immediately, so a page can hold more or
+  fewer than `N` items. Moving to the next page starts where the current one
+  ends, and moving back starts that page afresh, so every item stays reachable
+  by paging. If Convex reports that a page read too much data to return
+  completely, WAVEx ends the page at Convex's split point and the rest starts
+  the next page.
+- While another page loads, the previous page's items stay bound with status
+  `loading`.
+- `+empty` means the list is empty: the current page has no items and there
+  is no other page. An empty first page of a filtered query can still have a
+  next page.
+- Changing the resource's args, or closing its `+if`, returns it to the first
+  page. The page position is kept per resource while its query, args, and page
+  size stay the same.
+
+Pages replace each other; WAVEx does not accumulate pages into one growing
+list.
+
+### Signed-in resources and app-owned clients
+
+A Convex client authenticated by the app (`convex.setAuth(…)` on the client
+passed to `mountLitApp` as `resourceClient` and `actionClient`) serves both
+`$$` resources and `:event:$$module:fn` actions, so they run as the signed-in
+user. Put resources that require a user inside an `+if` on the app's auth
+state, and publish that state when Convex has accepted the token (from
+`setAuth`'s `onChange`):
+
+```wx
++if state.auth.signedIn
+  $$readiness:get
+```
+
+- Sign-in: `app.update({ state })` with the signed-in state subscribes every
+  gated resource. Convex pauses its connection while `setAuth` fetches a
+  token, so queries subscribed meanwhile run with that token.
+- Sign-out: update the state first, so the gated resources unsubscribe, then
+  clear the client's auth (`convex.setAuth(async () => null)`). In the other
+  order, Convex re-runs the still-live queries without a user and they report
+  errors.
+- Convex re-runs live queries when the token changes, so a resource that is
+  subscribed across a token refresh keeps updating as the same user.
+
+See the `@wavex/vite-plugin` README for an app-owned entry module.
 
 ## Forms, events, and actions
 
@@ -142,8 +272,9 @@ Semantic event directives use `:event:target`.
 @button :click:$$tasks:clearCompleted Clear completed
 ```
 
-A non-Convex target is the name of a function in that `.wx` module's
-TypeScript prelude. The compiler attaches the function to the rendered element
+`name.nextPage` and `name.previousPage` move the paginated resource `name`
+(see "Paginated resources"). Any other non-Convex target is the name of a
+function in that `.wx` module's TypeScript prelude. The compiler attaches the function to the rendered element
 without serializing it into HTML; the delegated runtime invokes it with the DOM
 `Event` and rerenders the mounted page after it runs. Async handlers are
 awaited.

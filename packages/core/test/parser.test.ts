@@ -475,6 +475,70 @@ describe("parseWavex", () => {
     expect(parsed.nodes[1]).toMatchObject({ kind: "directive", name: "for", for: undefined });
   });
 
+  it("records the enclosing +if conditions that gate each $$ resource", () => {
+    const parsed = parseWavex(
+      "~~~\n$$talks:list\n+if state.auth.user\n  section\n    $$pledges:list\n    +if state.pledges.detailId  &&  open\n      $$pledges:detail as:pledgeDetail id:state.pledges.detailId\n+if\n  $$never:get\n"
+    );
+
+    expect(parsed.diagnostics).toEqual([]);
+    expect(parsed.resources.map(({ name, conditions }) => ({ name, conditions }))).toEqual([
+      { name: "talks", conditions: [] },
+      { name: "pledges", conditions: ["state.auth.user"] },
+      { name: "pledgeDetail", conditions: ["state.auth.user", "state.pledges.detailId && open"] },
+      // An empty +if renders nothing, so its resource never subscribes.
+      { name: "never", conditions: ["false"] }
+    ]);
+  });
+
+  it("rejects $$ resources inside +for because resources subscribe once per page", () => {
+    const parsed = parseWavex("~~~\n+for talk in talks\n  +if talk.open\n    $$questions:listByTalk talkSlug:talk.slug\n");
+
+    expect(parsed.diagnostics).toMatchObject([{ code: "WX021", severity: "error", line: 4, column: 5 }]);
+    expect(parsed.diagnostics[0]!.message).toContain("cannot use the loop item");
+    expect(parsed.resources).toMatchObject([{ name: "questions", conditions: ["talk.open"] }]);
+  });
+
+  it("parses paginate: as a static page size and diagnoses other values with WX022", () => {
+    const parsed = parseWavex(
+      "~~~\n$$pledges:list paginate:20\n$$emails:list paginate:{{ 5 }}\n$$a:list as:a paginate\n$$b:list as:b paginate:\"20\"\n$$c:list as:c paginate:0\n$$d:list as:d paginate:{{ PAGE_SIZE }}\n$$e:list as:e paginate:2.5\n"
+    );
+
+    expect(parsed.resources.map(({ name, pageSize }) => ({ name, pageSize }))).toEqual([
+      { name: "pledges", pageSize: 20 },
+      { name: "emails", pageSize: 5 },
+      { name: "a", pageSize: undefined },
+      { name: "b", pageSize: undefined },
+      { name: "c", pageSize: undefined },
+      { name: "d", pageSize: undefined },
+      { name: "e", pageSize: undefined }
+    ]);
+    expect(parsed.nodes[0]).toMatchObject({ kind: "convex-call", bindingName: "pledges", pageSize: 20 });
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX022", severity: "error", line: 4, column: 15 },
+      { code: "WX022", severity: "error", line: 5, column: 15 },
+      { code: "WX022", severity: "error", line: 6, column: 15 },
+      { code: "WX022", severity: "error", line: 7, column: 15 },
+      { code: "WX022", severity: "error", line: 8, column: 15 }
+    ]);
+    expect(parsed.diagnostics[0]!.message).toContain("e.g. paginate:20");
+  });
+
+  it("reserves name.nextPage and name.previousPage targets for paginated resources in the file (WX023)", () => {
+    const parsed = parseWavex(
+      "~~~\n$$pledges:list paginate:20\n  @button :click:pledges.previousPage Previous\n  @button :click:pledges.nextPage :track:pledges_paged Next\n$$talks:list\n@button :click:talks.nextPage More talks\n@button :click:emails.previousPage Newer\n@button :click:pledges.next Next\n@button :click:menu.open Menu\n@button :click:$$tasks:clearCompleted Clear\n"
+    );
+
+    expect(parsed.diagnostics).toMatchObject([
+      { code: "WX023", severity: "error", line: 6, column: 9 },
+      { code: "WX023", severity: "error", line: 7, column: 9 },
+      { code: "WX023", severity: "error", line: 8, column: 9 }
+    ]);
+    expect(parsed.diagnostics).toHaveLength(3);
+    expect(parsed.diagnostics[0]!.message).toContain("talks has no paginate: page size");
+    expect(parsed.diagnostics[1]!.message).toContain("does not name a paginated resource in this file");
+    expect(parsed.diagnostics[2]!.message).toContain("Use pledges.nextPage or pledges.previousPage");
+  });
+
   it("diagnoses unknown directives and malformed +for headers", () => {
     const parsed = parseWavex(`~~~\n+maybe nope\n  p Ignored directive\n+for task of tasks\n  p {{ task.text }}\n`);
 

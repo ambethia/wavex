@@ -154,7 +154,8 @@ export function mountLit<Result = unknown>(
     dispatch: context.dispatch,
     resolveActionKind: options.resolveActionKind,
     analytics: options.analytics,
-    onUnhandledAction: options.onUnhandledAction
+    onUnhandledAction: options.onUnhandledAction,
+    turnPage: (name, direction) => resourceController?.turnPage(name, direction) ?? false
   });
   // Semantic local handlers and Convex action lifecycle states must rerender
   // the page once synchronously after dispatch and again on async settlement.

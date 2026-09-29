@@ -265,6 +265,33 @@ export function inferResourceBindingName(modulePath: string, functionName: strin
   return lastPathSegment(modulePath);
 }
 
+/** Direction of a page move on a paginated resource. */
+export type PageDirection = "next" | "previous";
+
+/** A paginated resource's page move, parsed from a `name.nextPage` / `name.previousPage` semantic event target. */
+export interface PageTarget {
+  /** Binding name of the paginated resource (`pledges` in `pledges.nextPage`). */
+  name: string;
+  direction: PageDirection;
+}
+
+const PAGE_TARGET_PATTERN = /^([A-Za-z_$][\w$]*)\.(nextPage|previousPage)$/;
+
+/**
+ * Parse a semantic event target that moves a paginated resource between
+ * pages: `:click:pledges.nextPage` and `:click:pledges.previousPage` target
+ * the `$$… paginate:N` resource bound as `pledges`. Returns undefined for
+ * every other target (Convex `$$module:function` targets, prelude functions,
+ * app-level actions). The parser reserves this form for paginated resources
+ * declared in the same file; the runtime dispatcher routes it to the
+ * resource controller.
+ */
+export function parsePageTarget(target: string): PageTarget | undefined {
+  const match = PAGE_TARGET_PATTERN.exec(target);
+  if (!match) return undefined;
+  return { name: match[1]!, direction: match[2] === "nextPage" ? "next" : "previous" };
+}
+
 /** Return the final non-empty slash-delimited segment from a module or file path. */
 export function lastPathSegment(path: string): string {
   return path.split("/").filter(Boolean).at(-1) ?? path;

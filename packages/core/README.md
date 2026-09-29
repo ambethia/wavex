@@ -6,7 +6,9 @@ single source of truth for the WAVEx language.
 ## What lives here
 
 - **`@wavex/core`** — `parseWavex` (the only `.wx` parser definition), the
-  template AST with node and sub-line token source ranges, structured diagnostics, and the project
+  template AST with node and sub-line token source ranges, structured diagnostics (including each
+  `$$` resource's enclosing `+if` conditions and `paginate:` page size, and
+  the reserved `name.nextPage` / `name.previousPage` page targets), and the project
   model: the fixed app layout (`WavexConfig`), file-based route derivation and
   matching, Convex resource binding-name inference, `@` component reference
   resolution, and `[utility]` → `wa-` class expansion.

@@ -92,7 +92,7 @@ Compiled templates receive a runtime context and expose its common entries as ba
 - `attrs` — attributes passed to a local `.wx` component.
 - `state` — app-provided local state. WAVEx does not mutate this object for you; pass it through the mount/update context when a host integration owns client-only state. Its type is the app's registered state (see "Typed state and type checking" below).
 - Resource bindings such as `tasks` or `talk` — live values created by `$$` query resources.
-- `resourceStates` — lifecycle details for those query resources; prefer `+loading`, `+empty`, and `+error` inside the resource block for ordinary UI states.
+- `resourceStates` — lifecycle details for those query resources (`status`, `value`, `error`, and for paginated resources `hasPreviousPage` / `hasNextPage`); prefer `+loading`, `+empty`, and `+error` inside the resource block for ordinary UI states. A resource whose `+if` does not hold has no entry.
 - `actionStates` — lifecycle details for semantic Convex mutation/action targets. Use this when UI needs an action result or error outside the built-in `+pending`, `+idle`, and `+mutation-error` children.
 - `navigation` — client navigation lifecycle (`navigation.pending`, `navigation.to`).
 
@@ -113,8 +113,10 @@ Compiled templates receive a runtime context and expose its common entries as ba
 Templates are type-checked TypeScript: the editor and `wavex check` generate
 the same TypeScript for every prelude and template expression and check it
 with the app's tsconfig. `+if` works like a TypeScript `if` — its children
-see the narrowed types, including inside nested `+for` loops — and a `+for`
-item has its collection's element type.
+see the narrowed types, including inside nested `+for` loops and `$$` args —
+and a `+for` item has its collection's element type. Resource bindings are
+typed from the app's generated Convex `api` (one page of items for a
+paginated resource), and so is each resource's `resourceStates` entry.
 
 Register the app's state shape once, in any module the tsconfig includes, and
 every template's `state` is typed with it:

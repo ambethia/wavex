@@ -1,0 +1,5 @@
+~~~
+$$talks:page as:talkPage paginate:5
+  +for talk in talkPage
+    p {{ talk.title }} — {{ talk.minutes.toUpperCase() }}
+$$talks:list as:unpaged paginate:5

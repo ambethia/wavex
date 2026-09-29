@@ -105,6 +105,23 @@ describe("@wavex/lsp", () => {
     expect(syntaxError!.source).toBe("wavex");
   });
 
+  it("types a paginated resource as one page of items and reports paginate: on a non-paginated query", async () => {
+    const fixture = resolve(fixturesDir, "typed-convex/src/pages/paginated.wx");
+    const checker = createChecker([fixture, typedConvexServerShim]);
+    const diagnostics = (await checker.check(fixture)).filter((diagnostic) => diagnostic.source !== "wavex");
+
+    expect(diagnostics).toEqual([
+      // talkPage items are { title: string; minutes: number }.
+      expect.objectContaining({ code: 2339, range: expect.objectContaining({ start: { line: 3, character: 41 } }) }),
+      // talks:list returns an array, not a PaginationResult: reported at `paginate`.
+      expect.objectContaining({
+        code: 2339,
+        message: "Property 'page' does not exist on type '{ title: string; minutes: number; }[]'.",
+        range: { start: { line: 4, character: 24 }, end: { line: 4, character: 32 } }
+      })
+    ]);
+  });
+
   it("reports typoed Convex resource references with string-literal API path segments", async () => {
     const checker = createChecker([hyphenConvexResourceFixture, typedConvexServerShim]);
     const diagnostics = await checker.check(hyphenConvexResourceFixture);
@@ -481,6 +498,32 @@ describe("template scopes in virtual code", () => {
       writeFileSync(join(root, "node_modules", "@wavex", "runtime", "package.json"), '{"name":"@wavex/runtime"}\n');
 
       expect(generatedFor(page)).toContain('declare const state: import("@wavex/runtime").AppState;');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("types resourceStates per resource, with page position for paginated ones, when the runtime resolves", () => {
+    const root = mkdtempSync(join(tmpdir(), "wavex-lsp-resource-states-"));
+    try {
+      const page = join(root, "src", "pages", "index.wx");
+      const text = "~~~\n$$pledges:list paginate:20\n$$user:me\n";
+      const snapshot = { getText: (start: number, end: number) => text.slice(start, end), getLength: () => text.length, getChangeRange: () => undefined };
+      const generated = () => {
+        const tsCode = new WavexVirtualCode(snapshot as never, page).embeddedCodes[0]!;
+        return tsCode.snapshot.getText(0, tsCode.snapshot.getLength());
+      };
+
+      expect(generated()).toContain("declare const resourceStates: Record<string, any>;");
+
+      mkdirSync(join(root, "node_modules", "@wavex", "runtime"), { recursive: true });
+      writeFileSync(join(root, "node_modules", "@wavex", "runtime", "package.json"), '{"name":"@wavex/runtime"}\n');
+
+      expect(generated()).toContain(
+        'declare const resourceStates: Readonly<Record<string, import("@wavex/runtime").ResourceState | undefined>> & { ' +
+          'readonly pledges?: import("@wavex/runtime").ResourceState<NonNullable<typeof pledges>> & { readonly hasPreviousPage: boolean; readonly hasNextPage: boolean }; ' +
+          'readonly user?: import("@wavex/runtime").ResourceState<NonNullable<typeof user>>; };'
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

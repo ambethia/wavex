@@ -38,3 +38,21 @@ Changes existing apps should know about:
 - `wavex check` takes any mix of directories and files: named `.wx` files are
   checked (grouped by app root) and other named files only contribute their
   `icon()` declarations, so a commit hook can pass every staged path.
+- A `$$` resource inside `+if` subscribes only while every enclosing `+if`
+  holds and is cleared when one stops holding (previously it always
+  subscribed); its args are evaluated only then, so they can rely on the
+  guard's narrowing. `+suspense reveal:together` no longer waits for a
+  resource whose nested `+if` is false. A `$$` line inside `+for` is now an
+  error (WX021).
+- `paginate:N` binds a Convex paginated query one page at a time;
+  `:event:name.nextPage` / `name.previousPage` move between pages and
+  `resourceStates.name.hasPreviousPage` / `hasNextPage` report the position.
+  `paginate` is a reserved `$$` attribute (no longer passed as a Convex arg),
+  `name.nextPage` / `name.previousPage` targets are reserved for paginated
+  resources (WX022, WX023), and `ResourceController` gains `turnPage`.
+- In type-checked templates `resourceStates` has a typed entry per resource
+  instead of `any`, so reading one without `?.` or reading an unknown field is
+  a type error.
+- Resource gates and args also see `resourceStates`, and a gate or args that
+  throw leave the resource in a visible error state without rerendering in a
+  loop.

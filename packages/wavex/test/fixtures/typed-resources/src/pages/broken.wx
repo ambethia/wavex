@@ -1,0 +1,6 @@
+~~~
+$$pledges:detail as:pledgeDetail id:state.pledges.detailId.trim()
+$$pledges:list paginate:20
+  +for pledge in pledges
+    p {{ pledge.campaign }}
+  button disabled:{{ !resourceStates.pledges?.hasMorePages }} Next

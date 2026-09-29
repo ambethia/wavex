@@ -14,10 +14,15 @@
  * query bindings become live route-scoped subscriptions (torn down on
  * navigation), and mutations/actions dispatch through the client with
  * explicit pending/error lifecycle state ({@link ActionState}) for templates.
+ * A resource subscribes only while its enclosing `+if` conditions hold, and a
+ * paginated one (`paginate:N`) subscribes to one page at a time.
  *
  * @module @wavex/runtime
  */
+import { parsePageTarget, type PageDirection } from "@wavex/core";
 import { analyticsEventNameForTarget } from "./analytics.js";
+
+export type { PageDirection } from "@wavex/core";
 /** The current route as seen by templates: `route.path`, `route.params`, `route.query`. */
 export interface RouteContext {
   path: string;
@@ -29,12 +34,22 @@ export interface RouteContext {
 /** Lifecycle of a live query resource; drives `+loading` / `+error` / `+empty` template states. */
 export type ResourceLifecycleStatus = "loading" | "ready" | "error";
 
-/** Current state of one subscribed Convex query resource. */
+/**
+ * Current state of one subscribed Convex query resource. A resource whose
+ * `+if` conditions do not hold has no state (and no binding value).
+ */
 export interface ResourceState<T = unknown> {
   status: ResourceLifecycleStatus;
   value?: T;
   error?: unknown;
   updatedAt?: number;
+  /** Paginated resources (`paginate:N`): the resource is past its first page, so `name.previousPage` moves back. */
+  hasPreviousPage?: boolean;
+  /**
+   * Paginated resources (`paginate:N`): the loaded page is not the last, so
+   * `name.nextPage` moves on. False while a page loads or after it fails.
+   */
+  hasNextPage?: boolean;
 }
 
 /** Lifecycle of a mutation/action dispatch; drives `+pending` / `+idle` / `+mutation-error` states. */
@@ -112,8 +127,9 @@ export type ResourceArgsFactory<TArgs = unknown> = (context: RenderContext) => T
 /**
  * A Convex query resource as emitted by the compiler for a `$$module:fn`
  * binding. Args may be a static value or a factory reading the render
- * context (e.g. `route.params`), which makes the subscription re-resolve on
- * navigation.
+ * context (`route`, `state`, other resources), which the controller
+ * re-resolves on every update — navigation, resource changes, local
+ * handlers, and `app.update({ state })` — resubscribing when they change.
  */
 export interface ResourceDefinition<TArgs = unknown> {
   name: string;
@@ -123,6 +139,21 @@ export interface ResourceDefinition<TArgs = unknown> {
   kind?: "query";
   args?: TArgs | ResourceArgsFactory<TArgs>;
   getArgs?: ResourceArgsFactory<TArgs>;
+  /**
+   * Subscribe only while this returns true — WAVEx's form of Convex's
+   * `"skip"`. The compiler emits it from the `+if` directives enclosing the
+   * `$$` line. While it is false the resource is unsubscribed, its binding
+   * and state are absent, and its args are not resolved.
+   */
+  when?: (context: RenderContext) => boolean;
+  /**
+   * Items per page for a Convex paginated query (`paginate:N`). The resource
+   * subscribes to one page at a time — its args plus
+   * `paginationOpts: { cursor, numItems }` — binds that page's items, and
+   * moves between pages with {@link ResourceController.turnPage}. Changing
+   * its args or closing its gate returns it to the first page.
+   */
+  pageSize?: number;
 }
 
 /** Resource definition after args have been resolved for the current render context. */
@@ -159,13 +190,30 @@ export interface ResourceClient {
 
 /** Manages the live subscriptions for a mounted page; `update` diffs definitions, `dispose` tears all down. */
 export interface ResourceController {
+  /**
+   * Re-evaluate every definition's `+if` gate and args against the context
+   * and subscribe, resubscribe, or unsubscribe to match. Changes apply
+   * synchronously, before the caller renders.
+   */
   update(nextDefinitions?: readonly ResourceDefinition[]): void;
+  /**
+   * Move the paginated resource `name` to its next or previous page, as the
+   * `name.nextPage` / `name.previousPage` semantic targets do. Returns false
+   * when no paginated resource definition has that name. A move with no page
+   * in that direction (see {@link ResourceState.hasNextPage} and
+   * {@link ResourceState.hasPreviousPage}) does nothing.
+   */
+  turnPage(name: string, direction: PageDirection): boolean;
   dispose(): void;
 }
 
 /** Options for resource subscription management. */
 export interface ResourceControllerOptions {
   client?: ResourceClient;
+  /**
+   * Called after changes that happen outside `update()` — subscription values
+   * and errors, and page turns — so the host can rerender.
+   */
   onChange?: () => void;
 }
 
@@ -212,6 +260,13 @@ export interface SemanticActionDispatcherOptions {
   onActionResult?: (definition: ResolvedActionDefinition, result: unknown, event: WavexActionEvent) => void;
   onActionError?: (definition: ResolvedActionDefinition, error: unknown, event: WavexActionEvent) => void;
   throwActionErrors?: boolean;
+  /**
+   * Move a paginated resource for `name.nextPage` / `name.previousPage`
+   * targets; mounts pass their resource controller's
+   * {@link ResourceController.turnPage}. Returning false (no paginated
+   * resource has that name) reports the target as unhandled.
+   */
+  turnPage?: (name: string, direction: PageDirection) => boolean;
   /** Optional analytics sink; semantic local and Convex actions are captured automatically (`:track:` overrides the name). */
   analytics?: import("./analytics.js").AnalyticsClient;
 }
@@ -267,6 +322,41 @@ interface ActiveResource {
   key: string;
   name: string;
   teardown: ResourceTeardown;
+}
+
+/** Page position of one paginated resource's list: its query, args, and page size. */
+interface Pager {
+  listKey: string;
+  /** Start cursor of each page from the first (`null`) to the current one. */
+  cursors: Array<string | null>;
+  /** End of the current page, pinned when Convex asks to split a page that read too much. */
+  endCursor?: string;
+  /** Start of the next page; set once the current page has loaded and is not the last. */
+  nextCursor?: string;
+}
+
+type PageFlags = Required<Pick<ResourceState, "hasPreviousPage" | "hasNextPage">>;
+
+const NO_PAGES: PageFlags = { hasPreviousPage: false, hasNextPage: false };
+
+function pageFlags(pager: Pager | undefined): PageFlags | undefined {
+  return pager ? { hasPreviousPage: pager.cursors.length > 1, hasNextPage: pager.nextCursor !== undefined } : undefined;
+}
+
+/** The fields of Convex's `PaginationResult` the pager reads. */
+interface PaginationResultLike {
+  page: unknown[];
+  isDone: boolean;
+  continueCursor: string;
+  splitCursor?: string | null;
+  pageStatus?: "SplitRecommended" | "SplitRequired" | null;
+}
+
+function asPaginationResult(value: unknown): PaginationResultLike | undefined {
+  if (!isObjectLike(value)) return undefined;
+  const result = value as Record<string, unknown>;
+  if (!Array.isArray(result.page) || typeof result.isDone !== "boolean" || typeof result.continueCursor !== "string") return undefined;
+  return result as unknown as PaginationResultLike;
 }
 
 /** Font Awesome family/variant for an {@link icon} declaration (Web Awesome's `@icon family:`/`variant:`). */
@@ -333,7 +423,12 @@ export function createRenderContext(context: RenderContext = {}): RenderContext 
  * keyed by function address and resolved args: `update()` diffs the wanted
  * set against active subscriptions, so navigation tears down only what
  * actually changed (route-scoped subscriptions), and `onChange` schedules a
- * rerender on every value/state transition.
+ * rerender on every asynchronous value/state transition.
+ *
+ * A definition whose `when` gate is false is not wanted: its subscription
+ * stops and its binding and state are cleared. A paginated definition
+ * (`pageSize`) keeps a cursor stack per resource and subscribes to the
+ * current page only; see {@link ResourceController.turnPage}.
  */
 export function createResourceController(
   context: RenderContext,
@@ -341,65 +436,184 @@ export function createResourceController(
   options: ResourceControllerOptions = {}
 ): ResourceController {
   const activeResources = new Map<string, ActiveResource>();
+  const pagers = new Map<string, Pager>();
   let currentDefinitions = [...definitions];
   let disposed = false;
+  let reconciling = false;
+  // Set when a page result pins a split during a pass: the page must resubscribe with its new end cursor.
+  let resplit = false;
+
+  const resolveWanted = (definition: ResourceDefinition): { resolved: ResolvedResourceDefinition; pager?: Pager } | undefined => {
+    if (definition.when && !definition.when(context)) return undefined;
+    const resolved = resolveResourceDefinition(definition, context);
+    if (definition.pageSize === undefined) return { resolved };
+
+    const pageSize = definition.pageSize;
+    if (!Number.isSafeInteger(pageSize) || pageSize < 1) {
+      throw new Error(`WAVEx resource ${JSON.stringify(definition.name)} has page size ${String(pageSize)}; paginate: takes a whole number of items per page.`);
+    }
+    const args = normalizeConvexArgs(resolved.args);
+    // The list is the query, its args, and the page size; a different list starts on its first page.
+    const listKey = `${resourceKey(resolved)}\0${pageSize}`;
+    let pager = pagers.get(definition.name);
+    if (!pager || pager.listKey !== listKey) {
+      pager = { listKey, cursors: [null] };
+      pagers.set(definition.name, pager);
+    }
+    const paginationOpts = {
+      cursor: pager.cursors[pager.cursors.length - 1] ?? null,
+      numItems: pageSize,
+      ...(pager.endCursor === undefined ? {} : { endCursor: pager.endCursor })
+    };
+    return { resolved: { ...resolved, args: { ...args, paginationOpts } }, pager };
+  };
+
+  /** Apply one page result to the pager and context; a required split pins the page's end and resubscribes. */
+  const receivePage = (resolved: ResolvedResourceDefinition, pager: Pager, value: unknown): boolean => {
+    const result = asPaginationResult(value);
+    if (!result) {
+      pager.nextCursor = undefined;
+      markResourceError(
+        context,
+        resolved.name,
+        new Error(
+          `${resolved.raw ?? `$$${resolved.modulePath}:${resolved.functionName}`} has paginate:, so it must be a Convex paginated query (paginationOpts args, returning .paginate(...)), but a result had no page, isDone, and continueCursor.`
+        ),
+        pageFlags(pager)
+      );
+      return false;
+    }
+    if (result.pageStatus === "SplitRequired") {
+      // Convex could not read the whole page; its items may be incomplete. Narrow the page to end at
+      // splitCursor so the rest starts the next page instead of being silently dropped.
+      const start = pager.cursors[pager.cursors.length - 1] ?? null;
+      if (typeof result.splitCursor !== "string" || result.splitCursor === start || result.splitCursor === pager.endCursor) {
+        pager.nextCursor = undefined;
+        markResourceError(
+          context,
+          resolved.name,
+          new Error(`A page of ${resolved.raw ?? resolved.name} read too much data to load completely, and Convex offered no smaller page to split it into.`),
+          pageFlags(pager)
+        );
+        return false;
+      }
+      pager.endCursor = result.splitCursor;
+      pager.nextCursor = undefined;
+      return true;
+    }
+    pager.nextCursor = result.isDone ? undefined : result.continueCursor;
+    markResourceReady(context, resolved.name, result.page, pageFlags(pager));
+    return false;
+  };
+
+  const subscribe = (resolved: ResolvedResourceDefinition, key: string, pager: Pager | undefined) => {
+    const active: ActiveResource = { key, name: resolved.name, teardown: undefined };
+    activeResources.set(key, active);
+    markResourceLoading(context, resolved.name, pageFlags(pager));
+    if (!options.client) return;
+
+    // Only the subscription currently registered under its key may write: a key can be
+    // wanted again (args A → B → A, or a page turned away and back) by a newer subscription.
+    const isCurrent = () => !disposed && activeResources.get(key) === active;
+    const receive = (value: unknown): boolean => {
+      if (pager) return receivePage(resolved, pager, value);
+      markResourceReady(context, resolved.name, value);
+      return false;
+    };
+    // Clients may deliver a value synchronously from subscribe(), inside a reconcile pass.
+    const resubscribeSplit = () => {
+      if (reconciling) resplit = true;
+      else update();
+    };
+    try {
+      active.teardown = options.client.subscribe(resolved, {
+        next(value) {
+          if (!isCurrent()) return;
+          if (receive(value)) resubscribeSplit();
+          options.onChange?.();
+        },
+        error(error) {
+          if (!isCurrent()) return;
+          if (pager) pager.nextCursor = undefined;
+          markResourceError(context, resolved.name, error, pageFlags(pager));
+          options.onChange?.();
+        }
+      });
+      if (!isCurrent()) {
+        disposeResource(active.teardown);
+        return;
+      }
+      const currentValue = readCurrentValue(active.teardown);
+      if (currentValue !== undefined && receive(currentValue)) resubscribeSplit();
+    } catch (error) {
+      markResourceError(context, resolved.name, error, pageFlags(pager));
+    }
+  };
+
+  /** One reconciliation pass. Returns true when it cleared a binding that another gate or args may read. */
+  const reconcile = (): boolean => {
+    resplit = false;
+    const wantedKeys = new Set<string>();
+    const wantedNames = new Set<string>();
+    const pagedNames = new Set<string>();
+
+    for (const definition of currentDefinitions) {
+      let wanted: ReturnType<typeof resolveWanted>;
+      try {
+        wanted = resolveWanted(definition);
+      } catch (error) {
+        // A gate or args that throw leave the resource unsubscribed and visibly in error.
+        wantedNames.add(definition.name);
+        markResourceError(context, definition.name, error, definition.pageSize === undefined ? undefined : NO_PAGES);
+        continue;
+      }
+      if (!wanted) continue;
+
+      const { resolved, pager } = wanted;
+      const key = resourceKey(resolved);
+      wantedKeys.add(key);
+      wantedNames.add(resolved.name);
+      if (pager) pagedNames.add(resolved.name);
+      if (!activeResources.has(key)) subscribe(resolved, key, pager);
+    }
+
+    const staleNames = new Set(currentDefinitions.map((definition) => definition.name));
+    for (const [key, active] of activeResources) {
+      if (wantedKeys.has(key)) continue;
+      activeResources.delete(key);
+      disposeResource(active.teardown);
+      staleNames.add(active.name);
+    }
+    for (const name of pagers.keys()) {
+      if (!pagedNames.has(name)) pagers.delete(name);
+    }
+
+    let cleared = false;
+    for (const name of staleNames) {
+      if (wantedNames.has(name) || !hasResource(context, name)) continue;
+      clearResource(context, name);
+      cleared = true;
+    }
+    return cleared;
+  };
 
   const update = (nextDefinitions: readonly ResourceDefinition[] = currentDefinitions) => {
     if (disposed) return;
     currentDefinitions = [...nextDefinitions];
     ensureResourceContainers(context);
-
-    const nextKeys = new Set<string>();
-    for (const definition of currentDefinitions) {
-      let resolved: ResolvedResourceDefinition;
-      try {
-        resolved = resolveResourceDefinition(definition, context);
-      } catch (error) {
-        markResourceError(context, definition.name, error);
-        options.onChange?.();
-        continue;
+    reconciling = true;
+    try {
+      // A page split pinned during a pass resubscribes in the next one. Gates and args evaluated
+      // earlier in a pass may read a binding a later definition cleared, so clearing passes repeat
+      // until nothing more is cleared (bounded by the number of definitions).
+      for (let clearingPasses = 0; ; ) {
+        const cleared = reconcile();
+        if (resplit) continue;
+        if (!cleared || clearingPasses >= currentDefinitions.length) break;
+        clearingPasses += 1;
       }
-
-      const key = resourceKey(resolved);
-      nextKeys.add(key);
-      if (activeResources.has(key)) continue;
-
-      markResourceLoading(context, resolved.name);
-      const active: ActiveResource = { key, name: resolved.name, teardown: undefined };
-      activeResources.set(key, active);
-
-      if (!options.client) continue;
-
-      try {
-        const teardown = options.client.subscribe(resolved, {
-          next(value) {
-            if (!activeResources.has(key)) return;
-            markResourceReady(context, resolved.name, value);
-            options.onChange?.();
-          },
-          error(error) {
-            if (!activeResources.has(key)) return;
-            markResourceError(context, resolved.name, error);
-            options.onChange?.();
-          }
-        });
-        active.teardown = teardown;
-
-        const currentValue = readCurrentValue(teardown);
-        if (currentValue !== undefined) markResourceReady(context, resolved.name, currentValue);
-      } catch (error) {
-        markResourceError(context, resolved.name, error);
-        options.onChange?.();
-      }
-    }
-
-    for (const [key, active] of activeResources) {
-      if (nextKeys.has(key)) continue;
-      disposeResource(active.teardown);
-      activeResources.delete(key);
-      if (![...activeResources.values()].some((resource) => resource.name === active.name)) {
-        clearResource(context, active.name);
-      }
+    } finally {
+      reconciling = false;
     }
   };
 
@@ -407,10 +621,29 @@ export function createResourceController(
 
   return {
     update,
+    turnPage(name, direction) {
+      if (disposed || !currentDefinitions.some((definition) => definition.name === name && definition.pageSize !== undefined)) return false;
+      const pager = pagers.get(name);
+      // Gated off or unresolved: there is no page to move from.
+      if (!pager) return true;
+      if (direction === "next") {
+        if (pager.nextCursor === undefined) return true;
+        pager.cursors.push(pager.nextCursor);
+      } else {
+        if (pager.cursors.length < 2) return true;
+        pager.cursors.pop();
+      }
+      pager.endCursor = undefined;
+      pager.nextCursor = undefined;
+      update();
+      options.onChange?.();
+      return true;
+    },
     dispose() {
       disposed = true;
       for (const active of activeResources.values()) disposeResource(active.teardown);
       activeResources.clear();
+      pagers.clear();
     }
   };
 }
@@ -452,15 +685,25 @@ export function createConvexActionClient(
  * Build the dispatcher behind `context.dispatch`. `$$module:fn` targets go
  * through the action client with full lifecycle handling — pending state,
  * form `preventDefault`/reset on success, error state, and an automatic
- * analytics capture (`:track:` overrides the event name). Non-Convex targets
- * first resolve the local prelude handler attached by the compiler, then fall
- * through to `options.dispatch` for app-level targets.
+ * analytics capture (`:track:` overrides the event name). `name.nextPage` /
+ * `name.previousPage` targets move a paginated resource through
+ * `options.turnPage`. Other targets first resolve the local prelude handler
+ * attached by the compiler, then fall through to `options.dispatch` for
+ * app-level targets.
  */
 export function createSemanticActionDispatcher(
   context: RenderContext,
   options: SemanticActionDispatcherOptions = {}
 ): (event: WavexActionEvent) => Promise<void> {
   return async (event) => {
+    const page = parsePageTarget(event.target);
+    if (page) {
+      if (event.type === "submit" && typeof event.event.preventDefault === "function") event.event.preventDefault();
+      captureSemanticAnalytics(options, event, { wx_event_type: event.type, wx_target: event.target, wx_kind: "page" });
+      if (!options.turnPage?.(page.name, page.direction)) reportUnhandledAction(options, event, "does not name a paginated resource on this page");
+      return;
+    }
+
     const action = parseConvexActionTarget(event.target);
     if (!action) {
       if (event.type === "submit" && typeof event.event.preventDefault === "function") event.event.preventDefault();
@@ -657,31 +900,39 @@ function ensureResourceContainers(context: RenderContext): void {
   context.resourceStates ??= {};
 }
 
-function markResourceLoading(context: RenderContext, name: string): void {
+// Loading and error states keep the previous value (and binding) visible: a refresh, a page turn,
+// or new args show the last result until the next one arrives.
+function markResourceLoading(context: RenderContext, name: string, page?: PageFlags): void {
   ensureResourceContainers(context);
   const previousState = context.resourceStates?.[name];
   context.resourceStates![name] = {
     status: "loading",
     value: context.resources?.[name] ?? previousState?.value,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    ...page
   };
 }
 
-function markResourceReady(context: RenderContext, name: string, value: unknown): void {
+function markResourceReady(context: RenderContext, name: string, value: unknown, page?: PageFlags): void {
   ensureResourceContainers(context);
   context.resources![name] = value;
-  context.resourceStates![name] = { status: "ready", value, updatedAt: Date.now() };
+  context.resourceStates![name] = { status: "ready", value, updatedAt: Date.now(), ...page };
 }
 
-function markResourceError(context: RenderContext, name: string, error: unknown): void {
+function markResourceError(context: RenderContext, name: string, error: unknown, page?: PageFlags): void {
   ensureResourceContainers(context);
   const previousState = context.resourceStates?.[name];
   context.resourceStates![name] = {
     status: "error",
     value: context.resources?.[name] ?? previousState?.value,
     error,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    ...page
   };
+}
+
+function hasResource(context: RenderContext, name: string): boolean {
+  return (context.resources !== undefined && name in context.resources) || (context.resourceStates !== undefined && name in context.resourceStates);
 }
 
 function clearResource(context: RenderContext, name: string): void {

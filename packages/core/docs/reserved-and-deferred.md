@@ -15,6 +15,11 @@ Reserved or excluded for MVP:
 - Convex `internal` functions are not client-template callable (referencing
   one is a diagnostic).
 - Convex `httpAction` functions are not template-callable.
+- `$$` resources are page-scoped: a `$$` line inside `+for` is an error, and
+  per-item subscriptions are not supported.
+- Paginated resources page one page at a time (`name.nextPage` /
+  `name.previousPage`); a "load more" list that accumulates pages is not
+  provided.
 - Inline JavaScript statements, declarations, and block bodies are not part of
   the template grammar. TypeScript expressions remain allowed in the documented
   expression positions (`+if`, `+for`, `=`, `{{ ... }}`, and dynamic attribute

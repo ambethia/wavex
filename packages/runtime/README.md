@@ -20,7 +20,17 @@ live deployment):
   through the generated `api` object when available.
 - `createResourceController` — keeps subscriptions in sync with the wanted
   definitions; navigation tears down only what changed (route-scoped
-  subscriptions).
+  subscriptions). Every `update()` (navigation, resource changes, local
+  handlers, `app.update({ state })`) re-evaluates each definition's `when`
+  gate (compiled from the enclosing `+if`s) and args: a closed gate
+  unsubscribes and clears the binding and state, changed args resubscribe,
+  and passes repeat while a cleared binding can change another gate. A
+  definition with `pageSize` (`paginate:N`) keeps a cursor stack and
+  subscribes to one page at a time; `turnPage` moves it, `hasPreviousPage` /
+  `hasNextPage` report the position, a new list (args/page size) or a closed
+  gate starts on the first page, and a Convex `SplitRequired` page is ended at
+  its `splitCursor` so no item is silently dropped. Late values from a
+  replaced subscription are ignored by subscription identity, not key.
 - `createSemanticActionDispatcher` + `installSemanticEventDelegation` —
   `:event:target` attributes compile to `data-wx-*` attributes; one delegated
   listener per event type dispatches them. Non-Convex targets first invoke the
@@ -28,8 +38,10 @@ live deployment):
   to an app-level dispatcher; unresolved targets report a configurable
   diagnostic. Convex targets retain full pending/error lifecycle and form
   reset on success; without an action client they go to the app dispatcher or
-  the same unhandled diagnostic instead of reporting success. Both paths capture analytics automatically (`:track:`
-  overrides the event name).
+  the same unhandled diagnostic instead of reporting success. `name.nextPage` /
+  `name.previousPage` targets go to the resource controller's `turnPage`
+  (`parsePageTarget` from `@wavex/core` is the one grammar for them). All paths
+  capture analytics automatically (`:track:` overrides the event name).
 - `createClientRouter` — progressive enhancement over native links: History
   API, lazy route-module loading, layout composition through semantic slots,
   and atomic page swaps via the `RouterPageHost` seam. Navigation lifecycle is
@@ -74,3 +86,12 @@ live deployment):
   and every template's `state` in the editor and `wavex check`.
 - **Deferral:** no SSR runtime beyond the prerender baseline; an edge SSR
   adapter is a possible later tier, not a default.
+- **Pagination is Previous/Next, one live page at a time.** Each page is an
+  ordinary query subscription through the `ResourceClient` seam (args plus
+  `paginationOpts`), so Convex keeps the page's range stable and live and no
+  experimental Convex pagination client is involved. Accumulating pages into
+  one "load more" list is not provided.
+- **Authentication stays app-owned.** WAVEx never calls `setAuth`; an app
+  passes its authenticated Convex client as `resourceClient`/`actionClient`
+  and gates signed-in resources on its own state (update state before
+  clearing auth on sign-out, so gated queries unsubscribe first).

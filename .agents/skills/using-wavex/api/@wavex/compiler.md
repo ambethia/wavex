@@ -23,6 +23,15 @@ are reported on `result.ast.diagnostics`, never thrown.
 - **Render stays side-effect free**: bare `$$module:fn` lines lower to query
   resource definitions; mutations/actions only lower behind explicit triggers
   (`:click:`, `:submit:`).
+- **Resources follow the template**: a `$$` definition carries a `when(context)`
+  gate made of its enclosing `+if` expressions and a `pageSize` from
+  `paginate:N`. `when` and `getArgs` see the same bare locals as the render
+  function (route, attrs, state, resourceStates, actionStates, navigation,
+  resource bindings), so a condition or arg means what it means where it is
+  written. `+suspense reveal:together` waits for a gated resource only while
+  its nested `+if` holds, and `+empty` on a paginated resource also requires
+  that no other page exists. `name.nextPage` / `name.previousPage` targets
+  compile to ordinary delegated `data-wx-*` targets.
 - **Local semantic handlers stay local**: a non-Convex `:event:handler`
   target is emitted as a private element property pointing at the module
   prelude function. Delegation can execute it and request a rerender without a
@@ -157,17 +166,18 @@ Web Awesome component names (without the wa- prefix) referenced by this template
 function compileWavexModule(source, options?): CompileWavexResult;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:128](packages/compiler/src/compiler.ts#L128)
+Defined in: [packages/compiler/src/compiler.ts:131](packages/compiler/src/compiler.ts#L131)
 
 Compile `.wx` source into a Lit render module.
 
 The generated module preserves the TypeScript prelude verbatim, then
 exports: a `render(context)` function built on Lit `html`/`repeat`, a
-`resources` array of inferred Convex query definitions, and a
-`headEntries(context)` function for `+head` content. Components declaring
-`type Attrs = { … }` in their prelude get each attribute destructured as a
-bare typed local in template scope. Parse and compile problems are reported
-on `result.ast.diagnostics`, not thrown.
+`resources` array of inferred Convex query definitions (each with a `when`
+gate from its enclosing `+if` directives and, for `paginate:N`, a
+`pageSize`), and a `headEntries(context)` function for `+head` content.
+Components declaring `type Attrs = { … }` in their prelude get each
+attribute destructured as a bare typed local in template scope. Parse and
+compile problems are reported on `result.ast.diagnostics`, not thrown.
 
 #### Parameters
 
@@ -191,7 +201,7 @@ on `result.ast.diagnostics`, not thrown.
 function componentTagForReference(reference, options?): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:1148](packages/compiler/src/compiler.ts#L1148)
+Defined in: [packages/compiler/src/compiler.ts:1177](packages/compiler/src/compiler.ts#L1177)
 
 Resolve an `@name` reference to its custom-element tag using the compile
 options' component sets (local components shadow Web Awesome).
@@ -218,7 +228,7 @@ options' component sets (local components shadow Web Awesome).
 function utilityClassForToken(token): string;
 ```
 
-Defined in: [packages/compiler/src/compiler.ts:1153](packages/compiler/src/compiler.ts#L1153)
+Defined in: [packages/compiler/src/compiler.ts:1182](packages/compiler/src/compiler.ts#L1182)
 
 Expand one `[utility]` token to its `wa-` class (plain prefix expansion, no mapping table).
 

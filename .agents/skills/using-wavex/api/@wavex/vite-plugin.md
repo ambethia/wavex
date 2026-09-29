@@ -106,6 +106,15 @@ templates and rerenders when the app replaces it. Convex authentication stays
 at the official `ConvexClient.setAuth` boundary; authorization remains a
 backend concern.
 
+Because `resourceClient` and `actionClient` wrap that same authenticated
+client, `$$` resources and `:event:$$module:fn` actions run as the signed-in
+user. Queries that require a user go inside an `+if` on the published auth
+state (`+if state.auth.signedIn`), so they subscribe when `app.update` reports
+the sign-in and unsubscribe when it reports the sign-out. On sign-out, call
+`app.update` with the signed-out state before clearing the client's auth
+(`convex.setAuth(async () => null)`); otherwise Convex re-runs the still-live
+queries without a user and they report errors.
+
 ## Design notes
 
 - Vite+ is the primary substrate by design: module resolution, HMR, package
