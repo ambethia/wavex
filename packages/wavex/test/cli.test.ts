@@ -162,6 +162,22 @@ describe("wavex check", () => {
     expect(process.exitCode).toBe(1);
   });
 
+  it("validates Convex references against a monorepo's shared convex directory", async () => {
+    const workspace = fixtureRoot("wavex-cli-check-monorepo-");
+    writeFixture(workspace, "convex/_generated/api.d.ts", "export declare const api: {};\n");
+    writeFixture(workspace, "convex/tasks.ts", "export const list = query({});\nexport const create = mutation({});\n");
+    const appRoot = join(workspace, "packages", "web");
+    writeFixture(appRoot, "src/pages/index.wx", "~~~\n$$tasks:list\n$$tasks:create\n");
+    const { errors } = captureConsole();
+
+    await runCli(["check", join(appRoot, "src")]);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("WX102");
+    expect(errors[0]).toContain("$$tasks:create");
+    expect(process.exitCode).toBe(1);
+  });
+
   it("resolves the app root when checking a nested src directory", async () => {
     const workspace = fixtureRoot("wavex-cli-check-");
     const appRoot = join(workspace, "apps", "swell");

@@ -226,7 +226,7 @@ Defined in: [packages/runtime/src/router.ts:24](packages/runtime/src/router.ts#L
 file: string;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:16](packages/core/dist/model.d.ts#L16)
+Defined in: [packages/core/dist/model.d.ts:19](packages/core/dist/model.d.ts#L19)
 
 ###### Inherited from
 
@@ -238,7 +238,7 @@ Defined in: [packages/core/dist/model.d.ts:16](packages/core/dist/model.d.ts#L16
 id: string;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:15](packages/core/dist/model.d.ts#L15)
+Defined in: [packages/core/dist/model.d.ts:18](packages/core/dist/model.d.ts#L18)
 
 ###### Inherited from
 
@@ -272,7 +272,7 @@ Defined in: [packages/runtime/src/router.ts:20](packages/runtime/src/router.ts#L
 path: string;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:17](packages/core/dist/model.d.ts#L17)
+Defined in: [packages/core/dist/model.d.ts:20](packages/core/dist/model.d.ts#L20)
 
 ###### Inherited from
 
@@ -284,7 +284,7 @@ Defined in: [packages/core/dist/model.d.ts:17](packages/core/dist/model.d.ts#L17
 segments: RouteSegment[];
 ```
 
-Defined in: [packages/core/dist/model.d.ts:18](packages/core/dist/model.d.ts#L18)
+Defined in: [packages/core/dist/model.d.ts:21](packages/core/dist/model.d.ts#L21)
 
 ###### Inherited from
 

@@ -3,7 +3,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
-import { detectCapabilities, readManifestComponentDetails, webAwesomeBooleanAttributes } from "../src/capabilities.js";
+import {
+  detectCapabilities,
+  discoverConvexFunctionKinds,
+  findConvexDir,
+  readManifestComponentDetails,
+  webAwesomeBooleanAttributes
+} from "../src/capabilities.js";
 
 const tempDirs: string[] = [];
 
@@ -67,5 +73,45 @@ describe("Web Awesome boolean attributes", () => {
     expect([...booleans.get("button")!]).toEqual(expect.arrayContaining(["with-caret", "disabled", "loading", "pill"]));
     expect([...booleans.get("progress-bar")!]).toContain("indeterminate");
     expect([...booleans.get("card")!]).toEqual(expect.arrayContaining(["with-header", "with-footer"]));
+  });
+});
+
+describe("findConvexDir", () => {
+  it("prefers the app root's own convex directory", () => {
+    const root = fixtureRoot("wavex-core-convex-own-");
+    writeFixture(root, "convex/_generated/api.d.ts", "export {};\n");
+    writeFixture(root, "apps/web/convex/tasks.ts", "export const list = query({});\n");
+
+    expect(findConvexDir(join(root, "apps/web"))).toBe(join(root, "apps/web/convex"));
+  });
+
+  it("finds a monorepo's Convex project in the nearest ancestor with generated code", () => {
+    const root = fixtureRoot("wavex-core-convex-monorepo-");
+    writeFixture(root, "convex/_generated/api.d.ts", "export {};\n");
+    writeFixture(root, "convex/tasks.ts", "export const list = query({});\nexport const create = mutation({});\n");
+    writeFixture(root, "packages/web/src/pages/index.wx", "~~~\nmain\n");
+
+    const appRoot = join(root, "packages/web");
+
+    expect(findConvexDir(appRoot)).toBe(join(root, "convex"));
+    expect(discoverConvexFunctionKinds(appRoot)).toEqual({ "tasks:list": "query", "tasks:create": "mutation" });
+  });
+
+  it("accepts an ancestor convex directory marked by convex.json before codegen has run", () => {
+    const root = fixtureRoot("wavex-core-convex-json-");
+    writeFixture(root, "convex.json", "{}\n");
+    writeFixture(root, "convex/tasks.ts", "export const list = query({});\n");
+    // An ancestor-level convex/ without _generated or convex.json is not a Convex project.
+    writeFixture(root, "packages/convex/notes.md", "not convex\n");
+
+    expect(findConvexDir(join(root, "packages/web"))).toBe(join(root, "convex"));
+  });
+
+  it("returns undefined when the app has no Convex directory", () => {
+    const root = fixtureRoot("wavex-core-convex-none-");
+    writeFixture(root, "src/pages/index.wx", "~~~\nmain\n");
+
+    expect(findConvexDir(root)).toBeUndefined();
+    expect(discoverConvexFunctionKinds(root)).toEqual({});
   });
 });

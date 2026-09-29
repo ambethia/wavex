@@ -18,6 +18,7 @@ const missingConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/page
 const invalidConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/invalid-resource.wx");
 const hyphenConvexResourceFixture = resolve(fixturesDir, "typed-convex/src/pages/hyphen-resource.wx");
 const typedConvexServerShim = resolve(fixturesDir, "typed-convex/convex-server.d.ts");
+const monorepoConvexFixture = resolve(fixturesDir, "monorepo/packages/web/src/pages/resources.wx");
 
 function createChecker(files: string[]) {
   return createTypeScriptInferredChecker(
@@ -68,6 +69,17 @@ describe("@wavex/lsp", () => {
     const resourceTypeError = diagnostics.find((diagnostic) => String(diagnostic.message).includes("toUpperCase"));
     expect(resourceTypeError).toBeDefined();
     expect(resourceTypeError!.source).not.toBe("wavex");
+    expect(resourceTypeError!.range.start.line).toBe(3);
+    expect(diagnostics.filter((diagnostic) => diagnostic !== resourceTypeError)).toEqual([]);
+  });
+
+  it("types Convex resources from a monorepo's shared convex directory", async () => {
+    const checker = createChecker([monorepoConvexFixture, typedConvexServerShim]);
+    const diagnostics = await checker.check(monorepoConvexFixture);
+
+    // talks resolves through ../../../../convex/_generated/api, so minutes is a number.
+    const resourceTypeError = diagnostics.find((diagnostic) => String(diagnostic.message).includes("toUpperCase"));
+    expect(resourceTypeError).toBeDefined();
     expect(resourceTypeError!.range.start.line).toBe(3);
     expect(diagnostics.filter((diagnostic) => diagnostic !== resourceTypeError)).toEqual([]);
   });

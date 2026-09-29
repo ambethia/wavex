@@ -36,7 +36,11 @@ single source of truth for the WAVEx language.
   discovery, so they parse an app identically.
 - **Directory structure is framework law.** Routes in `src/pages`, components
   in `src/components`, Convex in `convex`, static assets in `public`. There is
-  deliberately no configuration to move these.
+  deliberately no configuration to move these. The only lookup is Convex's
+  location: `findConvexDir` returns the app root's own `convex/`, or in a
+  monorepo the nearest ancestor Convex project (`convex/_generated`, or
+  `convex/` next to `convex.json`); every tool calls it instead of assuming
+  `<app root>/convex`.
 - **Capability-based, BYO license.** Free Web Awesome / Font Awesome packages
   unlock the free surface; Pro packages unlock Pro. WAVEx stays
   open-sourceable because it never bundles or requires licensed assets.

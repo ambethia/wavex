@@ -2,6 +2,9 @@
  * Fixed directory layout of a WAVEx app. The structure is framework law, not
  * configuration: routes live in `src/pages`, reusable template components in
  * `src/components`, Convex functions in `convex`, static assets in `public`.
+ * The one lookup is where `convex` lives: the app root's own, or in a monorepo
+ * the nearest ancestor Convex project (see `findConvexDir` in
+ * `@wavex/core/capabilities`).
  */
 export interface WavexConfig {
   sourceDir: string;

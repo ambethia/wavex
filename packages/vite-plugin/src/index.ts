@@ -19,7 +19,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { compileWavexModule } from "@wavex/compiler";
 import { createDefaultConfig, createRouteDefinition, formatDiagnostic, normalizeSlashes } from "@wavex/core";
-import { detectCapabilities, discoverConvexFunctionKinds, type ProjectCapabilities } from "@wavex/core/capabilities";
+import { detectCapabilities, discoverConvexFunctionKinds, findConvexDir, type ProjectCapabilities } from "@wavex/core/capabilities";
 import type { Plugin, ViteDevServer } from "vite";
 import { transformWithOxc } from "vite";
 
@@ -89,7 +89,9 @@ export function wavex(options: WavexVitePluginOptions = {}): Plugin {
     },
     configureServer(server) {
       const config = resolveDirs(server.config.root);
-      server.watcher.add([config.pagesDir, config.componentsDir, config.convexDir].filter(existsSync));
+      server.watcher.add(
+        [config.pagesDir, config.componentsDir, config.convexDir].filter((dir): dir is string => dir !== undefined && existsSync(dir))
+      );
       server.watcher.on("change", (file) => {
         if (isConvexSourceFile(file, config)) {
           convexFunctionKinds = undefined;
@@ -235,18 +237,20 @@ interface ResolvedDirs {
   pagesDir: string;
   componentsDir: string;
   styleFile: string;
-  convexDir: string;
-  convexApiFile: string;
+  /** The app's Convex directory: `<root>/convex`, or the monorepo's (see `findConvexDir`). */
+  convexDir?: string;
+  convexApiFile?: string;
 }
 
 function resolveDirs(root: string): ResolvedDirs {
   const defaults = createDefaultConfig();
+  const convexDir = findConvexDir(root);
   return {
     pagesDir: resolve(root, defaults.pagesDir),
     componentsDir: resolve(root, defaults.componentsDir),
     styleFile: resolve(root, defaults.sourceDir, "style.css"),
-    convexDir: resolve(root, defaults.apiDir),
-    convexApiFile: resolve(root, defaults.apiDir, "_generated/api.js")
+    convexDir,
+    convexApiFile: convexDir ? join(convexDir, "_generated", "api.js") : undefined
   };
 }
 
@@ -271,9 +275,10 @@ function generateManifestModule(root: string, options: WavexVitePluginOptions = 
 
 function generateBootstrapModule(config: ResolvedDirs, root: string, options: WavexVitePluginOptions = {}): string {
   const styleImport = existsSync(config.styleFile) ? `import ${JSON.stringify(publicImportPath(root, config.styleFile))};` : "";
-  const apiImport = existsSync(config.convexApiFile)
-    ? `import { api as convexApi } from ${JSON.stringify(publicImportPath(root, config.convexApiFile))};`
-    : `const convexApi = undefined;`;
+  const apiImport =
+    config.convexApiFile && existsSync(config.convexApiFile)
+      ? `import { api as convexApi } from ${JSON.stringify(publicImportPath(root, config.convexApiFile))};`
+      : `const convexApi = undefined;`;
 
   return [
     `import { mountLitApp } from "@wavex/runtime/lit";`,
@@ -319,8 +324,15 @@ function generateBootstrapModule(config: ResolvedDirs, root: string, options: Wa
   ].filter((line) => line !== "").join("\n");
 }
 
+/**
+ * Import specifier for a project file from a generated module: root-relative
+ * inside the Vite root, and Vite's `/@fs/` absolute form outside it (a
+ * monorepo's shared `convex/` directory).
+ */
 function publicImportPath(root: string, file: string): string {
-  return `/${normalizeSlashes(relative(root, file))}`;
+  if (isInside(file, root)) return `/${normalizeSlashes(relative(root, file))}`;
+  const absolute = normalizeSlashes(resolve(file));
+  return `/@fs${absolute.startsWith("/") ? "" : "/"}${absolute}`;
 }
 
 function discoverRoutes(pagesDir: string, root: string) {
@@ -481,5 +493,5 @@ function isWavexTemplateFile(file: string, config: ResolvedDirs): boolean {
 }
 
 function isConvexSourceFile(file: string, config: ResolvedDirs): boolean {
-  return file.endsWith(".ts") && !file.endsWith(".d.ts") && isInside(file, config.convexDir);
+  return config.convexDir !== undefined && file.endsWith(".ts") && !file.endsWith(".d.ts") && isInside(file, config.convexDir);
 }

@@ -67,7 +67,7 @@ on `result.ast.diagnostics`, not thrown.
 function createDefaultConfig(): WavexConfig;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:54](packages/core/dist/model.d.ts#L54)
+Defined in: [packages/core/dist/model.d.ts:57](packages/core/dist/model.d.ts#L57)
 
 The standard WAVEx app layout (see [WavexConfig](@wavex/core/README.md#wavexconfig)).
 
@@ -83,7 +83,7 @@ The standard WAVEx app layout (see [WavexConfig](@wavex/core/README.md#wavexconf
 function createRouteDefinition(file, pagesDir?): RouteDefinition | undefined;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:68](packages/core/dist/model.d.ts#L68)
+Defined in: [packages/core/dist/model.d.ts:71](packages/core/dist/model.d.ts#L71)
 
 Build a full [RouteDefinition](@wavex/core/README.md#routedefinition) from a page file path, or undefined if the file is not routable.
 
@@ -146,7 +146,7 @@ attribute of the Web Awesome component it resolves to (see
 function routePathFromPageFile(file, pagesDir?): string | undefined;
 ```
 
-Defined in: [packages/core/dist/model.d.ts:62](packages/core/dist/model.d.ts#L62)
+Defined in: [packages/core/dist/model.d.ts:65](packages/core/dist/model.d.ts#L65)
 
 Derive a route path from a page file path, or undefined for non-routable
 files (`+layout.wx`, `+error.wx`, non-`.wx` files). `index.wx` maps to the

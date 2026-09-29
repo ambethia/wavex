@@ -28,6 +28,23 @@ public/
 
 These paths are framework law. WAVEx tooling does not support alternate page or component roots.
 
+In a monorepo the web app can be a workspace package while Convex lives at the
+repository root:
+
+```txt
+convex/            <- shared Convex project (convex/_generated or convex.json)
+packages/web/
+  src/pages/
+  src/components/
+```
+
+WAVEx uses the app root's own `convex/` when it exists; otherwise it uses the
+nearest ancestor `convex/` that is a Convex project — one with
+`convex/_generated` (codegen has run) or next to a `convex.json`. The Vite
+plugin, `wavex check`, and the LSP all resolve the same directory for function
+kinds, generated types, the default bootstrap's `api` import, and dev-server
+file watching.
+
 ### Document shell
 
 WAVEx owns the document body. `index.html` contains no mount element (no `<div id="app">`); the app renders directly under `<body>`. The root layout conventionally renders `@page` (Web Awesome `<wa-page>`) as the app's root element, filling its named regions through native `slot:` attributes:

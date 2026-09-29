@@ -16,7 +16,7 @@ TextMate grammar; the grammar is cosmetic, while this LSP uses the
 
 ### WavexVirtualCode
 
-Defined in: [packages/lsp/src/language.ts:83](packages/lsp/src/language.ts#L83)
+Defined in: [packages/lsp/src/language.ts:85](packages/lsp/src/language.ts#L85)
 
 The Volar virtual code for one `.wx` document: parses with the
 `@wavex/core` parser (the single parser), keeps the AST for non-TS
@@ -38,7 +38,7 @@ new WavexVirtualCode(
    parseOptions?): WavexVirtualCode;
 ```
 
-Defined in: [packages/lsp/src/language.ts:90](packages/lsp/src/language.ts#L90)
+Defined in: [packages/lsp/src/language.ts:92](packages/lsp/src/language.ts#L92)
 
 ###### Parameters
 
@@ -66,7 +66,7 @@ Defined in: [packages/lsp/src/language.ts:90](packages/lsp/src/language.ts#L90)
 ast: WavexFile;
 ```
 
-Defined in: [packages/lsp/src/language.ts:88](packages/lsp/src/language.ts#L88)
+Defined in: [packages/lsp/src/language.ts:90](packages/lsp/src/language.ts#L90)
 
 ##### embeddedCodes
 
@@ -74,7 +74,7 @@ Defined in: [packages/lsp/src/language.ts:88](packages/lsp/src/language.ts#L88)
 embeddedCodes: VirtualCode[] = [];
 ```
 
-Defined in: [packages/lsp/src/language.ts:87](packages/lsp/src/language.ts#L87)
+Defined in: [packages/lsp/src/language.ts:89](packages/lsp/src/language.ts#L89)
 
 ###### Implementation of
 
@@ -88,7 +88,7 @@ VirtualCode.embeddedCodes
 id: string = "root";
 ```
 
-Defined in: [packages/lsp/src/language.ts:84](packages/lsp/src/language.ts#L84)
+Defined in: [packages/lsp/src/language.ts:86](packages/lsp/src/language.ts#L86)
 
 ###### Implementation of
 
@@ -102,7 +102,7 @@ VirtualCode.id
 languageId: string = WAVEX_LANGUAGE_ID;
 ```
 
-Defined in: [packages/lsp/src/language.ts:85](packages/lsp/src/language.ts#L85)
+Defined in: [packages/lsp/src/language.ts:87](packages/lsp/src/language.ts#L87)
 
 ###### Implementation of
 
@@ -116,7 +116,7 @@ VirtualCode.languageId
 mappings: CodeMapping[] = [];
 ```
 
-Defined in: [packages/lsp/src/language.ts:86](packages/lsp/src/language.ts#L86)
+Defined in: [packages/lsp/src/language.ts:88](packages/lsp/src/language.ts#L88)
 
 ###### Implementation of
 
@@ -130,7 +130,7 @@ VirtualCode.mappings
 snapshot: IScriptSnapshot;
 ```
 
-Defined in: [packages/lsp/src/language.ts:90](packages/lsp/src/language.ts#L90)
+Defined in: [packages/lsp/src/language.ts:92](packages/lsp/src/language.ts#L92)
 
 ###### Implementation of
 
@@ -226,7 +226,7 @@ Full Web Awesome component metadata for attribute completions and hover.
 type WavexParseOptionsResolver = (fileName) => ParseWavexOptions;
 ```
 
-Defined in: [packages/lsp/src/language.ts:36](packages/lsp/src/language.ts#L36)
+Defined in: [packages/lsp/src/language.ts:38](packages/lsp/src/language.ts#L38)
 
 Resolves the parse options (component context such as installed Web Awesome
 boolean attributes) for a `.wx` file path, so virtual code parses component
@@ -264,7 +264,7 @@ Static options, or a per-document resolver so multi-project workspaces get the r
 const WAVEX_LANGUAGE_ID: "wavex" = "wavex";
 ```
 
-Defined in: [packages/lsp/src/language.ts:20](packages/lsp/src/language.ts#L20)
+Defined in: [packages/lsp/src/language.ts:22](packages/lsp/src/language.ts#L22)
 
 The LSP language id for `.wx` documents.
 
@@ -276,7 +276,7 @@ The LSP language id for `.wx` documents.
 function createWavexLanguagePlugin(parseOptionsFor?): LanguagePlugin<URI>;
 ```
 
-Defined in: [packages/lsp/src/language.ts:48](packages/lsp/src/language.ts#L48)
+Defined in: [packages/lsp/src/language.ts:50](packages/lsp/src/language.ts#L50)
 
 Volar language plugin: recognizes `.wx` files and produces a
 [WavexVirtualCode](#wavexvirtualcode) per document, with the embedded TypeScript code

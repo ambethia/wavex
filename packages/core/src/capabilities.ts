@@ -18,10 +18,10 @@
  * @module capabilities
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { ComponentNode, ConvexCallNode, ConvexReferenceNode, TemplateNode, WavexFile } from "./ast.js";
 import type { Diagnostic } from "./model.js";
-import { toKebabCase } from "./model.js";
+import { createDefaultConfig, toKebabCase } from "./model.js";
 
 /** Installed Web Awesome package details available to validation and code generation. */
 export interface WebAwesomeCapability {
@@ -306,14 +306,51 @@ export function convexSemanticEventTargetReference(target: string): string | und
 }
 
 /**
- * Classify Convex functions by scanning convex/ sources ("module/path:fn" ->
- * kind). Public functions keep their concrete query/mutation/action kind;
- * internal functions and httpAction exports are marked as non-template-callable.
- * Shared by the compiler, Vite plugin, CLI, and LSP.
+ * Find the Convex functions directory for a WAVEx app root.
+ *
+ * The app root's own `convex/` wins when present (the single-package layout).
+ * Otherwise the nearest ancestor directory whose `convex/` is a Convex project
+ * — it has `convex/_generated` (codegen has run) or sits next to a
+ * `convex.json` — is used, which covers monorepos where the web app is a
+ * workspace package and Convex lives at the repository root. Returns undefined
+ * when neither exists. Shared by the Vite plugin, CLI, and LSP so they agree
+ * on one Convex directory.
+ */
+export function findConvexDir(appRoot: string): string | undefined {
+  const convexDirName = createDefaultConfig().apiDir;
+  const own = join(resolve(appRoot), convexDirName);
+  if (isDirectory(own)) return own;
+  let dir = dirname(resolve(appRoot));
+  while (true) {
+    const candidate = join(dir, convexDirName);
+    if (isDirectory(join(candidate, "_generated")) || (existsSync(join(dir, "convex.json")) && isDirectory(candidate))) {
+      return candidate;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
+function isDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Classify Convex functions by scanning the app's Convex sources
+ * ("module/path:fn" -> kind), located with {@link findConvexDir}. Public
+ * functions keep their concrete query/mutation/action kind; internal functions
+ * and httpAction exports are marked as non-template-callable. Shared by the
+ * compiler, Vite plugin, CLI, and LSP.
  */
 export function discoverConvexFunctionKinds(root: string): Record<string, ConvexFunctionKind> {
-  const convexDir = join(root, "convex");
+  const convexDir = findConvexDir(root);
   const kinds: Record<string, ConvexFunctionKind> = {};
+  if (!convexDir) return kinds;
   const walk = (dir: string) => {
     if (!existsSync(dir)) return;
     for (const entry of readdirSync(dir, { withFileTypes: true })) {

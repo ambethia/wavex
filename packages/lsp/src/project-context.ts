@@ -69,7 +69,8 @@ function discoverConvexServiceOptions(root: string): Pick<WavexServiceOptions, "
   };
 }
 
-function findAppRoot(startDir: string): string | undefined {
+/** The app root for a file in the editor: the nearest directory with a package.json. */
+export function findAppRoot(startDir: string): string | undefined {
   let dir = startDir;
   for (let depth = 0; depth < 30; depth += 1) {
     if (existsSync(join(dir, "package.json"))) return dir;

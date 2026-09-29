@@ -374,3 +374,39 @@ describe("wavex Vite dev-server integration", () => {
     expect(server.ws.send).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("wavex Vite monorepo Convex discovery", () => {
+  it("uses the repository's Convex directory for kinds, the bootstrap api import, and the watcher", async () => {
+    const workspace = fixtureRoot("wavex-vite-monorepo-");
+    writeFixture(workspace, "pnpm-workspace.yaml", "packages:\n  - packages/*\n");
+    writeFixture(workspace, "convex/_generated/api.js", "export const api = {};\n");
+    const convexSource = writeFixture(workspace, "convex/tasks.ts", "export const list = query({});\nexport const create = mutation({});\n");
+    const root = join(workspace, "packages/web");
+    const pageFile = writeFixture(root, "src/pages/index.wx", "~~~\n$$tasks:create\n");
+    const plugin = configuredPlugin(root);
+
+    const manifest = plugin.load(plugin.resolveId("virtual:wavex/manifest")) as string;
+    const bootstrap = plugin.load(plugin.resolveId("/@wavex/bootstrap")) as string;
+
+    expect(manifest).toContain('"tasks:create":"mutation"');
+    expect(bootstrap).toContain(`import { api as convexApi } from "/@fs${join(workspace, "convex/_generated/api.js").replace(/\\/g, "/")}";`);
+
+    // Kinds come from the shared convex/: a bare mutation binding is rejected.
+    const context = {
+      addWatchFile: vi.fn(),
+      warn: vi.fn(),
+      error(error: { message: string }) {
+        throw new Error(error.message);
+      }
+    };
+    await expect(plugin.transform.call(context, "~~~\n$$tasks:create\n", pageFile)).rejects.toThrow(/WX102/);
+
+    const { server, change, close } = createDevServer(root, new Map());
+    plugin.configureServer(server);
+    change(convexSource);
+    close();
+
+    expect(server.watcher.add).toHaveBeenCalledWith([join(root, "src/pages"), join(workspace, "convex")]);
+    expect(server.ws.send).toHaveBeenCalledWith({ type: "full-reload", path: "*" });
+  });
+});

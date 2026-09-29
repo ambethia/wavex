@@ -13,8 +13,10 @@ import {
   type TemplateNode,
   type WavexFile
 } from "@wavex/core";
+import { findConvexDir } from "@wavex/core/capabilities";
 import type * as ts from "typescript";
 import type { URI } from "vscode-uri";
+import { findAppRoot } from "./project-context.js";
 
 /** The LSP language id for `.wx` documents. */
 export const WAVEX_LANGUAGE_ID = "wavex";
@@ -103,22 +105,18 @@ export class WavexVirtualCode implements VirtualCode {
   }
 }
 
-/** Relative import to convex/_generated/api from the .wx file, when the app has one. */
+/**
+ * Relative import to the app's generated Convex api from the .wx file, when it
+ * has one. The Convex directory is found from the app root (nearest
+ * package.json) with the shared `findConvexDir`, like the plugin and CLI.
+ */
 function convexApiImportPath(fsPath: string | undefined): string | undefined {
   if (!fsPath) return undefined;
-  let dir = dirname(fsPath);
-  for (let depth = 0; depth < 20; depth += 1) {
-    if (existsSync(join(dir, "convex", "_generated", "api.d.ts"))) {
-      const relativePath = relative(dirname(fsPath), join(dir, "convex", "_generated", "api"))
-        .split("\\")
-        .join("/");
-      return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
-    }
-    const parent = dirname(dir);
-    if (parent === dir) return undefined;
-    dir = parent;
-  }
-  return undefined;
+  const appRoot = findAppRoot(dirname(fsPath));
+  const convexDir = appRoot ? findConvexDir(appRoot) : undefined;
+  if (!convexDir || !existsSync(join(convexDir, "_generated", "api.d.ts"))) return undefined;
+  const relativePath = relative(dirname(fsPath), join(convexDir, "_generated", "api")).split("\\").join("/");
+  return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
 }
 
 function createTypeScriptCode(source: string, ast: WavexFile, fsPath?: string): VirtualCode {

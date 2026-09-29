@@ -20,6 +20,10 @@ owns the WAVEx-specific dev/build surface:
   HMR event protocol.
 - Lit dedupe and Web Awesome dep-optimizer exclusions, so custom elements are
   served as native ESM and never registered twice.
+- Monorepo-aware Convex discovery: the app's own `convex/`, or the nearest
+  ancestor Convex project (`findConvexDir` from `@wavex/core/capabilities`),
+  feeds function kinds, the bootstrap's generated `api` import (via `/@fs/`
+  when it lives outside the Vite root), and the dev watcher.
 
 The `@wavex/vite-plugin/client` subpath ships ambient `*.wx` module
 declarations plus types for both virtual modules; apps reference it from
